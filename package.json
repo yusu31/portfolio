@@ -12,6 +12,9 @@
     "astro": "astro",
     "deploy": "pnpm build && wrangler pages deploy dist --project-name=portfolio"
   },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
     "@tailwindcss/vite": "^4.3.1",
