@@ -207,7 +207,7 @@ gsap.registerPlugin(SplitText, ScrollTrigger);
 })();
 
 /* GSAP SplitText ヒーロー入場 */
-window.addEventListener('load', () => {
+function runHeroAnim() {
   try {
     const sp = SplitText.create('#hey', { type: 'chars', mask: 'chars' });
     gsap.from(sp.chars, { yPercent: 110, duration: 0.85, stagger: 0.06, ease: 'power3.out', delay: 0.2 });
@@ -218,7 +218,13 @@ window.addEventListener('load', () => {
   gsap.from('.hero-tag', { opacity: 0, y: 14, duration: 0.6, delay: 0.9 });
   gsap.from('.btn-primary, .btn-secondary', { opacity: 0, duration: 0.5, stagger: 0.1, delay: 1.1 });
   gsap.from('.char-wrap', { opacity: 0, x: 40, duration: 0.9, ease: 'power2.out', delay: 0.4 });
-});
+}
+
+if (document.readyState === 'complete') {
+  runHeroAnim();
+} else {
+  window.addEventListener('load', runHeroAnim);
+}
 
 /* キャラクターの目がマウスを追う */
 const charEl = document.getElementById('char')!;
