@@ -6,6 +6,7 @@ import Impact from '../components/sections/Impact.astro';
 import Story from '../components/sections/Story.astro';
 import Projects from '../components/sections/Projects.astro';
 import Skills from '../components/sections/Skills.astro';
+import Blog from '../components/sections/Blog.astro';
 import Contact from '../components/sections/Contact.astro';
 import Footer from '../components/ui/Footer.astro';
 ---
@@ -18,6 +19,7 @@ import Footer from '../components/ui/Footer.astro';
     <Story />
     <Projects />
     <Skills />
+    <Blog />
     <Contact />
   </main>
   <Footer />
@@ -38,7 +40,7 @@ import Footer from '../components/ui/Footer.astro';
 /* ===== i18n ===== */
 const T: Record<string, Record<string, string>> = {
   ja: {
-    nav_impact: '数字で見る', nav_story: 'ストーリー', nav_works: '作品', nav_contact: '連絡',
+    nav_impact: '数字で見る', nav_story: 'ストーリー', nav_works: '作品', nav_blog: 'ブログ', nav_contact: '連絡',
     hero_badge: '元体育教師のエンジニア',
     hero_sub: '<strong class="text-white font-bold">体育の先生が、今はコードを書いている。</strong><br>フィールドで磨いた「課題解決思考」を、ソフトウェアで再定義する。',
     hero_cta1: '作品を見る', hero_cta2: '連絡する',
@@ -63,11 +65,13 @@ const T: Record<string, Record<string, string>> = {
     err_imp:  '→ 学習時間 週 2h+ 節約。自分自身が毎日利用中。',
     demo_link: '↗ デモを見る',
     skills_h: 'できること。', skills_desc: '「何の技術を知っているか」ではなく、「何を実現できるか」。',
+    blog_h: '書いたこと。', blog_desc: '学んだことを言語化して残す。アウトプットは最良のインプット。',
+    blog_soon_title: 'Coming Soon', blog_soon_desc: 'Zenn で技術記事を準備中です。<br>公開したらここに掲載します。',
     contact_h: '話しかけてください。', contact_desc: '副業・採用のご相談、共同開発のお話——なんでも大歓迎です。',
     f_name: 'お名前', f_name_ph: 'お名前', f_email: 'メールアドレス', f_msg: 'メッセージ', f_msg_ph: 'メッセージをどうぞ', f_submit: '送信する →',
   },
   en: {
-    nav_impact: 'Numbers', nav_story: 'Story', nav_works: 'Works', nav_contact: 'Contact',
+    nav_impact: 'Numbers', nav_story: 'Story', nav_works: 'Works', nav_blog: 'Blog', nav_contact: 'Contact',
     hero_badge: 'Former PE Teacher → Engineer',
     hero_sub: '<strong class="text-white font-bold">A PE teacher who now writes code.</strong><br>Redefining problem-solving skills from the field through software.',
     hero_cta1: 'View Works', hero_cta2: 'Get in Touch',
@@ -92,6 +96,8 @@ const T: Record<string, Record<string, string>> = {
     err_imp:  '→ 2h+ saved weekly. Used daily by myself.',
     demo_link: '↗ Live Demo',
     skills_h: 'What I Can Do.', skills_desc: "Not what technologies I know, but what I can build.",
+    blog_h: "What I've Written.", blog_desc: 'Turning learning into words. Output is the best input.',
+    blog_soon_title: 'Coming Soon', blog_soon_desc: 'Preparing articles on Zenn.<br>They\'ll appear here once published.',
     contact_h: "Let's Talk.", contact_desc: 'Freelance, job offers, collaboration — all welcome.',
     f_name: 'Name', f_name_ph: 'Your name', f_email: 'Email', f_msg: 'Message', f_msg_ph: 'Your message here', f_submit: 'Send Message →',
   },
