@@ -1,0 +1,63 @@
+---
+---
+
+<section id="contact" class="border-t border-[var(--color-bd)]">
+  <div class="max-w-5xl mx-auto px-6 py-24">
+    <div class="reveal mb-10">
+      <p class="font-en text-[0.66rem] font-bold text-[var(--color-or)] tracking-[0.22em] uppercase mb-2">Contact</p>
+      <h2 class="font-ja font-bold text-[var(--color-tx)] mb-3" style="font-size:clamp(1.75rem,4.5vw,2.75rem);letter-spacing:-0.03em;line-height:1.1" data-t="contact_h">
+        話しかけてください。
+      </h2>
+      <p class="font-ja text-[var(--color-sub)] text-[0.88rem] leading-[1.95] max-w-lg" data-t="contact_desc">
+        副業・採用のご相談、共同開発のお話——なんでも大歓迎です。
+      </p>
+    </div>
+
+    <div class="reveal max-w-[490px]">
+      <div class="flex flex-col gap-1.5 mb-3">
+        <label class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_name">お名前</label>
+        <input type="text" data-tp="f_name_ph"
+          class="bg-white border border-[var(--color-bd)] rounded-lg px-4 py-3 text-[var(--color-tx)] font-ja text-[0.87rem] outline-none transition-all focus:border-[var(--color-or)] focus:shadow-[0_0_0_3px_rgba(249,115,22,0.08)] w-full"/>
+      </div>
+      <div class="flex flex-col gap-1.5 mb-3">
+        <label class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_email">メールアドレス</label>
+        <input type="email" placeholder="example@email.com"
+          class="bg-white border border-[var(--color-bd)] rounded-lg px-4 py-3 text-[var(--color-tx)] font-ja text-[0.87rem] outline-none transition-all focus:border-[var(--color-or)] focus:shadow-[0_0_0_3px_rgba(249,115,22,0.08)] w-full"/>
+      </div>
+      <div class="flex flex-col gap-1.5 mb-3">
+        <label class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_msg">メッセージ</label>
+        <textarea rows="5" data-tp="f_msg_ph"
+          class="bg-white border border-[var(--color-bd)] rounded-lg px-4 py-3 text-[var(--color-tx)] font-ja text-[0.87rem] outline-none transition-all focus:border-[var(--color-or)] focus:shadow-[0_0_0_3px_rgba(249,115,22,0.08)] w-full resize-none"></textarea>
+      </div>
+      <button data-mag data-t="f_submit"
+        class="magnetic-btn inline-block px-9 py-3.5 bg-[var(--color-or)] text-white font-ja font-bold text-[0.87rem] rounded-[10px] border-none mt-2 transition-shadow hover:shadow-[0_8px_28px_rgba(194,65,12,0.35)] will-change-transform">
+        送信する →
+      </button>
+    </div>
+  </div>
+</section>
+
+<script>
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+
+document.querySelectorAll<HTMLElement>('.reveal').forEach((el) => {
+  ScrollTrigger.create({ trigger: el, start: 'top 83%', onEnter: () => el.classList.add('reveal-in') });
+});
+
+/* 磁気ボタン */
+document.querySelectorAll<HTMLElement>('[data-mag]').forEach((el) => {
+  el.addEventListener('mousemove', (e) => {
+    const { left, top, width, height } = el.getBoundingClientRect();
+    const dx = (e.clientX - left - width  / 2) * 0.42;
+    const dy = (e.clientY - top  - height / 2) * 0.42;
+    el.style.transition = 'transform 0.12s ease';
+    el.style.transform  = `translate(${dx}px, ${dy}px)`;
+  });
+  el.addEventListener('mouseleave', () => {
+    el.style.transition = 'transform 0.7s cubic-bezier(.23,1,.32,1)';
+    el.style.transform  = 'translate(0, 0)';
+  });
+});
+</script>

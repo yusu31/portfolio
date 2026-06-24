@@ -1,0 +1,14 @@
+# Astro
+dist/
+.astro/
+
+# 依存関係
+node_modules/
+lunar-luminosity/
+
+# ビルド成果物
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
