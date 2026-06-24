@@ -25,12 +25,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       from: 'Portfolio <onboarding@resend.dev>',
       to: ['3.fortschritt@gmail.com'],
       subject: `【ポートフォリオ】${esc(name)} 様からのお問い合わせ`,
-      html: `
+      html: `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>
         <p><strong>お名前:</strong> ${esc(name)}</p>
         <p><strong>メールアドレス:</strong> ${esc(email)}</p>
         <p><strong>メッセージ:</strong></p>
         <p style="white-space:pre-wrap">${esc(message)}</p>
-      `,
+        </body></html>`,
     });
 
     if (error) return res({}, { error: error.message }, 500);
