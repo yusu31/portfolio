@@ -17,3 +17,6 @@ lunar-luminosity/
 # OS
 .DS_Store
 Thumbs.db
+
+# 誤作成ファイル
+public/og-image.png.svg
