@@ -1,0 +1,44 @@
+---
+---
+
+<nav id="nav" class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-12 py-5 transition-all duration-300 bg-[#9a3412]/85 backdrop-blur-xl border-b border-white/10">
+  <a href="#" id="logo" class="font-en font-extrabold text-[1.1rem] tracking-tight text-white no-underline">
+    yu<em class="not-italic text-[var(--color-am)]">.</em>
+  </a>
+
+  <ul id="nav-list" class="list-none flex items-center gap-8">
+    <li><a href="#impact"  data-t="nav_impact" class="font-ja text-[0.82rem] font-bold text-white/65 no-underline transition-colors hover:text-[var(--color-am)]">数字で見る</a></li>
+    <li><a href="#story"   data-t="nav_story"  class="font-ja text-[0.82rem] font-bold text-white/65 no-underline transition-colors hover:text-[var(--color-am)]">ストーリー</a></li>
+    <li><a href="#projects" data-t="nav_works" class="font-ja text-[0.82rem] font-bold text-white/65 no-underline transition-colors hover:text-[var(--color-am)]">作品</a></li>
+    <li><a href="#contact" data-t="nav_contact" class="font-ja text-[0.82rem] font-bold text-white/65 no-underline transition-colors hover:text-[var(--color-am)]">連絡</a></li>
+    <li>
+      <button id="lang-btn"
+        class="font-en text-[0.65rem] font-bold tracking-widest px-3 py-1.5 rounded-full bg-white/12 text-white border-none transition-all hover:bg-white/22">
+        EN
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<script>
+  const nav = document.getElementById('nav')!;
+  const logo = document.getElementById('logo')!;
+  const hero = document.getElementById('hero')!;
+
+  window.addEventListener('scroll', () => {
+    if (hero.getBoundingClientRect().bottom < 0) {
+      nav.className = nav.className
+        .replace('bg-[#9a3412]/85 border-white/10', 'bg-[#fffbf5]/95 border-[var(--color-bd)]');
+      logo.className = logo.className.replace('text-white', 'text-[var(--color-tx)]');
+      document.querySelectorAll<HTMLAnchorElement>('#nav-list a').forEach((a) => {
+        a.className = a.className.replace('text-white/65', 'text-[var(--color-sub)]').replace('hover:text-[var(--color-am)]', 'hover:text-[var(--color-or)]');
+      });
+      const lb = document.getElementById('lang-btn')!;
+      lb.className = lb.className.replace('bg-white/12 text-white', 'bg-[var(--color-or)] text-white');
+    } else {
+      nav.className = nav.className
+        .replace('bg-[#fffbf5]/95 border-[var(--color-bd)]', 'bg-[#9a3412]/85 border-white/10');
+      logo.className = logo.className.replace('text-[var(--color-tx)]', 'text-white');
+    }
+  }, { passive: true });
+</script>

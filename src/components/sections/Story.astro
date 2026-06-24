@@ -1,0 +1,63 @@
+---
+const items = [
+  { period: '〜2024 / 体育教師時代', title: '10年間、生徒の成長を設計してきた。', body: '授業計画・選手育成・リスク管理——体育教師の仕事は退屈な課題のなかで判断・展開する繰り返しだった。「依頼される人がいる設計」をフィールドで磨いた。', t: 'tl1' },
+  { period: '転換点',               title: 'テクノロジーが教育を変える瞬間を見た。', body: '体育の授業にテクノロジーが入り込んできたとき、「これを自分で作れたらもっとくわしくできる」と思った。その感覚は、生徒の希望を図形に落とし込んできた感覚と全く同じだった。', t: 'tl2' },
+  { period: '決断',                 title: '深夜に、はじめて HTML を書いた日。', body: '授業終了後の深夜、テキストエディタを開いた。エラーだらけでも、生徒を指導していた頃と同じ感覚——「もっとうまくなりたい」があった。', t: 'tl3' },
+  { period: '学習中',               title: 'Spring Boot・React、そして無数のエラーと。', body: 'RaiseTech でバックエンドからフロントエンドまで。体育教師時代の PDCA の習慣が、そのままデバッグのメンタルモデルになった。', t: 'tl4' },
+  { period: '現在',                 title: '教えることと作ることを、コードでつないだ。', body: '「複雑なことをわかりやすく伝える力」「チームを動かす力」——体育教師として磨いたスキルは、エンジニアとしての武器そのものだった。', t: 'tl5' },
+];
+---
+
+<section id="story" class="border-t border-[var(--color-bd)]">
+  <div class="max-w-5xl mx-auto px-6 py-24">
+    <div class="reveal mb-14">
+      <p class="font-en text-[0.66rem] font-bold text-[var(--color-or)] tracking-[0.22em] uppercase mb-2">Story</p>
+      <h2 class="font-ja font-bold text-[var(--color-tx)] mb-3" style="font-size:clamp(1.75rem,4.5vw,2.75rem);letter-spacing:-0.03em;line-height:1.1" data-t="story_h">
+        体育の先生が、<br>エンジニアになった話。
+      </h2>
+      <p class="font-ja text-[var(--color-sub)] text-[0.88rem] leading-[1.95] max-w-lg" data-t="story_desc">
+        午前 2 時のエラーと戦った日も、教壇で生徒に語りかけた日も、全部が今の自分を作っている。
+      </p>
+    </div>
+
+    <div class="relative pl-6">
+      <div class="absolute left-0 top-3 bottom-3 w-0.5 rounded-full"
+        style="background:linear-gradient(to bottom,var(--color-or),var(--color-bd) 70%)"></div>
+
+      {items.map(({ period, title, body, t }) => (
+        <div class="tl-item relative pb-11 pl-10 last:pb-0">
+          <div class="tl-dot absolute left-[-8px] top-[5px] w-4 h-4 rounded-full border-2 border-[var(--color-bd)] bg-white transition-all duration-500"
+            style="box-shadow:0 0 0 4px var(--color-cream)"></div>
+          <p class="font-en text-[0.65rem] font-bold text-[var(--color-or)] tracking-[0.1em] uppercase mb-1" data-t={`${t}_period`}>{period}</p>
+          <h3 class="font-ja font-bold text-[var(--color-tx)] text-[1rem] leading-snug mb-2" data-t={`${t}_title`}>{title}</h3>
+          <p class="font-ja text-[var(--color-sub)] text-[0.85rem] leading-[1.95]" data-t={`${t}_body`}>{body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+
+document.querySelectorAll<HTMLElement>('.reveal').forEach((el) => {
+  ScrollTrigger.create({ trigger: el, start: 'top 83%', onEnter: () => el.classList.add('reveal-in') });
+});
+
+document.querySelectorAll<HTMLElement>('.tl-item').forEach((item) => {
+  ScrollTrigger.create({
+    trigger: item, start: 'top 83%',
+    onEnter: () => {
+      item.classList.add('reveal-in');
+      const dot = item.querySelector<HTMLElement>('.tl-dot');
+      if (dot) {
+        dot.style.borderColor = 'var(--color-or)';
+        dot.style.backgroundColor = 'var(--color-or)';
+        dot.style.boxShadow = '0 0 0 4px var(--color-cream), 0 0 18px rgba(249,115,22,.22)';
+      }
+    }
+  });
+});
+</script>

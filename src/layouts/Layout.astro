@@ -1,0 +1,62 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'yusu — エンジニア',
+  description = '元体育教師のエンジニア。フィールドで磨いた課題解決思考を、ソフトウェアで再定義する。',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <!-- カスタムカーソル -->
+    <div id="cd" aria-hidden="true"></div>
+    <div id="cr" aria-hidden="true"></div>
+
+    <slot />
+
+    <script>
+      /* Lenis スムーズスクロール */
+      import Lenis from 'lenis';
+      const lenis = new Lenis({ duration: 1.2, easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+      function raf(time: number) { lenis.raf(time); requestAnimationFrame(raf); }
+      requestAnimationFrame(raf);
+    </script>
+    <script>
+      /* カーソル追従 */
+      const cd = document.getElementById('cd')!;
+      const cr = document.getElementById('cr')!;
+      let mx = innerWidth / 2, my = innerHeight / 2;
+      let rx = mx, ry = my;
+
+      document.addEventListener('mousemove', (e) => {
+        mx = e.clientX; my = e.clientY;
+        cd.style.left = mx + 'px'; cd.style.top = my + 'px';
+      });
+
+      (function tick() {
+        rx += (mx - rx) * 0.1; ry += (my - ry) * 0.1;
+        cr.style.left = rx + 'px'; cr.style.top = ry + 'px';
+        requestAnimationFrame(tick);
+      })();
+
+      document.querySelectorAll<HTMLElement>('a, button, [data-mag], .proj-card, .skill-tag').forEach((el) => {
+        el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+        el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+      });
+    </script>
+  </body>
+</html>

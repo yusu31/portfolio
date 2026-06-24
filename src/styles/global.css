@@ -1,0 +1,81 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-or:    #f97316;
+  --color-or2:   #ea580c;
+  --color-or3:   #fb923c;
+  --color-am:    #fbbf24;
+  --color-am2:   #f59e0b;
+  --color-cream: #fffbf5;
+  --color-warm:  #fff8ef;
+  --color-tx:    #1c0f00;
+  --color-sub:   #7c6048;
+  --color-bd:    #e8d0b8;
+
+  --font-ja: "Noto Sans JP", system-ui, sans-serif;
+  --font-en: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; cursor: none; }
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-tx);
+  font-family: var(--font-ja);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  line-height: 1.75;
+}
+
+a, button, [data-mag] { cursor: none; }
+
+/* カスタムカーソル */
+#cd, #cr {
+  position: fixed; top: 0; left: 0;
+  border-radius: 50%; pointer-events: none; z-index: 9999;
+  transform: translate(-50%, -50%); will-change: left, top;
+  transition: transform 0.12s;
+}
+#cd { width: 9px; height: 9px; background: var(--color-or); mix-blend-mode: multiply; }
+#cr { width: 38px; height: 38px; border: 1.5px solid rgba(234,88,12,.45); background: rgba(249,115,22,.06); }
+body.cursor-hover #cd { transform: translate(-50%, -50%) scale(2.5); }
+body.cursor-hover #cr { transform: translate(-50%, -50%) scale(1.6); }
+
+/* スクロールリビール */
+.reveal {
+  opacity: 0; transform: translateY(22px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.reveal-in { opacity: 1; transform: none; }
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+
+/* タイムラインアイテム */
+.tl-item {
+  opacity: 0; transform: translateX(-14px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.tl-item.reveal-in { opacity: 1; transform: none; }
+
+/* インパクトカード */
+.impact-card {
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.6s, transform 0.6s;
+}
+.impact-card.reveal-in { opacity: 1; transform: none; }
+
+/* モバイル */
+@media (max-width: 768px) {
+  html { cursor: auto; }
+  #cd, #cr { display: none; }
+  a, button, [data-mag] { cursor: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  .reveal, .tl-item, .impact-card { opacity: 1; transform: none; }
+}

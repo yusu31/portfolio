@@ -1,0 +1,239 @@
+---
+---
+
+<section id="hero" class="min-h-svh grid grid-cols-2 relative overflow-hidden"
+  style="background: linear-gradient(135deg, #9a3412 0%, #ea580c 45%, #f97316 100%)">
+
+  <!-- 背景ブロブ -->
+  <div class="absolute rounded-full pointer-events-none"
+    style="width:550px;height:550px;background:rgba(251,191,36,.12);top:-80px;right:8%;filter:blur(90px);animation:hbf 12s ease-in-out infinite"></div>
+  <div class="absolute rounded-full pointer-events-none"
+    style="width:420px;height:420px;background:rgba(255,255,255,.04);bottom:-40px;left:5%;filter:blur(90px);animation:hbf 12s ease-in-out infinite 4s"></div>
+  <div class="absolute rounded-full pointer-events-none"
+    style="width:280px;height:280px;background:rgba(253,224,71,.07);top:35%;right:4%;filter:blur(90px);animation:hbf 12s ease-in-out infinite 8s"></div>
+
+  <!-- 左: テキストカード -->
+  <div class="flex items-center justify-end px-10 py-28 relative z-10">
+    <div class="max-w-[460px] w-full rounded-2xl p-10"
+      style="background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 24px 64px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.22)">
+
+      <!-- バッジ -->
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 mb-7 rounded-full text-[#fef08a] text-[0.72rem] font-bold font-ja"
+        style="background:rgba(251,191,36,.18);border:1px solid rgba(251,191,36,.35)">
+        <span class="w-1.5 h-1.5 rounded-full bg-[var(--color-am)]" style="animation:blink 2.4s ease-in-out infinite"></span>
+        <span data-t="hero_badge">元体育教師のエンジニア</span>
+      </div>
+
+      <!-- HEY. -->
+      <span id="hey" class="block font-en font-extrabold text-white leading-none mb-3"
+        style="font-size:clamp(3.4rem,7vw,5.2rem);letter-spacing:-0.06em">
+        HEY<em class="not-italic text-[var(--color-am)]">.</em>
+      </span>
+
+      <!-- サブコピー -->
+      <p class="hero-tag font-ja text-white/75 leading-[1.95] mb-8" data-t="hero_sub">
+        <strong class="text-white font-bold">体育の先生が、今はコードを書いている。</strong><br>
+        フィールドで磨いた「課題解決思考」を、ソフトウェアで再定義する。
+      </p>
+
+      <!-- CTA -->
+      <div class="flex gap-3 flex-wrap">
+        <a href="#projects" data-mag data-t="hero_cta1"
+          class="btn-primary font-ja font-bold text-[0.83rem] px-7 py-3.5 rounded-[10px] bg-white text-[#c2410c] no-underline transition-all hover:brightness-105 block">
+          作品を見る
+        </a>
+        <a href="#contact" data-mag data-t="hero_cta2"
+          class="font-ja font-bold text-[0.83rem] px-7 py-3.5 rounded-[10px] text-white/75 no-underline transition-all block"
+          style="border:1px solid rgba(255,255,255,.32)" onmouseenter="this.style.borderColor='var(--color-am)';this.style.color='var(--color-am)'" onmouseleave="this.style.borderColor='rgba(255,255,255,.32)';this.style.color='rgba(255,255,255,.75)'">
+          連絡する
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右: キャラクター + Three.js -->
+  <div class="relative flex items-end justify-center pt-20 overflow-hidden">
+    <canvas id="three-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+    <!-- SVGキャラクター（アニメーション付き） -->
+    <div class="char-wrap relative z-10" style="width:clamp(220px,28vw,320px);animation:chbob 4s ease-in-out infinite">
+      <svg viewBox="0 0 260 360" fill="none" xmlns="http://www.w3.org/2000/svg" id="char">
+        <ellipse cx="130" cy="350" rx="65" ry="10" fill="rgba(0,0,0,0.18)"/>
+        <!-- Shoes -->
+        <rect x="72" y="300" width="42" height="20" rx="9" fill="#f97316"/>
+        <rect x="146" y="300" width="42" height="20" rx="9" fill="#9a3412"/>
+        <!-- Legs -->
+        <rect x="82" y="240" width="30" height="68" rx="14" fill="#1c0f00"/>
+        <rect x="148" y="240" width="30" height="68" rx="14" fill="#1c0f00"/>
+        <!-- Body -->
+        <rect x="58" y="140" width="144" height="114" rx="22" fill="#ea580c"/>
+        <!-- Jersey stripe -->
+        <rect x="58" y="153" width="144" height="10" fill="#fbbf24"/>
+        <!-- Jersey number -->
+        <text x="130" y="222" text-anchor="middle" font-family="Plus Jakarta Sans" font-weight="800" font-size="40" fill="rgba(255,255,255,0.1)">01</text>
+        <!-- Left arm -->
+        <rect x="18" y="148" width="46" height="24" rx="12" fill="#ea580c" transform="rotate(18 41 160)"/>
+        <circle cx="16" cy="183" r="16" fill="#f5c890"/>
+        <!-- Right arm + laptop -->
+        <rect x="196" y="148" width="46" height="24" rx="12" fill="#ea580c" transform="rotate(-18 219 160)"/>
+        <rect x="185" y="188" width="62" height="44" rx="5" fill="#1c0f00"/>
+        <rect x="189" y="191" width="54" height="37" rx="3" fill="#3b1500"/>
+        <rect x="192" y="195" width="26" height="3" rx="1.5" fill="#f97316" opacity=".9"/>
+        <rect x="192" y="202" width="40" height="3" rx="1.5" fill="#fbbf24" opacity=".7"/>
+        <rect x="192" y="209" width="20" height="3" rx="1.5" fill="#f97316" opacity=".9"/>
+        <rect x="192" y="216" width="33" height="3" rx="1.5" fill="#fbbf24" opacity=".5"/>
+        <!-- Neck -->
+        <rect x="110" y="124" width="40" height="26" rx="12" fill="#f5c890"/>
+        <!-- Head -->
+        <circle cx="130" cy="90" r="64" fill="#f5c890"/>
+        <circle cx="66" cy="93" r="18" fill="#f5c890"/>
+        <circle cx="194" cy="93" r="18" fill="#f5c890"/>
+        <!-- Hat -->
+        <ellipse cx="130" cy="50" rx="66" ry="38" fill="#1c0f00"/>
+        <rect x="62" y="52" width="136" height="16" rx="6" fill="#f97316"/>
+        <rect x="58" y="62" width="144" height="14" rx="4" fill="#ea580c"/>
+        <circle cx="130" cy="22" r="7" fill="#ea580c"/>
+        <!-- Glasses -->
+        <rect x="70" y="82" width="50" height="34" rx="10" fill="none" stroke="#1c0f00" stroke-width="4"/>
+        <rect x="140" y="82" width="50" height="34" rx="10" fill="none" stroke="#1c0f00" stroke-width="4"/>
+        <line x1="120" y1="97" x2="140" y2="97" stroke="#1c0f00" stroke-width="4"/>
+        <line x1="70" y1="97" x2="66" y2="93" stroke="#1c0f00" stroke-width="4"/>
+        <line x1="190" y1="97" x2="194" y2="93" stroke="#1c0f00" stroke-width="4"/>
+        <!-- Eyes -->
+        <circle cx="95" cy="99" r="10" fill="#1c0f00"/>
+        <circle cx="165" cy="99" r="10" fill="#1c0f00"/>
+        <circle id="el" cx="97" cy="96" r="3" fill="white"/>
+        <circle id="er" cx="167" cy="96" r="3" fill="white"/>
+        <!-- Eyebrows -->
+        <path d="M 74 79 Q 95 73 116 79" stroke="#1c0f00" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <path d="M 144 79 Q 165 73 186 79" stroke="#1c0f00" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <!-- Smile -->
+        <path d="M 102 120 Q 130 138 158 120" stroke="#1c0f00" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <!-- Blush -->
+        <ellipse cx="78" cy="115" rx="14" ry="9" fill="rgba(252,165,165,0.4)"/>
+        <ellipse cx="182" cy="115" rx="14" ry="9" fill="rgba(252,165,165,0.4)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- Wave 区切り -->
+<div class="leading-none" style="background:linear-gradient(to bottom,#f97316,#f97316)">
+  <svg viewBox="0 0 1440 64" preserveAspectRatio="none" class="block w-full h-16">
+    <path d="M0,32 C360,64 720,0 1080,32 C1260,48 1380,16 1440,32 L1440,64 L0,64 Z" fill="#fffbf5"/>
+  </svg>
+</div>
+
+<style>
+@keyframes hbf {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  50%       { transform: translate(18px,-22px) scale(1.08); }
+}
+@keyframes chbob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-14px); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.1; }
+}
+</style>
+
+<script>
+import * as THREE from 'three';
+import gsap from 'gsap';
+import { SplitText } from 'gsap/SplitText';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(SplitText, ScrollTrigger);
+
+/* Three.js クリスタル */
+(function () {
+  const canvas = document.getElementById('three-canvas') as HTMLCanvasElement;
+  const hero   = document.getElementById('hero') as HTMLElement;
+  let W = hero.offsetWidth / 2, H = hero.offsetHeight;
+
+  const scene    = new THREE.Scene();
+  const cam      = new THREE.PerspectiveCamera(55, W / H, 0.1, 100);
+  cam.position.z = 5;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(W, H);
+
+  const geo      = new THREE.IcosahedronGeometry(1.8, 1);
+  const solidMat = new THREE.MeshPhongMaterial({ color: 0xea580c, emissive: 0x3b0d00, specular: 0xffffff, shininess: 600, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+  const wireMat  = new THREE.MeshBasicMaterial({ color: 0xfbbf24, wireframe: true, transparent: true, opacity: 0.7 });
+  const edges    = new THREE.EdgesGeometry(geo);
+  const lineMat  = new THREE.LineBasicMaterial({ color: 0xfcd34d, transparent: true, opacity: 0.9 });
+
+  const grp = new THREE.Group();
+  grp.add(new THREE.Mesh(geo, solidMat));
+  grp.add(new THREE.Mesh(geo, wireMat));
+  grp.add(new THREE.LineSegments(edges, lineMat));
+
+  const ig = new THREE.IcosahedronGeometry(0.9, 0);
+  const im = new THREE.MeshPhongMaterial({ color: 0xf97316, emissive: 0x5a1a00, specular: 0xffffff, shininess: 800, transparent: true, opacity: 0.55 });
+  grp.add(new THREE.Mesh(ig, im));
+  scene.add(grp);
+
+  scene.add(new THREE.AmbientLight(0x5a2000, 0.8));
+  const lo = new THREE.PointLight(0xf97316, 5, 20); lo.position.set(3, 2, 3); scene.add(lo);
+  const la = new THREE.PointLight(0xfcd34d, 4, 20); la.position.set(-3, -1, 2); scene.add(la);
+  scene.add(new THREE.PointLight(0xffffff, 2, 12)).position.set(0, 4, 2);
+
+  let ty = 0, tx = 0;
+  document.addEventListener('mousemove', (e) => {
+    ty = (e.clientX / innerWidth  - 0.5) * Math.PI * 0.7;
+    tx = (e.clientY / innerHeight - 0.5) * Math.PI * 0.4;
+  });
+
+  let t = 0;
+  (function anim() {
+    requestAnimationFrame(anim); t += 0.01;
+    grp.rotation.y += (ty + t * 0.3 - grp.rotation.y) * 0.03;
+    grp.rotation.x += (tx - grp.rotation.x) * 0.03;
+    grp.position.y  = Math.sin(t) * 0.18;
+    lo.intensity    = 4 + Math.sin(t * 1.4) * 1.5;
+    la.intensity    = 3 + Math.cos(t * 0.9) * 1.2;
+    renderer.render(scene, cam);
+  })();
+
+  window.addEventListener('resize', () => {
+    W = hero.offsetWidth / 2; H = hero.offsetHeight;
+    cam.aspect = W / H; cam.updateProjectionMatrix();
+    renderer.setSize(W, H);
+  });
+})();
+
+/* GSAP SplitText ヒーロー入場 */
+window.addEventListener('load', () => {
+  try {
+    const sp = SplitText.create('#hey', { type: 'chars', mask: 'chars' });
+    gsap.from(sp.chars, { yPercent: 110, duration: 0.85, stagger: 0.06, ease: 'power3.out', delay: 0.2 });
+  } catch {
+    gsap.from('#hey', { opacity: 0, y: 30, duration: 0.85, delay: 0.2 });
+  }
+  gsap.from('.badge', { opacity: 0, y: 10, duration: 0.5, delay: 0.1 });
+  gsap.from('.hero-tag', { opacity: 0, y: 14, duration: 0.6, delay: 0.9 });
+  gsap.from('.btn-primary, .btn-secondary', { opacity: 0, y: 12, duration: 0.5, stagger: 0.1, delay: 1.1 });
+  gsap.from('.char-wrap', { opacity: 0, x: 40, duration: 0.9, ease: 'power2.out', delay: 0.4 });
+});
+
+/* キャラクターの目がマウスを追う */
+const charEl = document.getElementById('char')!;
+const elEl   = document.getElementById('el')!;
+const erEl   = document.getElementById('er')!;
+const el0x = +elEl.getAttribute('cx')!, el0y = +elEl.getAttribute('cy')!;
+const er0x = +erEl.getAttribute('cx')!, er0y = +erEl.getAttribute('cy')!;
+
+document.addEventListener('mousemove', (e) => {
+  const r  = charEl.getBoundingClientRect();
+  const angle = Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2));
+  const d = 4;
+  elEl.setAttribute('cx', String(el0x + Math.cos(angle) * d));
+  elEl.setAttribute('cy', String(el0y + Math.sin(angle) * d));
+  erEl.setAttribute('cx', String(er0x + Math.cos(angle) * d));
+  erEl.setAttribute('cy', String(er0y + Math.sin(angle) * d));
+});
+</script>
