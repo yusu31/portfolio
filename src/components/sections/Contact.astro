@@ -46,18 +46,4 @@ document.querySelectorAll<HTMLElement>('.reveal').forEach((el) => {
   ScrollTrigger.create({ trigger: el, start: 'top 83%', onEnter: () => el.classList.add('reveal-in') });
 });
 
-/* 磁気ボタン */
-document.querySelectorAll<HTMLElement>('[data-mag]').forEach((el) => {
-  el.addEventListener('mousemove', (e) => {
-    const { left, top, width, height } = el.getBoundingClientRect();
-    const dx = (e.clientX - left - width  / 2) * 0.42;
-    const dy = (e.clientY - top  - height / 2) * 0.42;
-    el.style.transition = 'transform 0.12s ease';
-    el.style.transform  = `translate(${dx}px, ${dy}px)`;
-  });
-  el.addEventListener('mouseleave', () => {
-    el.style.transition = 'transform 0.7s cubic-bezier(.23,1,.32,1)';
-    el.style.transform  = 'translate(0, 0)';
-  });
-});
 </script>
