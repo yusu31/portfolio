@@ -8,6 +8,11 @@ lunar-luminosity/
 
 # ビルド成果物
 *.local
+*.log
+
+# 環境変数
+.env
+.env.local
 
 # OS
 .DS_Store
