@@ -13,27 +13,35 @@
       </p>
     </div>
 
-    <div class="reveal max-w-[490px]">
+    <form id="contact-form" class="reveal max-w-[490px]" novalidate>
       <div class="flex flex-col gap-1.5 mb-3">
-        <label class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_name">お名前</label>
-        <input type="text" data-tp="f_name_ph"
+        <label for="cf-name" class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_name">お名前</label>
+        <input id="cf-name" name="name" type="text" required data-tp="f_name_ph"
           class="bg-white border border-[var(--color-bd)] rounded-lg px-4 py-3 text-[var(--color-tx)] font-ja text-[0.87rem] outline-none transition-all focus:border-[var(--color-or)] focus:shadow-[0_0_0_3px_rgba(249,115,22,0.08)] w-full"/>
       </div>
       <div class="flex flex-col gap-1.5 mb-3">
-        <label class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_email">メールアドレス</label>
-        <input type="email" placeholder="example@email.com"
+        <label for="cf-email" class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_email">メールアドレス</label>
+        <input id="cf-email" name="email" type="email" required placeholder="example@email.com"
           class="bg-white border border-[var(--color-bd)] rounded-lg px-4 py-3 text-[var(--color-tx)] font-ja text-[0.87rem] outline-none transition-all focus:border-[var(--color-or)] focus:shadow-[0_0_0_3px_rgba(249,115,22,0.08)] w-full"/>
       </div>
       <div class="flex flex-col gap-1.5 mb-3">
-        <label class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_msg">メッセージ</label>
-        <textarea rows="5" data-tp="f_msg_ph"
+        <label for="cf-message" class="font-ja text-[0.7rem] font-bold text-[var(--color-sub)]" data-t="f_msg">メッセージ</label>
+        <textarea id="cf-message" name="message" rows="5" required data-tp="f_msg_ph"
           class="bg-white border border-[var(--color-bd)] rounded-lg px-4 py-3 text-[var(--color-tx)] font-ja text-[0.87rem] outline-none transition-all focus:border-[var(--color-or)] focus:shadow-[0_0_0_3px_rgba(249,115,22,0.08)] w-full resize-none"></textarea>
       </div>
-      <button data-mag data-t="f_submit"
-        class="magnetic-btn inline-block px-9 py-3.5 bg-[var(--color-or)] text-white font-ja font-bold text-[0.87rem] rounded-[10px] border-none mt-2 transition-shadow hover:shadow-[0_8px_28px_rgba(194,65,12,0.35)] will-change-transform">
-        送信する →
+
+      <!-- フィードバック -->
+      <p id="cf-error" class="hidden font-ja text-[0.8rem] text-red-500 mb-2"></p>
+      <p id="cf-success" class="hidden font-ja text-[0.8rem] text-green-600 mb-2">✓ 送信しました。近日中にご連絡します！</p>
+
+      <button data-mag data-t="f_submit" type="submit"
+        class="magnetic-btn inline-flex items-center gap-2 px-9 py-3.5 bg-[var(--color-or)] text-white font-ja font-bold text-[0.87rem] rounded-[10px] border-none mt-2 transition-shadow hover:shadow-[0_8px_28px_rgba(194,65,12,0.35)] will-change-transform disabled:opacity-60 disabled:cursor-not-allowed">
+        <span id="cf-btn-label">送信する →</span>
+        <svg id="cf-spinner" class="hidden animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="white" stroke-width="3" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+        </svg>
       </button>
-    </div>
+    </form>
   </div>
 </section>
 
@@ -46,4 +54,53 @@ document.querySelectorAll<HTMLElement>('.reveal').forEach((el) => {
   ScrollTrigger.create({ trigger: el, start: 'top 83%', onEnter: () => el.classList.add('reveal-in') });
 });
 
+/* フォーム送信 */
+const form    = document.getElementById('contact-form') as HTMLFormElement;
+const errEl   = document.getElementById('cf-error')!;
+const okEl    = document.getElementById('cf-success')!;
+const btn     = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+const label   = document.getElementById('cf-btn-label')!;
+const spinner = document.getElementById('cf-spinner')!;
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errEl.classList.add('hidden');
+  okEl.classList.add('hidden');
+
+  const name    = (form.elements.namedItem('name')    as HTMLInputElement).value.trim();
+  const email   = (form.elements.namedItem('email')   as HTMLInputElement).value.trim();
+  const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value.trim();
+
+  if (!name || !email || !message) {
+    errEl.textContent = 'すべての項目を入力してください。';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  label.textContent = '送信中…';
+  spinner.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, message }),
+    });
+
+    if (res.ok) {
+      okEl.classList.remove('hidden');
+      form.reset();
+    } else {
+      throw new Error('send_failed');
+    }
+  } catch {
+    errEl.textContent = '送信に失敗しました。時間をおいて再度お試しください。';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    label.textContent = '送信する →';
+    spinner.classList.add('hidden');
+  }
+});
 </script>
