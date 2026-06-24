@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="45%" style="stop-color:#fb923c"/>
+      <stop offset="100%" style="stop-color:#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="60" y="60" width="680" height="510" rx="24"
+    fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+  <rect x="100" y="110" width="260" height="36" rx="18"
+    fill="rgba(251,191,36,0.22)" stroke="rgba(251,191,36,0.4)" stroke-width="1"/>
+  <text x="230" y="133" font-family="sans-serif" font-size="14" font-weight="700"
+    fill="#fef08a" text-anchor="middle">元体育教師のエンジニア</text>
+  <text x="100" y="270" font-family="sans-serif" font-size="110" font-weight="800"
+    fill="white" letter-spacing="-4">HEY</text>
+  <text x="386" y="270" font-family="sans-serif" font-size="110" font-weight="800"
+    fill="#fbbf24">.</text>
+  <text x="100" y="320" font-family="sans-serif" font-size="22" fill="rgba(255,255,255,0.85)">体育の先生が、今はコードを書いている。</text>
+  <text x="100" y="355" font-family="sans-serif" font-size="18" fill="rgba(255,255,255,0.65)">フィールドで磨いた課題解決思考を、ソフトウェアで再定義する。</text>
+  <text x="100" y="530" font-family="sans-serif" font-size="18" font-weight="600"
+    fill="rgba(255,255,255,0.6)">portfolio-dew.pages.dev</text>
+  <polygon points="980,120 1100,200 1100,360 980,440 860,360 860,200"
+    fill="none" stroke="rgba(251,191,36,0.5)" stroke-width="1.5"/>
+  <polygon points="980,180 1060,230 1060,330 980,380 900,330 900,230"
+    fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  <polygon points="980,240 1020,265 1020,315 980,340 940,315 940,265"
+    fill="rgba(251,191,36,0.15)" stroke="rgba(251,191,36,0.6)" stroke-width="1"/>
+</svg>
