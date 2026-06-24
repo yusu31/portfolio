@@ -35,8 +35,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     if (error) return res({}, { error: error.message }, 500);
     return res({}, { ok: true }, 200);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return res({}, { error: msg }, 500);
+  } catch {
+    return res({}, { error: 'server_error' }, 500);
   }
 };
