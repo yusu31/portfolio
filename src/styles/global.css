@@ -1,12 +1,14 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap");
 @import "tailwindcss";
+@source "../**/*.{astro,ts,js}";
 
 @theme {
-  --color-or:    #f97316;
-  --color-or2:   #ea580c;
-  --color-or3:   #fb923c;
-  --color-am:    #fbbf24;
-  --color-am2:   #f59e0b;
+  /* 明るい黄みオレンジ */
+  --color-or:    #fb923c;   /* orange-400 — メイン（明るい） */
+  --color-or2:   #f97316;   /* orange-500 — ボタン等 */
+  --color-or3:   #fdba74;   /* orange-300 — ライトアクセント */
+  --color-am:    #fbbf24;   /* amber-400 — ヒーローアクセント */
+  --color-am2:   #f59e0b;   /* amber-500 */
   --color-cream: #fffbf5;
   --color-warm:  #fff8ef;
   --color-tx:    #1c0f00;
