@@ -1,162 +1,162 @@
-# UIデザイン方針
+# UIデザイン方針（v2 確定版）
+
+> このドキュメントは React + R3F 移行後の確定方針。v1（Astro + Dave Holloway インスパイア）の内容は破棄済み。
 
 ## デザインコンセプト
 
-**「Dave Holloway × OHZI Interactive — 明るく・触れる・キャラクターがいるポートフォリオ」**
+**「OHZI Interactive 的 — 暗い宇宙を漂うクリスタルが出迎えるポートフォリオ」**
 
-採用担当者が開いた瞬間にインパクトを受け、スクロールするほど体育教師→エンジニアへの軌跡が展開される。
-技術力は説明するのではなく、サイト自体で体感させる。
+採用担当者が開いた瞬間に「他と違う」インパクトを与え、スクロールするほど体育教師→エンジニアへの軌跡が展開される。技術力は説明するのではなく、サイト自体で体感させる。
 
-### 参考サイト（実装方針）
+### 参考サイト
 
-| フェーズ | 参考サイト | 実装する要素 |
-|---|---|---|
-| 現在（v5 HTML prototype） | Dave Holloway | 2カラムヒーロー・SVGキャラクター・明るい Electric Blue |
-| 現在（v5 HTML prototype） | OHZI Interactive | ガラスカード・磁気ボタン・3Dチルト・カスタムカーソル |
-| 現在（v5 HTML prototype） | Three.js r169 | IcosahedronGeometry クリスタル（ヒーローのみ） |
-| 中期（Three.js 習得後） | OHZI Interactive | WebGL カーソル歪み・本物の ShaderMaterial |
-| 長期（Astro 実装） | Bruno Simon 発想 | インタラクティブ 3D シーン・体験型構成 |
+| 参考 | 実装する要素 |
+|---|---|
+| **OHZI Interactive** | ダーク背景・3D クリスタル・カスタムカーソル・glassmorphism |
+| **Bruno Simon** | スクロール連動カメラ・WebGL 全面活用の発想 |
 
 ---
 
-## カラーパレット（ライトファースト・Dave Holloway 方向）
-
-Dave Holloway インスパイアの明るいパレット。ヒーローはElectric Blueで印象付け、コンテンツ域はウォームクリームで可読性確保。
+## カラーパレット（ダークテーマ）
 
 ```css
-:root {
-  /* Hero */
-  --blue:   #1d4ed8;  /* Electric Blue — ヒーロー背景グラデーション基調 */
-  --blue2:  #1e40af;
-  --blue3:  #2563eb;
+/* ベース */
+--color-dark:  #0a0a0f;  /* body / 最暗面 */
+/* セクションは #0d0d18 と #0a0a0f を交互に使い奥行きを出す */
 
-  /* Content */
-  --cream:  #f5f4f0;  /* ウォームクリーム — コンテンツセクション背景 */
-  --white:  #ffffff;
+/* カード・グラスモーフィズム */
+rgba(255,255,255,.05)  /* カード背景 */
+rgba(255,255,255,.10)  /* ボーダー */
 
-  /* Text */
-  --tx:     #0f0f0f;  /* メインテキスト */
-  --sub:    #6b7280;  /* サブテキスト */
-  --bd:     #e0dcd5;  /* ボーダー */
+/* テキスト */
+--color-tx:  rgba(255,255,255,.90);  /* メイン */
+--color-sub: rgba(255,255,255,.50);  /* サブ */
+--color-bd:  rgba(255,255,255,.10);  /* ボーダー */
 
-  /* Accent */
-  --ac:     #22c55e;  /* グリーン — 体育教師のアイデンティティ */
-  --ac2:    #16a34a;  /* ダークグリーン — テキスト用 */
-}
+/* アクセント（オレンジ系 — 変更なし） */
+--color-or:  #fb923c;
+--color-or2: #f97316;
+--color-am:  #fbbf24;
+--color-am2: #f59e0b;
 ```
-
-**グリーンアクセントを維持する理由:**
-- 体育教師のアイデンティティ（グラウンド・フィールドの緑）
-- 「成長・生命力・挑戦」のメタファー
-- Electric Blue との組み合わせで高コントラスト・視認性◎
 
 ---
 
 ## レイアウト構成
 
-### グローバルセクション順
-
 ```
-Hero（2カラム — ヒーローカード + キャラクター + Three.js）
-  ↓ Wave 区切り
-Impact（数値インパクト 4 カード）
-Story（タイムライン）
-Projects（PSI フォーマット 3 カード）
-Capabilities（スキルタグ）
-Contact（フォーム）
-Footer
+Hero         ← 透明背景 / クリスタル球がバックに輝く
+Impact       ← #0d0d18 / 4枚の数値カード
+Story        ← #0d0d18 / タイムライン
+Projects     ← #0a0a0f / 3枚 PSI カード（ダーク glassmorphism）
+Skills       ← #0d0d18 / タグクラウド 2 カラム
+Blog         ← #0d0d18 / Coming Soon
+Contact      ← #0a0a0f / フォーム
+Footer       ← #0a0a0f / リンク＋ページトップ
 ```
 
-### Hero セクション（v5 確定）
+---
+
+## Hero セクション（v2 確定）
 
 ```
-┌─────────────────┬───────────────────────┐
-│  Glass Card     │  SVG Character        │
-│  ─────────────  │  ─────────────        │
-│  [badge]        │  眼鏡・キャップ       │
-│  HEY.           │  青ジャージ           │
-│  元体育教師...  │  ラップトップ持参     │
-│  [Works] [連絡] │  目がマウス追従       │
-│                 │  + Three.js Crystal   │
-│                 │  （IcosahedronGeom）  │
-└─────────────────┴───────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  [透明 / 3D Crystal がバックに回転・浮遊]               │
+│                                                          │
+│  ┌──────────────────────┐                                │
+│  │  glassmorphism card  │    🔮 サッカーボール風クリスタル │
+│  │  rgba(255,255,255,.06)│    IcosahedronEdges + emissive │
+│  │  [🟡 badge]           │    オレンジ発光               │
+│  │  HEY.                │                                │
+│  │  元体育教師...        │                                │
+│  │  [Works] [連絡]       │                                │
+│  └──────────────────────┘                                │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**背景:** Electric Blue グラデーション + アニメーションブロブ（filter: blur）
+**背景:** 透明（Canvas の Crystal が透けて見える）+ 右側にオレンジのラジアルグロー
+
+---
+
+## 3D / Canvas 設計
+
+### サッカーボール風クリスタル（`Crystal.tsx`）
+
+```
+構成要素:
+1. 外殻球体: SphereGeometry(1.5) + MeshStandardMaterial(opacity: 0.15, metalness: 0.25)
+2. パネルライン: EdgesGeometry(IcosahedronGeometry(1.52, 1)) + LineBasicMaterial(#fbbf24, opacity: 0.88)
+3. 内部コア: IcosahedronGeometry(0.95, 1) + emissive(#f97316, intensity: 2.8) パルス
+4. 中心点: SphereGeometry(0.28) + emissive(#fbbf24, intensity: 12)
+
+アニメーション:
+- 浮遊: Math.sin(t * 0.65) * 0.14
+- 自転: rotation.y += delta * 0.18
+- マウス視差: rotation.x ← state.pointer.y * -0.4 (lerp 0.05)
+- コアパルス: emissiveIntensity = 2.8 + sin(t * 2.2) * 1.4
+```
+
+### シーンライティング（`Scene.tsx`）
+
+```
+- ambientLight: intensity 0.15（暗め）
+- pointLight orange(#fb923c): position [4,4,6], intensity 40
+- pointLight amber(#fbbf24): position [-4,-3,-4], intensity 20
+- pointLight white: position [0,0,8], intensity 8
+```
+
+### カメラリグ（`CameraRig.tsx`）
+
+```
+useScrollProgress() → camera.position.y を scroll%に応じて lerp
+```
+
+### ポストプロセッシング（Phase 3-5 予定）
+
+```
+Effects.tsx: EffectComposer + Bloom
+理由で除外中: @react-three/postprocessing の互換性確認後に再統合
+```
 
 ---
 
 ## タイポグラフィ
 
 ```css
---font-ja: "Noto Sans JP", sans-serif;   /* 日本語: 読みやすさ・信頼感 */
---font-en: "Plus Jakarta Sans", sans-serif;  /* 英語/数字: モダン・Dave Holloway 風 */
+--font-ja: "Noto Sans JP";    /* 日本語本文 */
+--font-en: "Plus Jakarta Sans"; /* 英語・見出し・数字 */
 ```
 
-### フォントサイズ
-
 ```
-Hero HEY.:  clamp(3.5rem, 7vw, 5.5rem) — weight 800
-セクション H2: clamp(1.9rem, 5vw, 2.9rem) — weight 800
-本文:         0.85–0.9rem
-ラベル:       0.66rem, letter-spacing 0.22em, uppercase
+Hero HEY.:      clamp(3.4rem, 7vw, 5.2rem) — weight 800
+セクション H2:  clamp(1.75rem, 4.5vw, 2.75rem) — weight 700
+本文:           0.85–0.9rem
+ラベル上部:     0.66rem, letter-spacing 0.22em, UPPERCASE, --color-or
 ```
 
 ---
 
-## 3D / インタラクション
-
-### Three.js クリスタル（Hero のみ）
-
-```js
-// IcosahedronGeometry — detail 1（面が適度に細かい）
-// ソリッド: MeshPhongMaterial, blue, opacity 0.22
-// ワイヤー: MeshBasicMaterial, green, wireframe
-// エッジ:  LineSegments, green
-// 内側宝石: 小さい IcosahedronGeometry, green, opacity 0.55
-// ライト: AmbientLight + 緑 PointLight + 青 PointLight + 白 PointLight（強度が脈動）
-// マウス追従: rotation.y / rotation.x がなめらかに追従
-// ボブ: Math.sin(t) でゆっくり上下
-```
-
-### Web Audio API（ユーザーが ON/OFF 切替可能）
-
-```
-ホバー音: sine 660Hz → フェードアウト 100ms
-クリック音: square 200Hz + sine 400Hz の 2 音重ね
-```
-
-### GSAP SplitText（Hero テキスト）
-
-```js
-SplitText.create('#hey', { type: 'chars', mask: 'chars' })
-gsap.from(chars, { yPercent: 110, duration: .85, stagger: .06, ease: 'power3.out' })
-// CDN 失敗時の fallback: opacity + y アニメーション
-```
+## インタラクション
 
 ### カスタムカーソル
-
 ```
-#cd: 9px 白丸, mix-blend-mode: difference
-#cr: 38px 枠円, 遅延追従
-ホバー時: 両方 scale 拡大
-モバイル: 非表示 (cursor: auto に戻す)
+#cd: 9px 白丸（mix-blend-mode: difference）
+#cr: 38px 枠円（遅延追従）
+モバイル: cursor: auto に戻す
 ```
 
-### 3D カードチルト
-
-```js
-// mousemove で perspective(900px) rotateY / rotateX
-// radial-gradient のグレア効果
-// mouseleave でバネ戻し cubic-bezier(.23,1,.32,1)
+### 3D カードチルト（Projects）
+```
+mousemove → perspective(900px) rotateY/rotateX
+radial-gradient グレア
+mouseleave → バネ戻し cubic-bezier(.23,1,.32,1)
 ```
 
-### 磁気ボタン
-
-```js
-// data-mag 属性で指定
-// mousemove で translate(dx, dy) — 42% 引き寄せ
-// mouseleave でバネ戻し
+### GSAP SplitText（Hero）
+```
+SplitText.create('#hey', { type: 'chars', mask: 'chars' })
+gsap.from(chars, { yPercent: 110, duration: .85, stagger: .06, ease: 'power3.out' })
+try/catch でフォールバック（opacity + y）
 ```
 
 ---
@@ -164,50 +164,53 @@ gsap.from(chars, { yPercent: 110, duration: .85, stagger: .06, ease: 'power3.out
 ## プロジェクト表示フォーマット（PSI）
 
 ```
-Problem  → 赤ボーダー左 — 解決前の痛みを具体的に
-Solution → 緑ボーダー左 — 何を作ったか
-Impact   → 黄ボーダー左 — 数字で示す成果（太字・緑色）
+Problem  → rgba(249,115,22,.08) bg / rgba(249,115,22,.35) border
+Solution → rgba(217,119,6,.08) bg  / rgba(251,191,36,.35) border
+Impact   → rgba(194,65,12,.10) bg  / #f97316 border + bold orange text
 ```
-
-**採用担当者リサーチより:**
-- 「React 使いました」は刺さらない
-- 「10名テストで作業時間80%削減」は刺さる
-- 数字・ビフォーアフターがあるプロジェクトは通過率 3 倍
 
 ---
 
 ## アニメーション原則
 
-1. `prefers-reduced-motion` 必須対応 — アクセシビリティ妥協なし
-2. Three.js はヒーローセクションのみ — ページ全体パフォーマンス保護
-3. SVG フィルタ（feTurbulence）はキャンバスのみに適用 — position:fixed との z-index 競合回避
-4. モバイルではカーソルエフェクト無効化
+1. `prefers-reduced-motion` 対応必須
+2. Canvas（3D）は全画面常時描画 → 他セクションで追加 Three.js は使わない
+3. ScrollTrigger の `kill()` を useEffect return で必ず実行（メモリリーク防止）
+4. モバイルでカーソルエフェクト無効
 
 ---
 
-## フェーズ別実装ロードマップ
+## フェーズ別実装ロードマップ（v2）
 
-### Phase 1（今ここ）— HTML Prototype
-- Claude Design で v5 プロトタイプ完成
-- Dave Holloway 2カラム + SVGキャラクター + Three.js + Web Audio
+### Phase 3-1 ✅ 完了（PR #26）
+- Vite + React + TypeScript + R3F + Tailwind セットアップ
 
-### Phase 2 — Astro 実装
-- `C:\Users\3fort\dev\portfolio\` に Astro 6 プロジェクト初期化
-- Tailwind CSS v4 + GSAP + Three.js + Lenis 1.3.23
-- Cloudflare Pages デプロイ
+### Phase 3-2 ✅ 完了（PR #28）
+- UIレイヤー全セクション移植（Hero / Impact / Story / Projects / Skills / Blog / Contact / Footer）
 
-### Phase 3（中期・Three.js 習得後）
-- WebGL カーソル歪み（本物の ShaderMaterial）
-- OHZI Interactive 的な深度・パーティクル追加
+### Phase 3-3/3-4 ✅ 完了（PR #30）
+- React 19 アップグレード（R3F v9 互換）
+- ダークテーマ全面移行
+- サッカーボール風クリスタル実装
 
-### Phase 4（長期）
-- Bruno Simon 発想の体験型構成
-- インタラクティブ 3D シーン
+### Phase 3-5 🔲 未着手
+- `Effects.tsx` 再統合（Bloom ポストプロセッシング）
+- クリスタル発光感の最大化
+
+### Phase 3-6 🔲 未着手
+- スクロール連動カメラ（CatmullRomCurve3 パス）
+- セクション到達でカメラ角度変化
+
+### Phase 3-7 🔲 未着手
+- ローダーアニメーション（GSAP + count）
+
+### Phase 3-8 🔲 未着手
+- 統合テスト・最適化・デプロイ確認
+- Lighthouse 計測・Core Web Vitals
 
 ---
 
-## UIプロトタイプ
+## UIプロトタイプ（旧 v1 参考のみ）
 
-→ Claude Design 作成済み
-- v4: https://claude.ai/design/p/78ac1661-3928-4101-92c1-00741eeaba5b?file=portfolio-v4.dc.html
-- **v5（最新）: https://claude.ai/design/p/78ac1661-3928-4101-92c1-00741eeaba5b?file=portfolio-v5.dc.html**
+- v5（旧）: https://claude.ai/design/p/78ac1661-3928-4101-92c1-00741eeaba5b?file=portfolio-v5.dc.html
+- ※ v2 では React + R3F で直接実装のため Claude Design プロトタイプは参照のみ
