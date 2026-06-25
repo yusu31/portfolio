@@ -16,11 +16,11 @@ import Footer from './components/sections/Footer'
 export default function App() {
   return (
     <LanguageProvider>
-      {/* Canvas Layer */}
+      {/* Canvas Layer — 右55%のみ占有。球体を [0,0,0] に置けば楕円なし・スクロール固定 */}
       <Canvas
-        style={{ position: 'fixed', inset: 0, zIndex: 0 }}
+        style={{ position: 'fixed', top: 0, right: 0, width: '55%', height: '100vh', zIndex: 0 }}
         camera={{ position: [0, 0, 5], fov: 60 }}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
       >
         <Scene />
