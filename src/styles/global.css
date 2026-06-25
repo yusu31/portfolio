@@ -1,14 +1,13 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap");
 @import "tailwindcss";
-@source "../**/*.{astro,ts,js}";
+@source "../**/*.{tsx,ts}";
 
 @theme {
-  /* 明るい黄みオレンジ */
-  --color-or:    #fb923c;   /* orange-400 — メイン（明るい） */
-  --color-or2:   #f97316;   /* orange-500 — ボタン等 */
-  --color-or3:   #fdba74;   /* orange-300 — ライトアクセント */
-  --color-am:    #fbbf24;   /* amber-400 — ヒーローアクセント */
-  --color-am2:   #f59e0b;   /* amber-500 */
+  --color-or:    #fb923c;
+  --color-or2:   #f97316;
+  --color-or3:   #fdba74;
+  --color-am:    #fbbf24;
+  --color-am2:   #f59e0b;
   --color-cream: #fffbf5;
   --color-warm:  #fff8ef;
   --color-tx:    #1c0f00;
@@ -32,19 +31,7 @@ body {
   line-height: 1.75;
 }
 
-a, button, [data-mag] { cursor: none; }
-
-/* カスタムカーソル */
-#cd, #cr {
-  position: fixed; top: 0; left: 0;
-  border-radius: 50%; pointer-events: none; z-index: 9999;
-  transform: translate(-50%, -50%); will-change: left, top;
-  transition: transform 0.12s;
-}
-#cd { width: 9px; height: 9px; background: var(--color-or); mix-blend-mode: multiply; }
-#cr { width: 38px; height: 38px; border: 1.5px solid rgba(234,88,12,.45); background: rgba(249,115,22,.06); }
-body.cursor-hover #cd { transform: translate(-50%, -50%) scale(2.5); }
-body.cursor-hover #cr { transform: translate(-50%, -50%) scale(1.6); }
+a, button { cursor: none; }
 
 /* スクロールリビール */
 .reveal {
@@ -70,14 +57,15 @@ body.cursor-hover #cr { transform: translate(-50%, -50%) scale(1.6); }
 }
 .impact-card.reveal-in { opacity: 1; transform: none; }
 
-/* モバイル */
 @media (max-width: 768px) {
   html { cursor: auto; }
-  #cd, #cr { display: none; }
-  a, button, [data-mag] { cursor: auto; }
+  a, button { cursor: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
   .reveal, .tl-item, .impact-card { opacity: 1; transform: none; }
 }
