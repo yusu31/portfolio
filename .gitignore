@@ -1,6 +1,12 @@
-# Astro
+# Build outputs
 dist/
 .astro/
+
+# TypeScript cache
+tsconfig.tsbuildinfo
+
+# Claude Code session files
+.claude/
 
 # 依存関係
 node_modules/
