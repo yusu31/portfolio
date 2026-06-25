@@ -1,4 +1,8 @@
+import { useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
 import { LanguageProvider } from './contexts/LanguageContext'
 import Scene from './components/canvas/Scene'
 import Cursor from './components/ui/Cursor'
@@ -14,6 +18,17 @@ import Contact from './components/sections/Contact'
 import Footer from './components/sections/Footer'
 
 export default function App() {
+  useEffect(() => {
+    const lenis = new Lenis()
+    lenis.on('scroll', ScrollTrigger.update)
+    gsap.ticker.add((time) => lenis.raf(time * 1000))
+    gsap.ticker.lagSmoothing(0)
+    return () => {
+      lenis.destroy()
+      gsap.ticker.remove((time) => lenis.raf(time * 1000))
+    }
+  }, [])
+
   return (
     <LanguageProvider>
       {/* Canvas Layer */}
