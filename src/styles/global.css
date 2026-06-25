@@ -10,10 +10,11 @@
   --color-am2:   #f59e0b;
   --color-cream: #fffbf5;
   --color-warm:  #fff8ef;
-  --color-tx:    #1c0f00;
-  --color-sub:   #7c6048;
-  --color-bd:    #e8d0b8;
+  --color-tx:    rgba(255,255,255,.90);
+  --color-sub:   rgba(255,255,255,.50);
+  --color-bd:    rgba(255,255,255,.10);
   --color-dark:  #0a0a0f;
+  --color-card:  rgba(255,255,255,.05);
   --color-glow:  #fbbf24;
 
   --font-ja: "Noto Sans JP", system-ui, sans-serif;
@@ -25,7 +26,7 @@
 html { scroll-behavior: smooth; cursor: none; }
 
 body {
-  background-color: var(--color-cream);
+  background-color: var(--color-dark);
   color: var(--color-tx);
   font-family: var(--font-ja);
   -webkit-font-smoothing: antialiased;

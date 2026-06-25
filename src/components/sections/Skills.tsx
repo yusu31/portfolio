@@ -38,7 +38,7 @@ export default function Skills() {
     <section
       ref={sectionRef}
       id="skills"
-      style={{ borderTop: '1px solid var(--color-bd)', background: '#fff', pointerEvents: 'auto' }}
+      style={{ borderTop: '1px solid rgba(255,255,255,.08)', background: '#0d0d18', pointerEvents: 'auto' }}
     >
       <div style={{ maxWidth: '64rem', margin: '0 auto', padding: '6rem 1.5rem' }}>
 
@@ -59,9 +59,9 @@ export default function Skills() {
             <div
               key={label}
               className="reveal"
-              style={{ background: '#fff', border: '1px solid var(--color-bd)', borderRadius: '0.75rem', padding: '1.5rem' }}
+              style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.10)', borderRadius: '0.75rem', padding: '1.5rem' }}
             >
-              <p style={{ fontFamily: 'var(--font-en)', fontSize: '0.66rem', fontWeight: 700, color: 'var(--color-or)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--color-bd)' }}>
+              <p style={{ fontFamily: 'var(--font-en)', fontSize: '0.66rem', fontWeight: 700, color: 'var(--color-or)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid rgba(255,255,255,.10)' }}>
                 {label}
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -73,18 +73,18 @@ export default function Skills() {
                       fontSize: '0.78rem',
                       fontWeight: 600,
                       padding: '0.375rem 0.75rem',
-                      background: 'var(--color-cream)',
-                      border: '1px solid var(--color-bd)',
+                      background: 'rgba(255,255,255,.06)',
+                      border: '1px solid rgba(255,255,255,.12)',
                       borderRadius: '999px',
                       color: 'var(--color-tx)',
                       transition: 'border-color 0.2s, box-shadow 0.2s',
                     }}
                     onMouseEnter={(e) => {
-                      ;(e.target as HTMLElement).style.borderColor = '#fdba74'
-                      ;(e.target as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,.06)'
+                      ;(e.target as HTMLElement).style.borderColor = 'rgba(251,191,36,.50)'
+                      ;(e.target as HTMLElement).style.boxShadow = '0 0 12px rgba(251,191,36,.15)'
                     }}
                     onMouseLeave={(e) => {
-                      ;(e.target as HTMLElement).style.borderColor = 'var(--color-bd)'
+                      ;(e.target as HTMLElement).style.borderColor = 'rgba(255,255,255,.12)'
                       ;(e.target as HTMLElement).style.boxShadow = ''
                     }}
                   >

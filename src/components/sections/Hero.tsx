@@ -12,7 +12,6 @@ export default function Hero() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // HEY. SplitText アニメーション
       if (heyRef.current) {
         try {
           const split = SplitText.create(heyRef.current, { type: 'chars', mask: 'chars' })
@@ -28,8 +27,8 @@ export default function Hero() {
         }
       }
       gsap.from(badgeRef.current, { opacity: 0, y: 10, duration: 0.5, delay: 0.2 })
-      gsap.from(subRef.current, { opacity: 0, y: 14, duration: 0.6, delay: 1.0 })
-      gsap.from(ctaRef.current, { opacity: 0, y: 8, duration: 0.5, delay: 1.15 })
+      gsap.from(subRef.current,  { opacity: 0, y: 14, duration: 0.6, delay: 1.0 })
+      gsap.from(ctaRef.current,  { opacity: 0, y: 8,  duration: 0.5, delay: 1.15 })
     })
     return () => ctx.revert()
   }, [])
@@ -41,28 +40,33 @@ export default function Hero() {
         minHeight: '100svh',
         display: 'flex',
         alignItems: 'center',
-        background: 'linear-gradient(135deg, #f97316 0%, #fb923c 45%, #fbbf24 100%)',
+        background: 'transparent',
         position: 'relative',
         overflow: 'hidden',
         pointerEvents: 'auto',
       }}
     >
-      {/* 背景ブロブ */}
-      <BlobBg />
+      {/* 足下からのオレンジグロー */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse 60% 50% at 65% 50%, rgba(251,146,60,.10) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
 
-      {/* コンテンツカード */}
+      {/* コンテンツカード（glassmorphism ダーク版） */}
       <div
         style={{
           maxWidth: '460px',
           width: '100%',
           marginLeft: 'clamp(1.5rem, 8vw, 10rem)',
-          borderRadius: '1rem',
+          borderRadius: '1.25rem',
           padding: '2.5rem',
-          background: 'rgba(255,255,255,.11)',
-          border: '1px solid rgba(255,255,255,.2)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
-          boxShadow: '0 24px 64px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.22)',
+          background: 'rgba(255,255,255,.06)',
+          border: '1px solid rgba(255,255,255,.12)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          boxShadow: '0 32px 80px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.10)',
           position: 'relative',
           zIndex: 10,
         }}
@@ -77,23 +81,19 @@ export default function Hero() {
             padding: '0.375rem 1rem',
             marginBottom: '1.75rem',
             borderRadius: '999px',
-            background: 'rgba(251,191,36,.18)',
-            border: '1px solid rgba(251,191,36,.35)',
-            color: '#fef08a',
+            background: 'rgba(251,191,36,.12)',
+            border: '1px solid rgba(251,191,36,.28)',
+            color: '#fbbf24',
             fontSize: '0.72rem',
             fontWeight: 700,
             fontFamily: 'var(--font-ja)',
           }}
         >
-          <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'var(--color-am)',
-              animation: 'blink 2.4s ease-in-out infinite',
-            }}
-          />
+          <span style={{
+            width: '6px', height: '6px', borderRadius: '50%',
+            background: 'var(--color-am)',
+            animation: 'blink 2.4s ease-in-out infinite',
+          }} />
           {t.hero_badge}
         </div>
 
@@ -120,14 +120,12 @@ export default function Hero() {
           ref={subRef}
           style={{
             fontFamily: 'var(--font-ja)',
-            color: 'rgba(255,255,255,.75)',
+            color: 'rgba(255,255,255,.65)',
             lineHeight: 1.95,
             marginBottom: '2rem',
             fontSize: '0.9rem',
           }}
-          dangerouslySetInnerHTML={{
-            __html: t.hero_sub.replace('\n', '<br/>'),
-          }}
+          dangerouslySetInnerHTML={{ __html: t.hero_sub.replace('\n', '<br/>') }}
         />
 
         {/* CTAボタン */}
@@ -140,12 +138,13 @@ export default function Hero() {
               fontSize: '0.83rem',
               padding: '0.875rem 1.75rem',
               borderRadius: '10px',
-              background: '#fff',
-              color: '#c2410c',
+              background: 'var(--color-or)',
+              color: '#fff',
               textDecoration: 'none',
               transition: 'filter .2s',
+              boxShadow: '0 0 24px rgba(251,146,60,.35)',
             }}
-            onMouseEnter={(e) => ((e.target as HTMLElement).style.filter = 'brightness(1.05)')}
+            onMouseEnter={(e) => ((e.target as HTMLElement).style.filter = 'brightness(1.12)')}
             onMouseLeave={(e) => ((e.target as HTMLElement).style.filter = '')}
           >
             {t.hero_cta1}
@@ -158,8 +157,8 @@ export default function Hero() {
               fontSize: '0.83rem',
               padding: '0.875rem 1.75rem',
               borderRadius: '10px',
-              border: '1px solid rgba(255,255,255,.32)',
-              color: 'rgba(255,255,255,.75)',
+              border: '1px solid rgba(255,255,255,.20)',
+              color: 'rgba(255,255,255,.70)',
               textDecoration: 'none',
               transition: 'border-color .2s, color .2s',
             }}
@@ -170,8 +169,8 @@ export default function Hero() {
             }}
             onMouseLeave={(e) => {
               const el = e.currentTarget as HTMLAnchorElement
-              el.style.borderColor = 'rgba(255,255,255,.32)'
-              el.style.color = 'rgba(255,255,255,.75)'
+              el.style.borderColor = 'rgba(255,255,255,.20)'
+              el.style.color = 'rgba(255,255,255,.70)'
             }}
           >
             {t.hero_cta2}
@@ -184,21 +183,7 @@ export default function Hero() {
           0%, 100% { opacity: 1; }
           50%       { opacity: 0.1; }
         }
-        @keyframes hbf {
-          0%, 100% { transform: translate(0,0) scale(1); }
-          50%       { transform: translate(18px,-22px) scale(1.08); }
-        }
       `}</style>
     </section>
-  )
-}
-
-function BlobBg() {
-  return (
-    <>
-      <div style={{ position: 'absolute', width: 550, height: 550, borderRadius: '50%', background: 'rgba(251,191,36,.12)', top: -80, right: '8%', filter: 'blur(90px)', animation: 'hbf 12s ease-in-out infinite', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', width: 420, height: 420, borderRadius: '50%', background: 'rgba(255,255,255,.04)', bottom: -40, left: '5%', filter: 'blur(90px)', animation: 'hbf 12s ease-in-out infinite 4s', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', width: 280, height: 280, borderRadius: '50%', background: 'rgba(253,224,71,.07)', top: '35%', right: '4%', filter: 'blur(90px)', animation: 'hbf 12s ease-in-out infinite 8s', pointerEvents: 'none' }} />
-    </>
   )
 }

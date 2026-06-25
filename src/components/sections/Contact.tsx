@@ -5,8 +5,8 @@ import { useLanguage } from '../../hooks/useLanguage'
 
 const INPUT_STYLE: React.CSSProperties = {
   width: '100%',
-  background: '#fff',
-  border: '1px solid var(--color-bd)',
+  background: 'rgba(255,255,255,.06)',
+  border: '1px solid rgba(255,255,255,.12)',
   borderRadius: '0.5rem',
   padding: '0.75rem 1rem',
   color: 'var(--color-tx)',
@@ -71,7 +71,7 @@ export default function Contact() {
 
   const focusStyle = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.currentTarget.style.borderColor = 'var(--color-or)'
-    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(249,115,22,.08)'
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(249,115,22,.20)'
   }
   const blurStyle = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.currentTarget.style.borderColor = 'var(--color-bd)'
@@ -82,7 +82,7 @@ export default function Contact() {
     <section
       ref={sectionRef}
       id="contact"
-      style={{ borderTop: '1px solid var(--color-bd)', background: '#fff', pointerEvents: 'auto' }}
+      style={{ borderTop: '1px solid rgba(255,255,255,.08)', background: '#0a0a0f', pointerEvents: 'auto' }}
     >
       <div style={{ maxWidth: '64rem', margin: '0 auto', padding: '6rem 1.5rem' }}>
 
@@ -102,7 +102,7 @@ export default function Contact() {
           <div
             ref={successRef}
             className="reveal reveal-in"
-            style={{ maxWidth: '490px', padding: '2rem', background: 'var(--color-cream)', border: '1px solid var(--color-bd)', borderRadius: '0.75rem', textAlign: 'center' }}
+            style={{ maxWidth: '490px', padding: '2rem', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: '0.75rem', textAlign: 'center' }}
           >
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
             <p style={{ fontFamily: 'var(--font-ja)', fontWeight: 700, color: 'var(--color-tx)', fontSize: '1rem' }}>

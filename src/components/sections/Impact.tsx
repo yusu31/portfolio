@@ -57,7 +57,7 @@ export default function Impact() {
     <section
       ref={sectionRef}
       id="impact"
-      style={{ padding: '4rem 0', background: '#fff', borderBottom: '1px solid var(--color-bd)', pointerEvents: 'auto' }}
+      style={{ padding: '4rem 0', background: '#0d0d18', borderBottom: '1px solid rgba(255,255,255,.08)', pointerEvents: 'auto' }}
     >
       <div style={{ maxWidth: '64rem', margin: '0 auto', padding: '0 1.5rem' }}>
         <div
@@ -76,8 +76,8 @@ export default function Impact() {
               style={{
                 padding: '2rem',
                 borderRadius: '0.75rem',
-                background: 'var(--color-cream)',
-                border: '1px solid var(--color-bd)',
+                background: 'rgba(255,255,255,.05)',
+                border: '1px solid rgba(255,255,255,.10)',
                 transitionDelay: `${delay}s`,
               }}
             >
@@ -101,7 +101,7 @@ export default function Impact() {
                   fontFamily: 'var(--font-en)',
                   fontSize: '0.62rem',
                   fontWeight: 700,
-                  color: 'var(--color-sub)',
+                  color: 'rgba(255,255,255,.45)',
                   letterSpacing: '0.14em',
                   textTransform: 'uppercase',
                   marginBottom: '0.25rem',
@@ -113,7 +113,7 @@ export default function Impact() {
                 style={{
                   fontFamily: 'var(--font-ja)',
                   fontSize: '0.78rem',
-                  color: 'var(--color-sub)',
+                  color: 'rgba(255,255,255,.50)',
                   lineHeight: 1.65,
                 }}
               >

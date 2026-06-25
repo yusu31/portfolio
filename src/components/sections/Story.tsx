@@ -78,7 +78,7 @@ export default function Story() {
             if (dot) {
               dot.style.borderColor = 'var(--color-or)'
               dot.style.backgroundColor = 'var(--color-or)'
-              dot.style.boxShadow = '0 0 0 4px var(--color-cream), 0 0 18px rgba(249,115,22,.22)'
+              dot.style.boxShadow = '0 0 0 4px #0d0d18, 0 0 18px rgba(249,115,22,.40)'
             }
           },
         })
@@ -93,8 +93,8 @@ export default function Story() {
       ref={sectionRef}
       id="story"
       style={{
-        borderTop: '1px solid var(--color-bd)',
-        background: 'var(--color-cream)',
+        borderTop: '1px solid rgba(255,255,255,.08)',
+        background: '#0d0d18',
         pointerEvents: 'auto',
       }}
     >
@@ -116,7 +116,7 @@ export default function Story() {
         <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>
           <div style={{
             position: 'absolute', left: 0, top: '0.75rem', bottom: '0.75rem', width: '2px', borderRadius: '999px',
-            background: 'linear-gradient(to bottom, var(--color-or), var(--color-bd) 70%)',
+            background: 'linear-gradient(to bottom, var(--color-or), rgba(255,255,255,.08) 70%)',
           }} />
 
           {TL_ITEMS.map((item, i) => (
@@ -134,10 +134,10 @@ export default function Story() {
                   width: '1rem',
                   height: '1rem',
                   borderRadius: '50%',
-                  border: '2px solid var(--color-bd)',
-                  background: '#fff',
+                  border: '2px solid rgba(255,255,255,.20)',
+                  background: '#0d0d18',
                   transition: 'all 0.5s',
-                  boxShadow: '0 0 0 4px var(--color-cream)',
+                  boxShadow: '0 0 0 4px #0d0d18',
                 }}
               />
               <p style={{ fontFamily: 'var(--font-en)', fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-or)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
