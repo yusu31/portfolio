@@ -1,110 +1,96 @@
-# 技術スタック選定
+# 技術スタック（v2 — React + R3F 実装）
+
+> **注意:** v1（Astro）から v2（React + Vite + R3F）に移行済み。このドキュメントは v2 確定版。
 
 ## 選定サマリー
 
-| レイヤー | 採用技術 | 比較検討した代替案 |
-|---|---|---|
-| フレームワーク | **Astro 6** | Next.js 16, Remix (React Router v7) |
-| スタイリング | **Tailwind CSS v4** | CSS Modules, UnoCSS |
-| アニメーション（基本） | **CSS Scroll-Driven Animations** | Framer Motion, AOS.js |
-| アニメーション（Hero） | **GSAP + ScrollTrigger** | Three.js, CSS-only |
-| アニメーション（React Island） | **Framer Motion** | React Spring |
-| ページ遷移 | **View Transitions API** | — |
-| コンテンツ管理 | **MDX** | Contentful, Sanity |
-| デプロイ | **Cloudflare Pages** | Vercel, Netlify |
-| メールフォーム | **Resend API** | EmailJS, Formspree |
-
----
-
-## フレームワーク: Astro 6
-
-### なぜ Astro か
-
-| 指標 | Astro 6 | Next.js 16 | Remix |
+| レイヤー | 採用技術 | バージョン | 備考 |
 |---|---|---|---|
-| JSバンドル（デフォルト） | **0KB** | 95KB gzip | 中程度 |
-| FCP | **0.3s** | 0.9s | 中程度 |
-| Lighthouse | **100/100** | 94/100 | 90〜95 |
-| ビルド時間 | **1.2s** | 8.5s | 3〜5s |
-| 学習コスト | 低（HTML/CSS知識で入れる） | 高（App Router複雑） | 中 |
-
-### 2026年エコシステム
-
-- GitHubスター 50,000超、週間NPMダウンロード 40万超
-- **CloudflareがAstroを買収（2026年1月）** → エッジ最適化が標準装備
-- Google・Microsoft・Adobe・IKEA・Harvard が本番利用
-- State of JavaScript 2024でNext.jsに次ぐ第2位
-
-### Next.jsを選ばない理由
-
-ポートフォリオはコンテンツ中心・インタラクション最小限のユースケース。
-SSRのオーバーヘッドは不要。AstroのゼロJS静的出力がSEOと表示速度を最大化する。
-
-### Astro Island Architecture
-
-Reactコンポーネントを必要な箇所だけhydrateする設計。
-技術的な幅（React・Vanilla JS両方使える）を示しながらパフォーマンスを維持できる。
+| フレームワーク | **React** | 19.2.7 | R3F v9 互換性のため 19 必須 |
+| ビルド | **Vite** | 6.x | @vitejs/plugin-react |
+| 型システム | **TypeScript** | 5.7 | `"jsx": "react-jsx"` / `bundler` 解決 |
+| スタイリング | **Tailwind CSS v4** | 4.3 | `@tailwindcss/vite` プラグイン |
+| 3D エンジン | **@react-three/fiber** | 9.6.1 | React 19 内部 API 依存のため 19 必須 |
+| 3D ヘルパー | **@react-three/drei** | 10.7.7 | CameraRig 等で使用 |
+| ポストプロセス | **@react-three/postprocessing** | 3.0.4 | Phase 3-5 で統合予定（現在除外中） |
+| Three.js | **three** | 0.184 | R3F の内部依存 |
+| アニメーション | **GSAP** | 3.15 | ScrollTrigger + SplitText（無料プラグイン） |
+| React アニメーション | **Framer Motion** | 12 | カーソル・ローダー用 |
+| スムーズスクロール | **Lenis** | 1.3 | App.tsx の useEffect 内で初期化 |
+| デプロイ | **Cloudflare Pages** | — | main push で自動デプロイ |
+| メールフォーム | **Resend API** | — | Functions `/api/send` |
 
 ---
 
-## アニメーション戦略
-
-### 2026年の変化
-
-「重いライブラリへの反省」が業界で進んでいる。
-ボタンホバーにGSAPを使うと200KB超の依存を積む = アンチパターン。
-
-### 使い分け
+## アーキテクチャ（2レイヤー）
 
 ```
-Hero演出（スクロールストーリーテリング）
-└── GSAP + ScrollTrigger（タイムライン制御・複雑な演出）
-
-各セクションのフェードイン・スライドイン
-└── CSS Scroll-Driven Animations（0KB・ブラウザネイティブ・Safari 17+対応済み）
-
-ページ遷移
-└── View Transitions API（0KB・Astroネイティブサポートあり）
-
-React Islandコンポーネント内
-└── Framer Motion（layout・presence・カードホバー）
+┌─────────────────────────────────────────┐
+│  Canvas Layer (position: fixed, z: 0)   │
+│  ├── Scene                              │
+│  │   ├── CameraRig                      │
+│  │   └── Crystal (サッカーボール風)     │
+│  └── Lighting                           │
+│                                         │
+│  UI Layer (position: relative, z: 10)   │
+│  ├── Loader                             │
+│  ├── Cursor                             │
+│  ├── Nav                                │
+│  ├── Hero, Impact, Story, Projects      │
+│  ├── Skills, Blog, Contact              │
+│  └── Footer                             │
+└─────────────────────────────────────────┘
 ```
 
----
-
-## スタイリング: Tailwind CSS v4
-
-- **2025年リリース** → CSS変数ネイティブ・設定ゼロ・`@import "tailwindcss"`だけで動く
-- ダークモードのトグルが `prefers-color-scheme` + クラス切替の両方で対応可能
-- Bento Gridは `grid-cols` ユーティリティで実装が容易
+### ポイント
+- Canvas は `fixed` で全画面に貼り付き（`alpha: true` で透明）
+- UI Layer は `pointerEvents: 'none'` がデフォルト → セクション単位で `auto` に
+- 3D オブジェクトは UI の「下」に見えるが実際には同一 DOM ツリー外
 
 ---
 
-## デプロイ: Cloudflare Pages
+## エントリーポイント
 
-### なぜ Vercel ではなく Cloudflare Pages か
+```ts
+// src/main.tsx
+gsap.registerPlugin(ScrollTrigger, SplitText)
+createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)
 
-- Cloudflare が Astro を買収（2026年1月）→ エッジ最適化が Astro-first で設計されている
-- 無料枠: ビルド500回/月・帯域無制限（Vercelは100GB制限あり）
-- エッジネットワーク: 320箇所超（Vercelは約30箇所）
-- カスタムドメイン・HTTPS: 無料
+// src/App.tsx
+useEffect(() => {
+  const lenis = new Lenis()
+  lenis.on('scroll', ScrollTrigger.update)
+  gsap.ticker.add((time) => lenis.raf(time * 1000))
+  gsap.ticker.lagSmoothing(0)
+  return () => lenis.destroy()
+}, [])
+```
+
+**Lenis を module レベルで初期化しない理由:** HMR 再実行でクラッシュするため `useEffect` 内のみ。
+
+---
+
+## 依存関係の互換性マトリクス
+
+| R3F v9 | React 18 | React 19 |
+|---|---|---|
+| `createReconciler` の 'S' プロパティ | ❌ 存在しない → 白画面 | ✅ 動作 |
+
+→ **react/react-dom は 19.x 固定**
 
 ---
 
 ## パッケージ管理
 
-- **pnpm** → npmの3倍高速・ディスク使用量を大幅削減
+- **pnpm** 11.x
 - Node.js: v22 LTS
+- バージョン固定は `pnpm-lock.yaml` で管理
 
 ---
 
-## バージョン固定方針
+## デプロイ: Cloudflare Pages
 
-```json
-{
-  "astro": "^6.0.0",
-  "tailwindcss": "^4.0.0",
-  "gsap": "^3.12.0",
-  "framer-motion": "^12.0.0"
-}
-```
+- `main` ブランチへの push で自動ビルド
+- ビルドコマンド: `pnpm build`（`tsc -b && vite build`）
+- 出力ディレクトリ: `dist/`
+- Functions: `/functions/api/send.ts`（Resend メール送信）

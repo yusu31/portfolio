@@ -27,7 +27,7 @@ export default function Blog() {
     <section
       ref={sectionRef}
       id="blog"
-      style={{ borderTop: '1px solid var(--color-bd)', background: 'var(--color-cream)', pointerEvents: 'auto' }}
+      style={{ borderTop: '1px solid rgba(255,255,255,.08)', background: '#0d0d18', pointerEvents: 'auto' }}
     >
       <div style={{ maxWidth: '64rem', margin: '0 auto', padding: '6rem 1.5rem' }}>
 
@@ -51,9 +51,9 @@ export default function Blog() {
             alignItems: 'center',
             justifyContent: 'center',
             padding: '5rem 1.5rem',
-            border: '1px dashed var(--color-bd)',
+            border: '1px dashed rgba(255,255,255,.15)',
             borderRadius: '1rem',
-            background: 'var(--color-cream)',
+            background: 'rgba(255,255,255,.03)',
           }}
         >
           <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>✍️</div>

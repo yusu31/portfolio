@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useLanguage } from '../../hooks/useLanguage'
 
 const NAV_LINKS = [
@@ -11,17 +10,6 @@ const NAV_LINKS = [
 
 export default function Nav() {
   const { t, lang, toggleLang } = useLanguage()
-  const [isDark, setIsDark] = useState(true)
-
-  useEffect(() => {
-    const onScroll = () => {
-      const hero = document.getElementById('hero')
-      if (!hero) return
-      setIsDark(hero.getBoundingClientRect().bottom > 0)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   return (
     <nav
@@ -36,15 +24,13 @@ export default function Nav() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '1.2rem 3rem',
-        transition: 'background .4s, border-color .4s',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        background: isDark ? 'rgba(234,88,12,.85)' : 'rgba(255,251,245,.95)',
-        borderBottom: isDark ? '1px solid rgba(255,255,255,.12)' : '1px solid var(--color-bd)',
+        background: 'rgba(10,10,15,.80)',
+        borderBottom: '1px solid rgba(255,255,255,.08)',
         pointerEvents: 'auto',
       }}
     >
-      {/* ロゴ */}
       <a
         href="#"
         style={{
@@ -52,15 +38,13 @@ export default function Nav() {
           fontWeight: 800,
           fontSize: '1.1rem',
           letterSpacing: '-0.06em',
-          color: isDark ? '#fff' : 'var(--color-tx)',
+          color: '#fff',
           textDecoration: 'none',
-          transition: 'color .4s',
         }}
       >
         yu<em style={{ fontStyle: 'normal', color: 'var(--color-am)' }}>.</em>
       </a>
 
-      {/* リンク */}
       <ul style={{ listStyle: 'none', display: 'flex', alignItems: 'center', gap: '2rem' }}>
         {NAV_LINKS.map(({ key, href }) => (
           <li key={key}>
@@ -70,19 +54,15 @@ export default function Nav() {
                 fontFamily: 'var(--font-ja)',
                 fontSize: '.82rem',
                 fontWeight: 700,
-                color: isDark ? 'rgba(255,255,255,.7)' : 'var(--color-sub)',
+                color: 'rgba(255,255,255,.55)',
                 textDecoration: 'none',
                 transition: 'color .2s',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.color = isDark
-                  ? 'var(--color-am)'
-                  : 'var(--color-or)'
+                (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-am)'
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.color = isDark
-                  ? 'rgba(255,255,255,.7)'
-                  : 'var(--color-sub)'
+                (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,.55)'
               }}
             >
               {t[key]}
@@ -99,11 +79,11 @@ export default function Nav() {
               letterSpacing: '.1em',
               padding: '.32rem .8rem',
               borderRadius: '999px',
-              background: isDark ? 'rgba(255,255,255,.15)' : 'var(--color-or2)',
-              color: '#fff',
-              border: 'none',
+              background: 'rgba(251,191,36,.20)',
+              color: 'var(--color-am)',
+              border: '1px solid rgba(251,191,36,.30)',
               cursor: 'pointer',
-              transition: 'background .4s',
+              transition: 'background .2s',
             }}
           >
             {lang === 'ja' ? 'EN' : 'JP'}

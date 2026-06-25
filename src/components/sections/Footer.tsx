@@ -12,8 +12,8 @@ export default function Footer() {
   return (
     <footer
       style={{
-        borderTop: '1px solid var(--color-bd)',
-        background: '#fff',
+        borderTop: '1px solid rgba(255,255,255,.08)',
+        background: '#0a0a0f',
         pointerEvents: 'auto',
       }}
     >
@@ -70,8 +70,8 @@ export default function Footer() {
           width: '2.5rem',
           height: '2.5rem',
           borderRadius: '50%',
-          border: '1px solid var(--color-bd)',
-          background: '#fff',
+          border: '1px solid rgba(255,255,255,.12)',
+          background: 'rgba(255,255,255,.06)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -80,8 +80,8 @@ export default function Footer() {
           pointerEvents: showTop ? 'auto' : 'none',
           transition: 'opacity .3s, background .2s',
         }}
-        onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-cream)')}
-        onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#fff')}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,.14)')}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,.06)')}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color: 'var(--color-sub)' }} strokeLinecap="round">
           <polyline points="18 15 12 9 6 15" />

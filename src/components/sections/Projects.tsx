@@ -101,18 +101,18 @@ function ProjectCard({ project, t }: { project: Project; t: Record<string, strin
       style={{
         width: '100%',
         aspectRatio: '16/9',
-        borderBottom: '1px solid var(--color-bd)',
+        borderBottom: '1px solid rgba(255,255,255,.08)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: `linear-gradient(to bottom right, ${project.grad.includes('fff7ed') ? '#fff7ed' : project.grad.includes('fffbeb') ? '#fffbeb' : '#fef9f0'}, ${project.grad.includes('ffedd5') ? '#ffedd5' : project.grad.includes('fef3c7') ? '#fef3c7' : '#fde68a'})`,
+        background: 'rgba(255,255,255,.03)',
       }}
     >
       <div style={{ fontFamily: 'var(--font-en)', fontWeight: 800, fontSize: '2rem', letterSpacing: '-0.04em', color: project.iconColor, marginBottom: '0.25rem' }}>
         {project.label}
       </div>
-      <div style={{ fontFamily: 'var(--font-en)', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#a8a29e' }}>
+      <div style={{ fontFamily: 'var(--font-en)', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,.35)' }}>
         {project.sub}
       </div>
     </div>
@@ -124,19 +124,19 @@ function ProjectCard({ project, t }: { project: Project; t: Record<string, strin
       className="proj-card reveal"
       style={{
         position: 'relative',
-        background: '#fff',
-        border: '1px solid var(--color-bd)',
+        background: 'rgba(255,255,255,.05)',
+        border: '1px solid rgba(255,255,255,.10)',
         borderRadius: '1rem',
         overflow: 'hidden',
         transition: 'border-color 0.3s, box-shadow 0.3s',
         transitionDelay: `${project.delay}s`,
       }}
       onMouseEnter={(e) => {
-        ;(e.currentTarget as HTMLDivElement).style.borderColor = '#fdba74'
-        ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 20px 40px rgba(0,0,0,.1)'
+        ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(251,191,36,.45)'
+        ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 20px 60px rgba(0,0,0,.5), 0 0 30px rgba(251,146,60,.08)'
       }}
       onMouseLeave={(e) => {
-        ;(e.currentTarget as HTMLDivElement).style.borderColor = 'var(--color-bd)'
+        ;(e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,.10)'
         ;(e.currentTarget as HTMLDivElement).style.boxShadow = ''
       }}
     >
@@ -150,7 +150,7 @@ function ProjectCard({ project, t }: { project: Project; t: Record<string, strin
         {/* タグ */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.75rem' }}>
           {project.tags.map((tag) => (
-            <span key={tag} style={{ fontFamily: 'var(--font-en)', fontSize: '0.59rem', fontWeight: 600, padding: '0.125rem 0.5rem', background: 'var(--color-cream)', border: '1px solid var(--color-bd)', borderRadius: '4px', color: 'var(--color-sub)' }}>
+            <span key={tag} style={{ fontFamily: 'var(--font-en)', fontSize: '0.59rem', fontWeight: 600, padding: '0.125rem 0.5rem', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: '4px', color: 'rgba(255,255,255,.50)' }}>
               {tag}
             </span>
           ))}
@@ -161,9 +161,9 @@ function ProjectCard({ project, t }: { project: Project; t: Record<string, strin
         </p>
 
         {/* PSI */}
-        <PSIBlock label="Problem" color="#f97316" bg="#fff7f5" border="#fdba74" text={t[project.probKey]} />
-        <PSIBlock label="Solution" color="#d97706" bg="#fffbeb" border="#fcd34d" text={t[project.solKey]} />
-        <PSIBlock label="Impact" color="#c2410c" bg="#fff7ed" border="#f97316" text={t[project.impKey]} bold />
+        <PSIBlock label="Problem" color="#fb923c" bg="rgba(249,115,22,.08)" border="rgba(249,115,22,.35)" text={t[project.probKey]} />
+        <PSIBlock label="Solution" color="#fbbf24" bg="rgba(217,119,6,.08)" border="rgba(251,191,36,.35)" text={t[project.solKey]} />
+        <PSIBlock label="Impact" color="#fb923c" bg="rgba(194,65,12,.10)" border="#f97316" text={t[project.impKey]} bold />
 
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
           <a href={project.demoUrl} style={{ fontFamily: 'var(--font-ja)', fontSize: '0.77rem', fontWeight: 700, color: 'var(--color-or)', textDecoration: 'none', transition: 'opacity .2s' }} onMouseEnter={(e) => ((e.target as HTMLElement).style.opacity = '0.6')} onMouseLeave={(e) => ((e.target as HTMLElement).style.opacity = '1')}>
@@ -179,7 +179,7 @@ function PSIBlock({ label, color, bg, border, text, bold }: { label: string; col
   return (
     <div style={{ marginBottom: '0.375rem', padding: '0.5rem 0.625rem', borderRadius: '0.5rem', background: bg, borderLeft: `2.5px solid ${border}` }}>
       <p style={{ fontFamily: 'var(--font-en)', fontSize: '0.59rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color, marginBottom: '0.125rem' }}>{label}</p>
-      <p style={{ fontFamily: 'var(--font-ja)', fontSize: '0.79rem', color: bold ? 'var(--color-or2)' : 'var(--color-tx)', lineHeight: 1.65, fontWeight: bold ? 700 : 400 }}>{text}</p>
+      <p style={{ fontFamily: 'var(--font-ja)', fontSize: '0.79rem', color: bold ? '#fb923c' : 'rgba(255,255,255,.75)', lineHeight: 1.65, fontWeight: bold ? 700 : 400 }}>{text}</p>
     </div>
   )
 }
@@ -220,7 +220,7 @@ export default function Projects() {
     <section
       ref={sectionRef}
       id="projects"
-      style={{ borderTop: '1px solid var(--color-bd)', background: 'var(--color-cream)', pointerEvents: 'auto' }}
+      style={{ borderTop: '1px solid rgba(255,255,255,.08)', background: '#0a0a0f', pointerEvents: 'auto' }}
     >
       <div style={{ maxWidth: '64rem', margin: '0 auto', padding: '6rem 1.5rem' }}>
         <div ref={headRef} style={{ marginBottom: '3rem' }}>
