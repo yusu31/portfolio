@@ -1,16 +1,28 @@
+import { Environment } from '@react-three/drei'
 import CameraRig from './CameraRig'
 import Crystal from './Crystal'
+import Effects from './Effects'
 
 export default function Scene() {
   return (
     <>
-      {/* ダーク背景映えのドラマティックライティング */}
-      <ambientLight intensity={0.15} />
-      <pointLight position={[4, 4, 6]} intensity={40} color="#fb923c" />
-      <pointLight position={[-4, -3, -4]} intensity={20} color="#fbbf24" />
-      <pointLight position={[0, 0, 8]} intensity={8} color="#ffffff" />
+      <color attach="background" args={['#0a0a0f']} />
+
+      {/* sunset = clearcoat が暖色オレンジを反射してくれる */}
+      <Environment preset="sunset" resolution={64} />
+
+      {/* 暖色メイン + 寒色アクセントでファセット間の輝度差を出す */}
+      <ambientLight intensity={0.06} />
+      <pointLight position={[4, 5, 5]} intensity={35} color="#fff5e0" />
+      <pointLight position={[-4, -2, 3]} intensity={40} color="#fb923c" />
+      <pointLight position={[0, 4, -5]} intensity={18} color="#c0d8ff" />
+      <pointLight position={[2, -5, -3]} intensity={20} color="#ffd090" />
+
       <CameraRig />
-      <Crystal />
+      <group position={[0, 0, 0]}>
+        <Crystal />
+      </group>
+      <Effects />
     </>
   )
 }

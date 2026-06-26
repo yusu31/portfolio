@@ -16,11 +16,23 @@ import Footer from './components/sections/Footer'
 export default function App() {
   return (
     <LanguageProvider>
-      {/* Canvas Layer */}
+      {/*
+        Canvas Layer — 右55%固定。alpha:false で transmission が正しく機能。
+        mask-image で左端をフェードさせ、縦ラインを解消。
+      */}
       <Canvas
-        style={{ position: 'fixed', inset: 0, zIndex: 0 }}
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          width: '55%',
+          height: '100vh',
+          zIndex: 0,
+          maskImage: 'linear-gradient(to right, transparent 0%, black 18%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 18%)',
+        }}
         camera={{ position: [0, 0, 5], fov: 60 }}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
       >
         <Scene />

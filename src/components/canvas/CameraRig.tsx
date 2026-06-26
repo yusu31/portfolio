@@ -1,16 +1,20 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useScrollProgress } from '../../hooks/useScrollProgress'
-import { MathUtils } from 'three'
 
 export default function CameraRig() {
   const { camera } = useThree()
-  const progress = useScrollProgress()
-  const targetY = useRef(0)
+  const scrollY = useRef(0)
+
+  useEffect(() => {
+    const onScroll = () => { scrollY.current = window.scrollY }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   useFrame(() => {
-    targetY.current = MathUtils.lerp(targetY.current, -progress * 8, 0.05)
-    camera.position.y = MathUtils.lerp(camera.position.y, targetY.current, 0.1)
+    // Hero(100vh)を65%スクロールした時点でクリスタルが画面上端から消える
+    const targetY = -(scrollY.current / window.innerHeight) * 4.8
+    camera.position.y += (targetY - camera.position.y) * 0.15
   })
 
   return null
