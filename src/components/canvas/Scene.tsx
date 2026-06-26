@@ -1,7 +1,65 @@
-import { Environment, MeshReflectorMaterial } from '@react-three/drei'
+import { useRef, useMemo } from 'react'
+import { Environment } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import CameraRig from './CameraRig'
 import Crystal from './Crystal'
 import Effects from './Effects'
+
+const rippleVert = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`
+
+const rippleFrag = `
+uniform float uTime;
+varying vec2 vUv;
+
+void main() {
+  vec2 c = vUv - 0.5;
+  float d = length(c);
+
+  // 周波数・速度が異なる3波を重ねてランダム感を出す
+  float w1 = sin(d * 24.0 - uTime * 2.1)  * 1.0;
+  float w2 = sin(d * 14.0 - uTime * 1.35) * 0.55;
+  float w3 = sin(d *  8.0 - uTime * 0.85) * 0.35;
+  float wave = (w1 + w2 + w3) / 1.9 * 0.5 + 0.5;
+
+  // 中心が明るく、エッジに向かって消える
+  float fade = smoothstep(0.5, 0.02, d);
+  float alpha = wave * fade * 0.14;
+
+  // オレンジ系（クリスタルコアと同色）
+  vec3 color = vec3(0.98, 0.45, 0.09);
+  gl_FragColor = vec4(color, alpha);
+}
+`
+
+function GroundRipple() {
+  const matRef = useRef<THREE.ShaderMaterial>(null)
+  const uniforms = useMemo(() => ({ uTime: { value: 0 } }), [])
+
+  useFrame((_, delta) => {
+    if (matRef.current) matRef.current.uniforms.uTime.value += delta
+  })
+
+  return (
+    <mesh position={[0, -1.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[3.5, 64]} />
+      <shaderMaterial
+        ref={matRef}
+        uniforms={uniforms}
+        vertexShader={rippleVert}
+        fragmentShader={rippleFrag}
+        transparent
+        depthWrite={false}
+      />
+    </mesh>
+  )
+}
 
 export default function Scene() {
   return (
@@ -23,20 +81,8 @@ export default function Scene() {
         <Crystal />
       </group>
 
-      {/* グラウンドグロー — クリスタル真下の幻想的な反射床 */}
-      <mesh position={[0, -1.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[6, 6]} />
-        <MeshReflectorMaterial
-          blur={[300, 100]}
-          resolution={512}
-          mixBlur={0.8}
-          mixStrength={60}
-          roughness={1}
-          depthScale={1.2}
-          color="#1a0a00"
-          metalness={0.6}
-        />
-      </mesh>
+      {/* グラウンドグロー — 水面波紋シェーダー */}
+      <GroundRipple />
 
       <Effects />
     </>
