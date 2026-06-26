@@ -1,14 +1,63 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { MathUtils } from 'three'
 
+interface OrbData {
+  id: number
+  color: string
+  radius: number
+  speed: number
+  phase: number
+  tilt: number
+}
+
+const ORB_COLORS = ['#f97316', '#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#fbbf24']
+
+function Orb({ orb }: { orb: OrbData }) {
+  const ref = useRef<THREE.Mesh>(null)
+
+  useFrame((state) => {
+    if (!ref.current) return
+    const t = state.clock.elapsedTime
+    const angle = t * orb.speed + orb.phase
+    ref.current.position.x = Math.cos(angle) * orb.radius
+    ref.current.position.z = Math.sin(angle) * orb.radius
+    ref.current.position.y = Math.sin(t * orb.speed * 0.3) * 0.5 + orb.tilt
+  })
+
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[0.12, 16, 16]} />
+      <meshStandardMaterial
+        color={orb.color}
+        emissive={orb.color}
+        emissiveIntensity={4}
+        toneMapped={false}
+      />
+    </mesh>
+  )
+}
+
 export default function Crystal() {
-  const floatRef    = useRef<THREE.Group>(null)   // 浮遊（全体）
-  const shellRef    = useRef<THREE.Mesh>(null)    // 外殻だけ自転
-  const coreGrpRef  = useRef<THREE.Group>(null)   // 内部コア（カーソル追従）
-  const coreRef     = useRef<THREE.Mesh>(null)    // emissive パルス
+  const floatRef    = useRef<THREE.Group>(null)
+  const shellRef    = useRef<THREE.Mesh>(null)
+  const coreGrpRef  = useRef<THREE.Group>(null)
+  const coreRef     = useRef<THREE.Mesh>(null)
   const t = useRef(0)
+  const [orbs, setOrbs] = useState<OrbData[]>([])
+
+  const handleClick = () => {
+    const newOrb: OrbData = {
+      id: Date.now(),
+      color: ORB_COLORS[Math.floor(Math.random() * ORB_COLORS.length)],
+      radius: 2.2 + Math.random() * 0.6,
+      speed: 0.4 + Math.random() * 0.6,
+      phase: Math.random() * Math.PI * 2,
+      tilt: (Math.random() - 0.5) * 0.8,
+    }
+    setOrbs(prev => [...prev.slice(-5), newOrb])
+  }
 
   useFrame((state, delta) => {
     t.current += delta
@@ -49,7 +98,7 @@ export default function Crystal() {
   return (
     <group ref={floatRef}>
       {/* 外殻クリスタル — 自転のみ */}
-      <mesh ref={shellRef}>
+      <mesh ref={shellRef} onClick={handleClick}>
         <icosahedronGeometry args={[1.5, 2]} />
         <meshPhysicalMaterial
           color="#ffe8cc"
@@ -88,6 +137,9 @@ export default function Crystal() {
           />
         </mesh>
       </group>
+
+      {/* クリックオービット — クリスタルと一緒に浮遊する */}
+      {orbs.map(orb => <Orb key={orb.id} orb={orb} />)}
     </group>
   )
 }
