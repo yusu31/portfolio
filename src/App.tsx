@@ -24,12 +24,10 @@ export default function App() {
         style={{
           position: 'fixed',
           top: 0,
-          right: 0,
-          width: '55%',
+          left: 0,
+          width: '100%',
           height: '100vh',
           zIndex: 0,
-          maskImage: 'linear-gradient(to right, transparent 0%, black 18%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 18%)',
         }}
         camera={{ position: [0, 0, 5], fov: 60 }}
         gl={{ antialias: true, alpha: false }}
