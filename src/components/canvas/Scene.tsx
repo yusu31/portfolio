@@ -1,6 +1,7 @@
-import { useRef, useMemo } from 'react'
+import { useRef, useMemo, useEffect } from 'react'
 import { Environment } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
+import gsap from 'gsap'
 import * as THREE from 'three'
 import CameraRig from './CameraRig'
 import Crystal from './Crystal'
@@ -22,17 +23,14 @@ void main() {
   vec2 c = vUv - 0.5;
   float d = length(c);
 
-  // 周波数・速度が異なる3波を重ねてランダム感を出す
   float w1 = sin(d * 24.0 - uTime * 2.1)  * 1.0;
   float w2 = sin(d * 14.0 - uTime * 1.35) * 0.55;
   float w3 = sin(d *  8.0 - uTime * 0.85) * 0.35;
   float wave = (w1 + w2 + w3) / 1.9 * 0.5 + 0.5;
 
-  // 中心が明るく、エッジに向かって消える
   float fade = smoothstep(0.5, 0.02, d);
   float alpha = wave * fade * 0.14;
 
-  // オレンジ系（クリスタルコアと同色）
   vec3 color = vec3(0.98, 0.45, 0.09);
   gl_FragColor = vec4(color, alpha);
 }
@@ -61,15 +59,51 @@ function GroundRipple() {
   )
 }
 
+// EXPLOREクリック時にクリスタルが右に飛び出して消えるコンテナ
+function CrystalContainer() {
+  const grpRef = useRef<THREE.Group>(null)
+
+  useEffect(() => {
+    const onExplore = () => {
+      if (!grpRef.current) return
+      // 右に移動しながらスケールダウン
+      gsap.to(grpRef.current.position, {
+        x: 5,
+        duration: 1.1,
+        ease: 'power2.in',
+      })
+      gsap.to(grpRef.current.scale, {
+        x: 0, y: 0, z: 0,
+        duration: 0.7,
+        delay: 0.45,
+        ease: 'power2.in',
+        onComplete: () => {
+          // スクロール完了後にリセット（戻ってきた時用）
+          if (grpRef.current) {
+            grpRef.current.position.x = 0
+            grpRef.current.scale.set(1, 1, 1)
+          }
+        },
+      })
+    }
+    window.addEventListener('explore-click', onExplore)
+    return () => window.removeEventListener('explore-click', onExplore)
+  }, [])
+
+  return (
+    <group ref={grpRef} position={[0, -0.4, 0]}>
+      <Crystal />
+    </group>
+  )
+}
+
 export default function Scene() {
   return (
     <>
       <color attach="background" args={['#0a0a0f']} />
 
-      {/* sunset = clearcoat が暖色オレンジを反射してくれる */}
       <Environment preset="sunset" resolution={64} />
 
-      {/* 暖色メイン + 寒色アクセントでファセット間の輝度差を出す */}
       <ambientLight intensity={0.06} />
       <pointLight position={[4, 5, 5]} intensity={35} color="#fff5e0" />
       <pointLight position={[-4, -2, 3]} intensity={40} color="#fb923c" />
@@ -77,13 +111,9 @@ export default function Scene() {
       <pointLight position={[2, -5, -3]} intensity={20} color="#ffd090" />
 
       <CameraRig />
-      <group position={[0, 0, 0]}>
-        <Crystal />
-      </group>
+      <CrystalContainer />
 
-      {/* グラウンドグロー — 水面波紋シェーダー */}
       <GroundRipple />
-
       <Effects />
     </>
   )

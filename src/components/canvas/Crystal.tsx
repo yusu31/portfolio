@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { MathUtils } from 'three'
@@ -10,29 +10,38 @@ interface OrbData {
   speed: number
   phase: number
   tilt: number
+  size: number
+  birthTime: number  // clock.elapsedTime at spawn → float-out animation の基点
 }
 
-const ORB_COLORS = ['#f97316', '#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#fbbf24']
+const ORB_COLORS = ['#f97316', '#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#fbbf24', '#ffffff']
+const ORB_BIRTH_DURATION = 1.4  // 中心から軌道半径まで展開する秒数
+const DRAG_DAMPING = 0.93       // ohzi.io 調査値（指数減衰係数）
 
+// 中心からふわーっと浮き出るOrb
 function Orb({ orb }: { orb: OrbData }) {
   const ref = useRef<THREE.Mesh>(null)
 
   useFrame((state) => {
     if (!ref.current) return
     const t = state.clock.elapsedTime
+    const progress = Math.min((t - orb.birthTime) / ORB_BIRTH_DURATION, 1)
+    const eased = 1 - Math.pow(1 - progress, 3)  // easeOutCubic: ふわっと展開
+    const r = orb.radius * eased
+
     const angle = t * orb.speed + orb.phase
-    ref.current.position.x = Math.cos(angle) * orb.radius
-    ref.current.position.z = Math.sin(angle) * orb.radius
-    ref.current.position.y = Math.sin(t * orb.speed * 0.3) * 0.5 + orb.tilt
+    ref.current.position.x = Math.cos(angle) * r
+    ref.current.position.z = Math.sin(angle) * r
+    ref.current.position.y = (Math.sin(t * orb.speed * 0.3) * 0.5 + orb.tilt) * eased
   })
 
   return (
     <mesh ref={ref}>
-      <sphereGeometry args={[0.12, 16, 16]} />
+      <sphereGeometry args={[orb.size, 16, 16]} />
       <meshStandardMaterial
         color={orb.color}
         emissive={orb.color}
-        emissiveIntensity={4}
+        emissiveIntensity={5}
         toneMapped={false}
       />
     </mesh>
@@ -40,65 +49,139 @@ function Orb({ orb }: { orb: OrbData }) {
 }
 
 export default function Crystal() {
-  const floatRef    = useRef<THREE.Group>(null)
-  const shellRef    = useRef<THREE.Mesh>(null)
-  const coreGrpRef  = useRef<THREE.Group>(null)
-  const coreRef     = useRef<THREE.Mesh>(null)
-  const t = useRef(0)
+  const floatRef   = useRef<THREE.Group>(null)
+  const shellRef   = useRef<THREE.Mesh>(null)
+  const coreGrpRef = useRef<THREE.Group>(null)
+  const coreRef    = useRef<THREE.Mesh>(null)
+  const clockRef   = useRef(0)  // useFrame外でelapsedTimeを参照するためのref
   const [orbs, setOrbs] = useState<OrbData[]>([])
 
-  const handleClick = () => {
-    const newOrb: OrbData = {
-      id: Date.now(),
-      color: ORB_COLORS[Math.floor(Math.random() * ORB_COLORS.length)],
-      radius: 2.2 + Math.random() * 0.6,
-      speed: 0.4 + Math.random() * 0.6,
-      phase: Math.random() * Math.PI * 2,
-      tilt: (Math.random() - 0.5) * 0.8,
+  // ドラッグ回転
+  const isDragging  = useRef(false)
+  const lastPtr     = useRef({ x: 0, y: 0 })
+  const angularVel  = useRef({ x: 0, y: 0 })
+  const totalDrag   = useRef(0)
+
+  // バウンス物理（クリック時のバネシミュレーション）
+  const bounceY   = useRef(0)
+  const bounceVel = useRef(0)
+
+  const spawnOrbs = useCallback(() => {
+    const birthTime = clockRef.current
+    const count = 2 + Math.floor(Math.random() * 2)  // 2〜3個ずつ増える
+    setOrbs(prev => {
+      const newOrbs: OrbData[] = Array.from({ length: count }, () => ({
+        id: Date.now() + Math.random(),
+        color: ORB_COLORS[Math.floor(Math.random() * ORB_COLORS.length)],
+        radius: 1.9 + Math.random() * 1.0,
+        speed: 0.35 + Math.random() * 0.65,
+        phase: Math.random() * Math.PI * 2,
+        tilt: (Math.random() - 0.5) * 1.0,
+        size: 0.05 + Math.random() * 0.10,  // 大中小混在（max 0.15 に抑える）
+        birthTime,
+      }))
+      return [...prev.slice(-(10 - count)), ...newOrbs]  // 最大10個
+    })
+    // バウンス発動
+    bounceVel.current = 2.5
+  }, [])
+
+  // ドラッグ回転 + クリック判定（windowレベルで捕捉）
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      if (!isDragging.current) return
+      const dx = e.clientX - lastPtr.current.x
+      const dy = e.clientY - lastPtr.current.y
+      totalDrag.current += Math.abs(dx) + Math.abs(dy)
+      if (shellRef.current) {
+        shellRef.current.rotation.y += dx * 0.008
+        shellRef.current.rotation.x += dy * 0.008
+      }
+      // 慣性用に最後のフレーム速度を保存
+      angularVel.current = { x: dy * 0.008, y: dx * 0.008 }
+      lastPtr.current = { x: e.clientX, y: e.clientY }
     }
-    setOrbs(prev => [...prev.slice(-5), newOrb])
-  }
+
+    const onUp = () => {
+      if (!isDragging.current) return
+      isDragging.current = false
+      // ドラッグ距離が短い = クリック判定
+      if (totalDrag.current < 6) {
+        spawnOrbs()
+      }
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [spawnOrbs])
 
   useFrame((state, delta) => {
-    t.current += delta
+    clockRef.current = state.clock.elapsedTime
 
-    // 浮遊
+    // バウンス物理（重力 9、バウンド減衰 40%）
+    if (bounceVel.current !== 0 || bounceY.current > 0.001) {
+      bounceVel.current -= 9 * delta
+      bounceY.current += bounceVel.current * delta
+      if (bounceY.current <= 0) {
+        bounceY.current = 0
+        bounceVel.current = Math.abs(bounceVel.current) * 0.4
+        if (bounceVel.current < 0.05) bounceVel.current = 0
+      }
+    }
+
+    // 浮遊 + バウンス合成
     if (floatRef.current) {
-      floatRef.current.position.y = Math.sin(t.current * 0.65) * 0.14
+      floatRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.65) * 0.14 + bounceY.current
     }
 
-    // 外殻：自転 + マウスによる傾き
+    // 外殻: ドラッグ中はuseFrameの回転を停止、リリース後は慣性で滑走
     if (shellRef.current) {
-      shellRef.current.rotation.y += delta * 0.18
-      shellRef.current.rotation.x +=
-        (state.pointer.y * -0.3 - shellRef.current.rotation.x) * 0.04
+      if (!isDragging.current) {
+        shellRef.current.rotation.y += delta * 0.18 + angularVel.current.y
+        shellRef.current.rotation.x = MathUtils.lerp(
+          shellRef.current.rotation.x,
+          state.pointer.y * -0.3,
+          0.04
+        ) + angularVel.current.x
+        // 慣性を DAMPING 0.93 で指数減衰（ohzi.io 調査値）
+        angularVel.current.x *= DRAG_DAMPING
+        angularVel.current.y *= DRAG_DAMPING
+      }
     }
 
-    // 内部コア：カーソルに追従（外殻の回転とは独立）
+    // 内部コア：カーソル追従
     if (coreGrpRef.current) {
       coreGrpRef.current.position.x = MathUtils.lerp(
-        coreGrpRef.current.position.x,
-        state.pointer.x * 0.55,
-        0.06
+        coreGrpRef.current.position.x, state.pointer.x * 0.55, 0.06
       )
       coreGrpRef.current.position.y = MathUtils.lerp(
-        coreGrpRef.current.position.y,
-        state.pointer.y * 0.55,
-        0.06
+        coreGrpRef.current.position.y, state.pointer.y * 0.55, 0.06
       )
     }
 
     // 発光パルス
     if (coreRef.current) {
       const mat = coreRef.current.material as THREE.MeshStandardMaterial
-      mat.emissiveIntensity = 3.5 + Math.sin(t.current * 2.2) * 1.2
+      mat.emissiveIntensity = 3.5 + Math.sin(state.clock.elapsedTime * 2.2) * 1.2
     }
   })
 
   return (
     <group ref={floatRef}>
-      {/* 外殻クリスタル — 自転のみ */}
-      <mesh ref={shellRef} onClick={handleClick}>
+      {/* 外殻 — flatShading=true でサッカーボール風の多角形面を復元 */}
+      <mesh
+        ref={shellRef}
+        onPointerDown={(e) => {
+          isDragging.current = true
+          lastPtr.current = { x: e.clientX, y: e.clientY }
+          totalDrag.current = 0
+          angularVel.current = { x: 0, y: 0 }
+        }}
+      >
         <icosahedronGeometry args={[1.5, 2]} />
         <meshPhysicalMaterial
           color="#ffe8cc"
@@ -113,32 +196,26 @@ export default function Crystal() {
         />
       </mesh>
 
-      {/* 内部コア — カーソルに追従する発光体 */}
+      {/* 内部コア — オレンジ発光（ガラス面越しに見える）*/}
       <group ref={coreGrpRef}>
         <mesh ref={coreRef}>
           <sphereGeometry args={[0.80, 32, 32]} />
           <meshStandardMaterial
             color="#fb923c"
             emissive="#f97316"
-            emissiveIntensity={3.5}
+            emissiveIntensity={2.2}
             roughness={0.08}
             transparent
-            opacity={0.90}
+            opacity={0.85}
           />
         </mesh>
-
-        {/* 中心白熱点 */}
         <mesh>
           <sphereGeometry args={[0.22, 16, 16]} />
-          <meshStandardMaterial
-            color="#fff"
-            emissive="#fbbf24"
-            emissiveIntensity={9}
-          />
+          <meshStandardMaterial color="#fff" emissive="#fbbf24" emissiveIntensity={6} />
         </mesh>
       </group>
 
-      {/* クリックオービット — クリスタルと一緒に浮遊する */}
+      {/* クリックで中心から浮き出るOrb */}
       {orbs.map(orb => <Orb key={orb.id} orb={orb} />)}
     </group>
   )
