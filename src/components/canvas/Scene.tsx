@@ -1,4 +1,4 @@
-import { Environment } from '@react-three/drei'
+import { Environment, MeshReflectorMaterial } from '@react-three/drei'
 import CameraRig from './CameraRig'
 import Crystal from './Crystal'
 import Effects from './Effects'
@@ -22,6 +22,22 @@ export default function Scene() {
       <group position={[0, 0, 0]}>
         <Crystal />
       </group>
+
+      {/* グラウンドグロー — クリスタル真下の幻想的な反射床 */}
+      <mesh position={[0, -1.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[6, 6]} />
+        <MeshReflectorMaterial
+          blur={[300, 100]}
+          resolution={512}
+          mixBlur={0.8}
+          mixStrength={60}
+          roughness={1}
+          depthScale={1.2}
+          color="#1a0a00"
+          metalness={0.6}
+        />
+      </mesh>
+
       <Effects />
     </>
   )
