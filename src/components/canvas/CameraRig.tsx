@@ -12,10 +12,9 @@ export default function CameraRig() {
   }, [])
 
   useFrame(() => {
-    // スクロールするほどカメラを下に動かす → クリスタルが上へスクロールアウト
-    // 1vh ≈ window.innerHeight px を 1 world-unit にマップ
-    const targetY = -(scrollY.current / window.innerHeight) * 2.9
-    camera.position.y += (targetY - camera.position.y) * 0.08
+    // Hero(100vh)を75%スクロールした時点でクリスタルが画面上端から消える
+    const targetY = -(scrollY.current / window.innerHeight) * 3.8
+    camera.position.y += (targetY - camera.position.y) * 0.10
   })
 
   return null

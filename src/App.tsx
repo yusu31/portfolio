@@ -16,30 +16,27 @@ import Footer from './components/sections/Footer'
 export default function App() {
   return (
     <LanguageProvider>
-      {/* Canvas Layer — 全画面・透過。球体は [0,0,0] で楕円ゼロ */}
+      {/*
+        Canvas Layer — 右55%固定。alpha:false で transmission が正しく機能。
+        mask-image で左端をフェードさせ、縦ラインを解消。
+      */}
       <Canvas
-        style={{ position: 'fixed', inset: 0, zIndex: 0 }}
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          width: '55%',
+          height: '100vh',
+          zIndex: 0,
+          maskImage: 'linear-gradient(to right, transparent 0%, black 18%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 18%)',
+        }}
         camera={{ position: [0, 0, 5], fov: 60 }}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
       >
         <Scene />
       </Canvas>
-
-      {/*
-        左側グラデーションマスク — canvas の縦ラインを消して自然な背景とブレンド
-        z-index 5 = Canvas(0) と UI(10) の間に挟む
-      */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 5,
-          pointerEvents: 'none',
-          background:
-            'linear-gradient(to right, #0a0a0f 0%, #0a0a0f 30%, rgba(10,10,15,0.45) 48%, transparent 60%)',
-        }}
-      />
 
       {/* UI Layer */}
       <div style={{ position: 'relative', zIndex: 10, pointerEvents: 'none' }}>

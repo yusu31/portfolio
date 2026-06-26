@@ -6,6 +6,8 @@ import Effects from './Effects'
 export default function Scene() {
   return (
     <>
+      <color attach="background" args={['#0a0a0f']} />
+
       {/* sunset = clearcoat が暖色オレンジを反射してくれる */}
       <Environment preset="sunset" resolution={64} />
 
