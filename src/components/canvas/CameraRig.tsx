@@ -12,9 +12,9 @@ export default function CameraRig() {
   }, [])
 
   useFrame(() => {
-    // Hero(100vh)を75%スクロールした時点でクリスタルが画面上端から消える
-    const targetY = -(scrollY.current / window.innerHeight) * 3.8
-    camera.position.y += (targetY - camera.position.y) * 0.10
+    // Hero(100vh)を65%スクロールした時点でクリスタルが画面上端から消える
+    const targetY = -(scrollY.current / window.innerHeight) * 4.8
+    camera.position.y += (targetY - camera.position.y) * 0.15
   })
 
   return null
