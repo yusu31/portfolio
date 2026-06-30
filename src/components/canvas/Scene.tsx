@@ -1,11 +1,13 @@
-import { useRef, useMemo, useEffect } from 'react'
+import { useRef, useMemo, useEffect, useState } from 'react'
 import { Environment } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import gsap from 'gsap'
 import * as THREE from 'three'
+import type { Mesh } from 'three'
 import CameraRig from './CameraRig'
 import Crystal from './Crystal'
 import Effects from './Effects'
+import BallJourney from './journey/BallJourney'
 
 const rippleVert = `
 varying vec2 vUv;
@@ -98,6 +100,8 @@ function CrystalContainer() {
 }
 
 export default function Scene() {
+  const [sunMesh, setSunMesh] = useState<Mesh | null>(null)
+
   return (
     <>
       <color attach="background" args={['#0a0a0f']} />
@@ -112,9 +116,10 @@ export default function Scene() {
 
       <CameraRig />
       <CrystalContainer />
+      <BallJourney onSunReady={setSunMesh} />
 
       <GroundRipple />
-      <Effects />
+      <Effects sunMesh={sunMesh} />
     </>
   )
 }

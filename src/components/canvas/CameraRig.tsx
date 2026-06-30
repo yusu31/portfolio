@@ -12,8 +12,11 @@ export default function CameraRig() {
   }, [])
 
   useFrame(() => {
-    // Hero(100vh)を65%スクロールした時点でクリスタルが画面上端から消える
-    const targetY = -(scrollY.current / window.innerHeight) * 4.8
+    // Hero(100vh)を65%スクロールした時点でクリスタルが画面上端から消える。
+    // それ以降（JourneyZone以降）はクランプし、後続のSoccerSceneのカメラ制御と
+    // camera.positionを奪い合わないようにする。
+    const clampedScrollY = Math.min(scrollY.current, window.innerHeight * 0.65)
+    const targetY = -(clampedScrollY / window.innerHeight) * 4.8
     camera.position.y += (targetY - camera.position.y) * 0.15
   })
 
