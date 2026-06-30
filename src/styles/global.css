@@ -60,9 +60,44 @@ a, button { cursor: none; }
 }
 .impact-card.reveal-in { opacity: 1; transform: none; }
 
+/* ナビ：ハンバーガーメニュー（モバイル） */
+.nav-toggle { display: none; }
+
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 15, .97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s ease;
+}
+.nav-overlay.nav-overlay-open { opacity: 1; pointer-events: auto; }
+
+.nav-overlay-link {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .45s ease, transform .45s ease;
+}
+.nav-overlay-open .nav-overlay-link { opacity: 1; transform: none; }
+.nav-overlay-link:nth-child(1) { transition-delay: .05s; }
+.nav-overlay-link:nth-child(2) { transition-delay: .10s; }
+.nav-overlay-link:nth-child(3) { transition-delay: .15s; }
+.nav-overlay-link:nth-child(4) { transition-delay: .20s; }
+.nav-overlay-link:nth-child(5) { transition-delay: .25s; }
+.nav-overlay-link:nth-child(6) { transition-delay: .30s; }
+
 @media (max-width: 768px) {
   html { cursor: auto; }
   a, button { cursor: auto; }
+
+  .nav-links { display: none !important; }
+  .nav-toggle { display: flex !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

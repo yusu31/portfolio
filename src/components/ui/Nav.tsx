@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLanguage } from '../../hooks/useLanguage'
 
 const NAV_LINKS = [
@@ -10,6 +12,14 @@ const NAV_LINKS = [
 
 export default function Nav() {
   const { t, lang, toggleLang } = useLanguage()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
 
   return (
     <nav
@@ -45,7 +55,7 @@ export default function Nav() {
         yu<em style={{ fontStyle: 'normal', color: 'var(--color-am)' }}>.</em>
       </a>
 
-      <ul style={{ listStyle: 'none', display: 'flex', alignItems: 'center', gap: '2rem' }}>
+      <ul className="nav-links" style={{ listStyle: 'none', display: 'flex', alignItems: 'center', gap: '2rem' }}>
         {NAV_LINKS.map(({ key, href }) => (
           <li key={key}>
             <a
@@ -90,6 +100,119 @@ export default function Nav() {
           </button>
         </li>
       </ul>
+
+      <button
+        type="button"
+        className="nav-toggle"
+        aria-label={menuOpen ? 'メニューを閉じる' : 'メニューを開く'}
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((v) => !v)}
+        style={{
+          flexDirection: 'column',
+          gap: '5px',
+          width: '28px',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+        }}
+      >
+        <span
+          style={{
+            display: 'block',
+            height: '2px',
+            width: '100%',
+            background: '#fff',
+            borderRadius: '2px',
+            transition: 'transform .25s ease, opacity .25s ease',
+            transform: menuOpen ? 'translateY(7px) rotate(45deg)' : 'none',
+          }}
+        />
+        <span
+          style={{
+            display: 'block',
+            height: '2px',
+            width: '100%',
+            background: '#fff',
+            borderRadius: '2px',
+            transition: 'opacity .25s ease',
+            opacity: menuOpen ? 0 : 1,
+          }}
+        />
+        <span
+          style={{
+            display: 'block',
+            height: '2px',
+            width: '100%',
+            background: '#fff',
+            borderRadius: '2px',
+            transition: 'transform .25s ease, opacity .25s ease',
+            transform: menuOpen ? 'translateY(-7px) rotate(-45deg)' : 'none',
+          }}
+        />
+      </button>
+
+      {createPortal(
+        <div className={`nav-overlay${menuOpen ? ' nav-overlay-open' : ''}`}>
+          <button
+            type="button"
+            aria-label="メニューを閉じる"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              position: 'absolute',
+              top: '1.4rem',
+              right: '1.6rem',
+              width: '28px',
+              height: '28px',
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              fontSize: '1.6rem',
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.6rem' }}>
+            {NAV_LINKS.map(({ key, href }) => (
+              <li key={key} className="nav-overlay-link">
+                <a
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    fontFamily: 'var(--font-ja)',
+                    fontSize: '1.6rem',
+                    fontWeight: 700,
+                    color: 'rgba(255,255,255,.85)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {t[key]}
+                </a>
+              </li>
+            ))}
+            <li className="nav-overlay-link">
+              <button
+                onClick={toggleLang}
+                style={{
+                  fontFamily: 'var(--font-en)',
+                  fontSize: '.75rem',
+                  fontWeight: 700,
+                  letterSpacing: '.1em',
+                  padding: '.4rem 1rem',
+                  borderRadius: '999px',
+                  background: 'rgba(251,191,36,.20)',
+                  color: 'var(--color-am)',
+                  border: '1px solid rgba(251,191,36,.30)',
+                  cursor: 'pointer',
+                }}
+              >
+                {lang === 'ja' ? 'EN' : 'JP'}
+              </button>
+            </li>
+          </ul>
+        </div>,
+        document.body
+      )}
     </nav>
   )
 }
