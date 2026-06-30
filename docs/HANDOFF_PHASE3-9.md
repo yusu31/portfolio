@@ -6,11 +6,28 @@
 
 ## 現在の状態（2026-06-30）
 
-Phase 3-8 の PR #38 がマージ済み。**現在 `main` ブランチで作業開始できる状態。**
+Phase 3-8 の PR #38、ワークフロールール更新の PR #40 がマージ済み。**現在 `main` ブランチで作業開始できる状態。**
 
 **リポジトリ:** `c:\Users\3fort\dev\portfolio`
 **現在のブランチ:** `main`（クリーン）
 **本番:** Cloudflare Pages（main push で自動デプロイ）
+**最新コミット:** `70b1d0a`（`git log --oneline -3` で確認）
+
+---
+
+## ⚠️ 開発ワークフロー（2026-06-30に変更・必読）
+
+Phase 3-8完了後にルールを変更した（Issue #39 → PR #40）。詳細は `CLAUDE.md` 参照。
+
+- **Issue → branch → PR → merge を全変更で必須**（コード・ドキュメント問わず例外なし）。過去にあった「引き継ぎドキュメントのみmain直接push」の慣習は廃止済み
+- **PRマージはClaudeが確認なしで自動実行してよい**（このプロジェクトに限り事前承認済み）。マージ後のローカルbranch削除・`git remote prune origin`も続けて自動実行する
+- このHANDOFFファイル自体の更新も、次回から必ずIssue→branch→PRを通すこと
+
+---
+
+## Obsidian記録
+
+`C:\Users\3fort\Documents\SecondBrain\Projects\portfolio-hub.md` に本プロジェクトの戦略・技術スタック・開発ルール・フェーズ進捗・Phase 3-8実装の経緯を記録済み。詳細な背景を知りたいときはユーザーに読み込み許可を取った上で参照する（SecondBrainの読み込みはユーザー明示指示時のみ）。
 
 ---
 
@@ -123,9 +140,10 @@ Phase 3-7から変更なし。詳細は `docs/HANDOFF_PHASE3-8.md` を参照。
 
 ## セッション開始チェックリスト
 
-1. `git log --oneline -3` → 最新が Phase 3-8 のコミットであることを確認
+1. `git log --oneline -3` → 最新が `70b1d0a`（ワークフロールール更新）であることを確認
 2. `docs/HANDOFF_PHASE3-9.md` を読む（このファイル）
-3. Issue 作成 → ブランチ作成 → 実装
+3. `CLAUDE.md` の開発ワークフロー節を確認（マージ自動化ルール）
+4. Issue 作成 → ブランチ作成 → 実装 → PR → 自動マージ
 
 ---
 
