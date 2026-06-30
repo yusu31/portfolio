@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useTexture } from '@react-three/drei'
 import { RepeatWrapping } from 'three'
 
@@ -18,10 +19,12 @@ export default function CourtSurface({
     '/textures/leafy_grass_rough_1k.jpg',
   ])
 
-  ;[diffuse, normal, roughness].forEach((tex) => {
-    tex.wrapS = tex.wrapT = RepeatWrapping
-    tex.repeat.set(width / 4, depth / 4)
-  })
+  useEffect(() => {
+    ;[diffuse, normal, roughness].forEach((tex) => {
+      tex.wrapS = tex.wrapT = RepeatWrapping
+      tex.repeat.set(width / 4, depth / 4)
+    })
+  }, [diffuse, normal, roughness, width, depth])
 
   return (
     <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
@@ -30,6 +33,7 @@ export default function CourtSurface({
         map={diffuse}
         normalMap={normal}
         roughnessMap={roughness}
+        // roughnessMapの値をそのまま使うため係数は1
         roughness={1}
       />
     </mesh>
