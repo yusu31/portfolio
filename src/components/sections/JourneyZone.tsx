@@ -1,19 +1,27 @@
+import { useEffect, useState } from 'react'
+
 interface JourneyZoneProps {
   id: string
   heightVh?: number
 }
 
-/**
- * 3DキャンバスをUIに隠されず全画面表示するための、透明な高さ確保用セクション。
- * 中身は描画しない（3D演出はCanvas側のBallJourneyが担当）。
- */
 export default function JourneyZone({ id, heightVh = 250 }: JourneyZoneProps) {
+  const [reducedMotion, setReducedMotion] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReducedMotion(mq.matches)
+    const onChange = () => setReducedMotion(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   return (
     <section
       id={id}
       aria-hidden="true"
       style={{
-        height: `${heightVh}vh`,
+        height: reducedMotion ? '0' : `${heightVh}vh`,
         background: 'transparent',
         pointerEvents: 'none',
       }}
