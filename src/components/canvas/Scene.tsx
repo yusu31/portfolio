@@ -92,6 +92,15 @@ function CrystalContainer() {
     return () => window.removeEventListener('explore-click', onExplore)
   }, [])
 
+  useFrame(() => {
+    if (!grpRef.current) return
+    // GSAPのonCompleteはタイマー駆動でリセットするため、Hero区間より下まで
+    // スクロールした状態でも一律でクリスタルが復活してしまう。CameraRigと
+    // 同じHero想定範囲を超えている間は強制的に非表示にし、JourneyZone以降の
+    // 3D演出（ボールジャーニー）とクリスタルが重なって見えるのを防ぐ。
+    grpRef.current.visible = window.scrollY <= window.innerHeight * 0.65
+  })
+
   return (
     <group ref={grpRef} position={[0, -0.4, 0]}>
       <Crystal />

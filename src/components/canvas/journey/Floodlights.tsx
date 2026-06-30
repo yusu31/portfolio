@@ -36,11 +36,10 @@ export default function Floodlights({ onSunReady }: FloodlightsProps) {
             <meshStandardMaterial
               color="#fff5e0"
               emissive="#fff5e0"
-              emissiveIntensity={6}
-              toneMapped={false}
+              emissiveIntensity={3}
             />
           </mesh>
-          <pointLight color="#fff5e0" intensity={60} distance={30} decay={2} />
+          <pointLight color="#fff5e0" intensity={30} distance={30} decay={2} />
         </group>
       ))}
     </group>

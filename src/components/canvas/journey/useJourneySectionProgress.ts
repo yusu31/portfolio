@@ -7,29 +7,26 @@ import { computeSectionProgress } from './scrollProgress'
  */
 export function useJourneySectionProgress(sectionId: string) {
   const progressRef = useRef(0)
-  const boundsRef = useRef({ top: 0, height: 0 })
 
   useEffect(() => {
-    const measure = () => {
+    // フォント・画像読み込みやLoader消失によるレイアウトシフトでセクション位置が
+    // ずれるため、scroll/resizeのたびに毎回 getBoundingClientRect() で測り直す
+    // （キャッシュした位置を使い回すと進捗計算が実スクロール位置とズレる）。
+    const update = () => {
       const el = document.getElementById(sectionId)
       if (!el) return
       const rect = el.getBoundingClientRect()
-      boundsRef.current = { top: rect.top + window.scrollY, height: rect.height }
+      const top = rect.top + window.scrollY
+      progressRef.current = computeSectionProgress(top, rect.height, window.scrollY)
     }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
   }, [sectionId])
-
-  useEffect(() => {
-    const onScroll = () => {
-      const { top, height } = boundsRef.current
-      progressRef.current = computeSectionProgress(top, height, window.scrollY)
-    }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   return progressRef
 }
