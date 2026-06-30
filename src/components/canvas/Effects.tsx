@@ -1,6 +1,11 @@
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, GodRays } from '@react-three/postprocessing'
+import type { Mesh } from 'three'
 
-export default function Effects() {
+interface EffectsProps {
+  sunMesh?: Mesh | null
+}
+
+export default function Effects({ sunMesh }: EffectsProps) {
   return (
     <EffectComposer>
       <Bloom
@@ -9,6 +14,19 @@ export default function Effects() {
         luminanceSmoothing={0.9}
         mipmapBlur
       />
+      {sunMesh ? (
+        <GodRays
+          sun={sunMesh}
+          samples={30}
+          density={0.9}
+          decay={0.9}
+          weight={0.4}
+          exposure={0.5}
+          blur
+        />
+      ) : (
+        <></>
+      )}
     </EffectComposer>
   )
 }
