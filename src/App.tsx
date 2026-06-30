@@ -6,6 +6,7 @@ import Cursor from './components/ui/Cursor'
 import Loader from './components/ui/Loader'
 import Nav from './components/ui/Nav'
 import Hero from './components/sections/Hero'
+import JourneyZone from './components/sections/JourneyZone'
 import Impact from './components/sections/Impact'
 import Story from './components/sections/Story'
 import Projects from './components/sections/Projects'
@@ -46,6 +47,7 @@ export default function App() {
         <Nav />
         <main>
           <Hero />
+          <JourneyZone id="journey-soccer" heightVh={250} />
           <Impact />
           <Story />
           <Projects />
