@@ -5,6 +5,7 @@ import gsap from 'gsap'
 import * as THREE from 'three'
 import type { Mesh } from 'three'
 import CameraRig from './CameraRig'
+import { getHeroScrollRange } from './heroScrollRange'
 import Crystal from './Crystal'
 import Effects from './Effects'
 import BallJourney from './journey/BallJourney'
@@ -98,7 +99,7 @@ function CrystalContainer() {
     // スクロールした状態でも一律でクリスタルが復活してしまう。CameraRigと
     // 同じHero想定範囲を超えている間は強制的に非表示にし、JourneyZone以降の
     // 3D演出（ボールジャーニー）とクリスタルが重なって見えるのを防ぐ。
-    grpRef.current.visible = window.scrollY <= window.innerHeight * 0.65
+    grpRef.current.visible = window.scrollY <= getHeroScrollRange()
   })
 
   return (
