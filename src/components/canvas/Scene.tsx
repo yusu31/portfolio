@@ -1,11 +1,14 @@
-import { useRef, useMemo, useEffect } from 'react'
+import { useRef, useMemo, useEffect, useState } from 'react'
 import { Environment } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import gsap from 'gsap'
 import * as THREE from 'three'
+import type { Mesh } from 'three'
 import CameraRig from './CameraRig'
+import { getHeroScrollRange } from './heroScrollRange'
 import Crystal from './Crystal'
 import Effects from './Effects'
+import BallJourney from './journey/BallJourney'
 
 const rippleVert = `
 varying vec2 vUv;
@@ -90,6 +93,15 @@ function CrystalContainer() {
     return () => window.removeEventListener('explore-click', onExplore)
   }, [])
 
+  useFrame(() => {
+    if (!grpRef.current) return
+    // GSAPのonCompleteはタイマー駆動でリセットするため、Hero区間より下まで
+    // スクロールした状態でも一律でクリスタルが復活してしまう。CameraRigと
+    // 同じHero想定範囲を超えている間は強制的に非表示にし、JourneyZone以降の
+    // 3D演出（ボールジャーニー）とクリスタルが重なって見えるのを防ぐ。
+    grpRef.current.visible = window.scrollY <= getHeroScrollRange()
+  })
+
   return (
     <group ref={grpRef} position={[0, -0.4, 0]}>
       <Crystal />
@@ -98,6 +110,8 @@ function CrystalContainer() {
 }
 
 export default function Scene() {
+  const [sunMesh, setSunMesh] = useState<Mesh | null>(null)
+
   return (
     <>
       <color attach="background" args={['#0a0a0f']} />
@@ -112,9 +126,10 @@ export default function Scene() {
 
       <CameraRig />
       <CrystalContainer />
+      <BallJourney onSunReady={setSunMesh} />
 
       <GroundRipple />
-      <Effects />
+      <Effects sunMesh={sunMesh} />
     </>
   )
 }
