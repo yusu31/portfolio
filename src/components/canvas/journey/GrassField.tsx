@@ -52,6 +52,8 @@ export default function GrassField({
 
   // useMemoはマウント前（refアタッチ前）に実行されるため、
   // ref経由でメッシュに書き込む初期化はuseEffectで行う（マウント後に1回だけ実行）。
+  // 注意: InstancedMeshのバッファサイズはargsのcountでマウント時に固定されるため、
+  // count propを後から変更してもバッファは再確保されない（呼び出し側でkeyを変えて再マウントする必要がある）。
   useEffect(() => {
     if (!meshRef.current) return
     for (let i = 0; i < count; i++) {
@@ -67,6 +69,10 @@ export default function GrassField({
     }
     meshRef.current.instanceMatrix.needsUpdate = true
   }, [count, spreadX, spreadZ, dummy])
+
+  useEffect(() => {
+    return () => material.dispose()
+  }, [material])
 
   useFrame((_, delta) => {
     material.uniforms.uTime.value += delta
