@@ -21,6 +21,9 @@ export default function JourneyZone({ id, heightVh = 250 }: JourneyZoneProps) {
       id={id}
       aria-hidden="true"
       style={{
+        // 高さ0にすると computeSectionProgress(scrollProgress.ts) が
+        // sectionHeight<=0で常に0を返すようになり、SoccerScene側の
+        // ボール・カメラ追従演出が自動的に無効化される（追加配線不要）。
         height: reducedMotion ? '0' : `${heightVh}vh`,
         background: 'transparent',
         pointerEvents: 'none',
