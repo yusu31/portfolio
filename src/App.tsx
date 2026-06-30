@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { LanguageProvider } from './contexts/LanguageContext'
 import Scene from './components/canvas/Scene'
@@ -33,7 +34,9 @@ export default function App() {
         gl={{ antialias: true, alpha: false }}
         dpr={[1, 2]}
       >
-        <Scene />
+        <Suspense fallback={null}>
+          <Scene />
+        </Suspense>
       </Canvas>
 
       {/* UI Layer */}
