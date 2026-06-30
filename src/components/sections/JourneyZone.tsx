@@ -11,6 +11,7 @@ export default function JourneyZone({ id, heightVh = 250 }: JourneyZoneProps) {
   return (
     <section
       id={id}
+      aria-hidden="true"
       style={{
         height: `${heightVh}vh`,
         background: 'transparent',
