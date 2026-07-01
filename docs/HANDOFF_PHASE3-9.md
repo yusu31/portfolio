@@ -4,14 +4,16 @@
 
 ---
 
-## 現在の状態（2026-06-30）
+## 現在の状態（2026-07-01）
 
-`main`ブランチで作業開始できる状態。ボールジャーニー演出 **Phase 1（共通基盤+サッカーシーン）の実装が完了しマージ済み**。次はPhase 2（バスケットボールシーン）。
+`main`ブランチで作業開始できる状態。
 
-**リポジトリ:** `c:\Users\3fort\dev\portfolio`
-**現在のブランチ:** `main`（クリーン）
-**本番:** Cloudflare Pages（main push で自動デプロイ）
-**最新コミット:** `b8d15e3`（`git log --oneline -5` で確認）
+**重大な設計変更が確定しました:** 2026-07-01のセッションで、ohzi.ioの20枚のスクリーンショットを分析した結果、現在の「JourneyZoneスクロールベース」実装からの大幅な設計見直しを決定した。
+
+**リポジトリ:** `c:\Users\3fort\dev\portfolio`  
+**現在のブランチ:** `main`（クリーン）  
+**本番:** Cloudflare Pages（main push で自動デプロイ）  
+**最新コミット:** `git log --oneline -5` で確認
 
 ---
 
@@ -32,7 +34,7 @@
 
 ---
 
-## 完了済みフェーズ
+## ✅ 完了済みフェーズ
 
 | フェーズ | 内容 | PR |
 |---|---|---|
@@ -44,48 +46,69 @@
 | 3-7 | Canvas全画面化・ohzi.io風Hero・Crystal物理インタラクション | #36 |
 | 3-8 | サッカーボールローダー実装 | #38 |
 | 3-9内 | モバイルナビのハンバーガーメニュー対応 | #43, #44 |
-| 3-9（ボールジャーニー Phase 1） | サッカーシーン+共通基盤の実装 | #52 |
+| 3-9（ボールジャーニー Phase 1） | サッカーシーン+共通基盤の実装（旧設計、後述の新設計で置き換え予定） | #52 |
 
 ---
 
-## ✅ 完了：ボールジャーニー演出 Phase 1（サッカーシーン）
+## 🚨 最重要：OHZIスタイル全面リアーキテクチャへの移行
 
-ohzi.io風の演出強化として、Hero〜Impact間にスクロール連動の「サッカードリブル＋ロングパス」3Dシーンを実装した。
+### なぜ設計を見直すのか
 
-### ドキュメント
-- 設計書: [`docs/superpowers/specs/2026-06-30-ball-journey-transition-design.md`](superpowers/specs/2026-06-30-ball-journey-transition-design.md)（PR #46）
-- 実装計画（Phase 1: 共通基盤+サッカーシーン、14タスク）: [`docs/superpowers/plans/2026-06-30-ball-journey-soccer-phase1.md`](superpowers/plans/2026-06-30-ball-journey-soccer-phase1.md)（PR #48）
-- 実装PR: #52（`superpowers:subagent-driven-development`でTask 1〜14を実行）
+Phase 1実装（JourneyZoneベース）を確認した結果、以下の問題が判明した：
 
-### 実装した主な構成要素（`src/components/canvas/journey/`）
-- `scrollProgress.ts` / `trajectory.ts`: セクション内スクロール進捗とボール軌道（放物線・ドリブルバウンド）の純粋関数（Vitestでテスト済み）
-- `useJourneySectionProgress.ts`: セクションのスクロール進捗をR3F用にrefで返すフック
-- `Floodlights.tsx` / `CourtSurface.tsx` / `GrassField.tsx`: ナイター照明・PBRテクスチャのコート地面・風になびく芝
-- `SoccerScene.tsx` / `BallJourney.tsx`: ドリブル→ロングパスのボール演出本体とカメラドリー追従
-- `src/components/sections/JourneyZone.tsx`: Hero-Impact間の透明トランジション区間（`prefers-reduced-motion`時は高さ0でシーン自体を無効化）
+1. **Heroに芝・投光器がブリードしている**（SoccerSceneのCourtSurface/GrassField/Floodlightsがスクロール進捗に無関係に常時レンダリングされる）
+2. **芝のクオリティが低い**（フォグなし・シャドウなし・光応答なし）
+3. **ohzi.ioの本質的な設計思想から根本的にずれている**
 
-### 統合検証で発見・修正した実機バグ（個別タスクのレビューでは検出できなかったもの）
-Playwrightで実際にスクロールさせて検証した結果、サッカーボールが画面に表示されない不具合があり、5つの原因が複合していた:
-1. `useJourneySectionProgress`がセクション位置をキャッシュしたまま使い回し、レイアウトシフトで進捗計算がズレていた → scroll/resizeのたびに測り直すよう修正
-2. `CameraRig`がHero区間を超えても`camera.position`への制御を続け、SoccerSceneと毎フレーム奪い合っていた → Hero範囲外では早期returnして制御を手放すよう修正
-3. `CrystalContainer`のGSAP `onComplete`がタイマー駆動でクリスタルを復活させ、JourneyZone以降の演出と重なっていた → スクロール位置に応じて強制非表示にするガードを追加
-4. `Floodlights`の`emissiveIntensity=6` + `toneMapped=false`がBloomと相互作用し、画面を覆う発光ブロブと化していた → 強度を調整
-5. `Effects`内のGodRaysは(4)を直してもdensity/weight/exposureをどう下げても同様にブロブ化したため、**Phase 1では`GOD_RAYS_ENABLED = false`で無効化**（`sunMesh`の配線自体は将来の再チューニングのため維持）
+### ohzi.ioの正確な構造（2026-07-01確認済み）
 
-### 既知の制約・フォローアップ
-- **GodRaysは現在無効**（`src/components/canvas/Effects.tsx`の`GOD_RAYS_ENABLED`定数）。Bloomとの組み合わせ方を見直す再チューニングタスクが必要
-- Hero区間判定の閾値（`window.innerHeight * 0.65`）は`src/components/canvas/heroScrollRange.ts`に集約済み。今後Hero区間に関わる新規コンポーネントを追加する場合は必ずこの関数を使うこと（重複実装すると今回と同種の値ズレバグを再発する）
+ohzi.ioはスクロール一本のSPAではなく、**URLが変わる別々のルートページ**（`/who-we-are` `/how-we-do-it` `/our-work` `/contact`）で構成されており、ページ間遷移時にワープトンネル演出が挟まる。各ルート内では1つの3Dビネット+浮遊テキストカードがスクロール連動する。
 
-### 設計上の重要な発見（Phase 2/3実装時にも踏まえること）
-1. **Hero以外の全セクションが不透明背景**（[Impact.tsx:60](../src/components/sections/Impact.tsx#L60)等）のため、3D Canvasは通常そこでは見えない。`JourneyZone`のような透明な高さ確保用セクションが各シーンの区間ごとに必要
-2. OHZIサイトの「カメラが前進する没入感」は、単なる縦スクロールではなく**カメラがCatmullRomCurve3に沿って3D空間を移動するドリーモデル**として実装する方針（Phase 1のサッカーシーンでは単純な`lerp`+`lookAt`で実装。Phase 2/3でカーブベースに発展させるかは要検討）
-3. 山岳地形等のOHZI固有の創作物は模倣しない方針。背景は「ナイター（投光器）+ 風になびく芝（インスタンスシェーダー）+ 実写CC0 PBRテクスチャ」で質感を担保する（GodRaysは上記の通りPhase 1では無効化）
-4. 人物パーツ（手など、バスケ/バレーで必要）はMixamo/Sketchfab CC0素材を`MeshToonMaterial`でワイヤーフレーム発光調にスタイライズし、フリー素材の出自を消す（Phase 2のバスケで着手）
-5. CC0テクスチャ等の外部素材を追加する際は、配置ディレクトリに`CREDITS.md`を残す（`public/textures/CREDITS.md`参照）
-6. **複数のuseFrameコンポーネントが同じ`camera.position`やグローバルなスクロール状態を操作する場合、区間外では明示的に制御を手放す（早期return）か、状態を一元管理しないと競合する**。Phase 1で実際に踏んだ問題（CameraRig×SoccerScene、GSAP×scroll位置）なので、Phase 2/3で新しいシーンを追加する際は同じ轍を踏まないよう設計段階で確認する
+### 決定した新アーキテクチャ
 
-### 次にやること
-バスケットボールシーン（Phase 2）の実装計画を新規作成する。Phase 1で確立した`scrollProgress.ts` / `trajectory.ts` / `useJourneySectionProgress.ts` / `JourneyZone.tsx` / `heroScrollRange.ts`の共通基盤を再利用する。手モデル（Mixamo/Sketchfab CC0）の調達から着手が必要。
+**ルート構造:**
+```
+/              → HomeScene     現Hero（クリスタル + HEY. + EXPLORE → /soccer へ）
+/soccer        → SoccerScene   サッカービネット（フルスクリーン透明 + スクロール連動3D）
+/basketball    → BasketballScene
+/volleyball    → VolleyballScene → /work へ
+/work          → WorkScene     現行の不透明スクロールサイト（Impact → Footer）そのまま
+```
+
+**主な技術変更:**
+- `react-router-dom` v7 を新規追加
+- 各ルートページが**自前のCanvas**を持つ（旧：App.tsxの1つのCanvasが全ページ共通）
+- ジャーニールート（`/soccer` `/basketball` `/volleyball`）は**全面透明UI**（OHZI準拠）
+- `/work`以降は現行の不透明スクロールサイトを維持（Impact〜Footerは変更不要）
+
+**ルート間トランジション（確定）:**
+- ボールは消えずに残り続ける（視覚的連続性）
+- 画面全体が次シーンのブランドカラーでフラッシュ
+- React Routerがルート切り替え
+- ワープトンネルは使用しない（スポーツ感と合わないため）
+
+**設計書:** [`docs/superpowers/specs/2026-07-01-ohzi-rewrite-design.md`](superpowers/specs/2026-07-01-ohzi-rewrite-design.md)
+
+### 設計書のどこが未完か
+
+設計書のアーキテクチャセクションは確定済み。**シーン設計セクション（各スポーツのカメラワーク・フレーム形状・マテリアル・テキストカードのコピー）は次セッションで`brainstorming`スキルを使って完成させる。**
+
+---
+
+## 次にやること（最優先）
+
+```
+1. brainstormingスキルで設計書のシーン設計セクションを完成させる
+   参照: docs/superpowers/specs/2026-07-01-ohzi-rewrite-design.md の「未完了」セクション
+   各スポーツのカメラ・フレーム形状・マテリアル・コピーを決定
+
+2. 設計書完成後、writing-plansスキルで実装計画を作成
+   対象: React Router導入 → 各ルートページの新規作成 → 旧JourneyZoneコードの移行
+
+3. subagent-driven-developmentスキルで実装
+```
+
+**旧Phase 2/3計画（バスケ・バレーの個別計画）は新設計に統合されるため個別には作成しない。**
 
 ---
 
@@ -98,78 +121,81 @@ React 19.2.7 + Vite 6 + TypeScript 5.7
 @react-three/postprocessing v3.0.4（Bloom稼働中。GodRaysは実装済みだが無効化中）
 GSAP 3.15 + ScrollTrigger + SplitText
 lottie-web 5.13（ローダーのcanvasレンダリング）
-Lenis 1.3
+Lenis 1.3（→ Routerベース移行後の扱いを要検討）
 Tailwind CSS v4
 Three.js 0.184
-Vitest 4.1.9（Phase 1で導入。trajectory/scrollProgressの計9テスト）
+Vitest 4.1.9（trajectory/scrollProgressの計9テスト）
+react-router-dom v7（← 新規追加予定）
 ```
 
-`@rive-app/react-canvas` と `lottie-react` はPhase 3-8で未使用と判明し削除済み。
-
-**重要: このリポジトリは実体としてpnpmで運用されている**（`pnpm-lock.yaml`がgit管理対象、`node_modules`がpnpm形式）。`npm install`はarboristのクラッシュで失敗するため、**`pnpm install` / `pnpm add` / `pnpm test` / `pnpm dev` / `pnpm build`を使うこと**。
+**重要: pnpm必須。** `npm install`はarboristクラッシュで失敗する。
 
 ---
 
-## 現在のアーキテクチャ
+## 現在のアーキテクチャ（旧・参考用）
 
-### Canvas（App.tsx）
+旧実装は以下の通り。新ルートベース設計への移行で大部分が書き換わるが、純粋関数（scrollProgress.ts / trajectory.ts）と一部のCanvas要素は再利用する。
+
+### 旧Canvas（App.tsx） ← 変更予定
 ```tsx
 <Canvas
-  style={{
-    position: 'fixed', top: 0, left: 0,
-    width: '100%', height: '100vh', zIndex: 0,
-  }}
+  style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 0 }}
   camera={{ position: [0, 0, 5], fov: 60 }}
   gl={{ antialias: true, alpha: false }}
   dpr={[1, 2]}
 >
-  <Suspense fallback={null}>
-    <Scene />
-  </Suspense>
-</Canvas>
 ```
-`<Loader />` はSuspense外（UI Layer内）に配置し、`useProgress`でCanvas内のロード状況を監視。
-`<main>`内は `Hero → JourneyZone(id="journey-soccer") → Impact → Story → ...` の順。
 
-### Nav.tsx（モバイル対応済み）
-768px未満でハンバーガーメニュー→`createPortal`で`document.body`直下にフルスクリーンオーバーレイを描画。`nav`要素の`backdrop-filter`がposition:fixedのcontaining blockになる問題を回避するためportal化している（詳細はPR #44参照）。
+### 旧UIレイヤー（App.tsx） ← /work に移動予定
+```
+<main>
+  <Hero /> → HomeScene に昇格
+  <JourneyZone id="journey-soccer" heightVh={250} /> → 廃止（ルートベースに移行）
+  <Impact /> → /work 内で維持
+  ...
+</main>
+```
 
 ---
 
-## 既知の注意点
+## 既知の注意点（新設計でも引き継ぐもの）
 
 1. **`alpha: false` 必須**: transmission が暗背景を必要とする
 2. **楕円防止**: Crystal の x/z 座標はずらさない（y=-0.4 はOK）
-3. **Lenis**: `main.tsx` のモジュールレベル（`autoRaf: false`）。移動しない
-4. **LF警告**: Windows CRLF変換警告は無視してよい
-5. **不透明背景**: Hero以外の全セクションは不透明背景。3D演出を見せたい区間は`JourneyZone`のような透明スペーサーが必要
-6. **pnpm必須**: `npm install`は使わない（上記「技術スタック」参照）
-7. **GodRays無効化中**: `Effects.tsx`の`GOD_RAYS_ENABLED = false`。Bloomとの組み合わせ方を再チューニングするまで触らない
-8. **Hero区間閾値**: `heroScrollRange.ts`の`getHeroScrollRange()`に集約。重複実装しない
+3. **LF警告**: Windows CRLF変換警告は無視してよい
+4. **pnpm必須**: `npm install`は使わない
+5. **GodRays無効化中**: `Effects.tsx`の`GOD_RAYS_ENABLED = false`。再チューニングは別タスク
+6. **Hero区間閾値**: `heroScrollRange.ts`の`getHeroScrollRange()`に集約済み（新設計でルートが分離されたら不要になる可能性が高い）
+7. **Geminiプロンプトの技術値は信用しない**: 「Canvasがfixedされていない」等の技術的診断は事実誤認があった（実際には正しく実装済み）。演出的な方向性は参考にするが、具体的な数値は実装後の目視チューニングで決める
 
 ---
 
-## Phase 3-9 残りスコープ
+## Phase 3-9 残りスコープ（リアーキテクチャ込み）
 
 ```
-1. ボールジャーニー Phase 2（バスケットボールシーン、手アセット調達含む）
-2. ボールジャーニー Phase 3（バレーボールシーン）
-3. GodRaysの再チューニング（Bloomとの組み合わせ方見直し）
-4. 全セクション（Hero〜Footer）のスクロール・インタラクション通し確認
-5. モバイル/タブレットでのレスポンシブ確認（Canvas DPR・パフォーマンス）
-6. テクスチャの圧縮・最適化（leafy_grass系3枚が現状計約3MB未圧縮）
-7. Lighthouse等でのパフォーマンス計測・改善
-8. Cloudflare Pages 本番デプロイ設定の確認・最終リリース
+1. 設計書のシーン設計セクションを完成（brainstorming）
+2. React Router導入 + ルートページ新規作成
+3. /soccer ルート: 旧SoccerSceneをリアーキテクチャ（フォグ・シャドウ・PBR追加）
+4. /basketball ルート: 新規実装
+5. /volleyball ルート: 新規実装
+6. ルート間フラッシュトランジション実装
+7. /work ルート: 現行コンテンツの移行
+8. GodRaysの再チューニング（Bloomとの組み合わせ方見直し）
+9. 全ルート通し確認（Playwright）
+10. モバイル/タブレットでのレスポンシブ確認
+11. パフォーマンス計測・Lighthouse
+12. Cloudflare Pages 本番デプロイ確認
 ```
 
 ---
 
 ## セッション開始チェックリスト
 
-1. `git log --oneline -5` → 最新が `b8d15e3` であることを確認
+1. `git log --oneline -5` → 最新コミットを確認
 2. `docs/HANDOFF_PHASE3-9.md` を読む（このファイル）
-3. Phase 2の実装計画がまだなければ、設計書を踏まえて新規作成する（`superpowers:writing-plans`等）
-4. `superpowers:subagent-driven-development` スキルで計画をタスクごとに実行する
+3. `docs/superpowers/specs/2026-07-01-ohzi-rewrite-design.md` を読む（新設計書）
+4. 設計書の「未完了」セクションを確認 → brainstormingスキルでシーン設計を完成させる
+5. 設計完成後: writing-plans → subagent-driven-development の順で実装へ
 
 ---
 
@@ -177,7 +203,6 @@ Vitest 4.1.9（Phase 1で導入。trajectory/scrollProgressの計9テスト）
 
 | フェーズ | 内容 | 状態 |
 |---|---|---|
-| 3-9（ボールジャーニー Phase 1） | サッカーシーン+共通基盤の実装 | ✅完了（PR #52） |
-| 3-9（ボールジャーニー Phase 2） | バスケットボールシーン（手アセット調達含む） | **← 次にやる** |
-| 3-9（ボールジャーニー Phase 3） | バレーボールシーン | 🔲未着手 |
-| 3-9（残り） | GodRays再チューニング・統合テスト・Lighthouse計測・Cloudflareデプロイ | 🔲未着手 |
+| OHZIリアーキテクチャ 設計書完成 | シーン設計セクション（カメラ・フレーム・マテリアル・コピー）| **← 次にやる** |
+| OHZIリアーキテクチャ 実装 | React Router + 3ルートのスポーツビネット + トランジション | 🔲未着手 |
+| 統合テスト・最終調整 | GodRays再チューニング・Lighthouse・Cloudflareデプロイ | 🔲未着手 |
