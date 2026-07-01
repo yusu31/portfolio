@@ -1,24 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { getHeroScrollRange } from './heroScrollRange'
 
 export default function CameraRig() {
   const { camera } = useThree()
-  const scrollY = useRef(0)
-
-  useEffect(() => {
-    const onScroll = () => { scrollY.current = window.scrollY }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  const mouse = useRef({ x: 0, y: 0 })
 
   useFrame(() => {
-    // それ以降（JourneyZone以降）はCameraRigの制御を完全に停止し、SoccerScene等の
-    // 後続シーンがcamera.positionを毎フレーム奪い合わないようにする。
-    if (scrollY.current > getHeroScrollRange()) return
-
-    const targetY = -(scrollY.current / window.innerHeight) * 4.8
-    camera.position.y += (targetY - camera.position.y) * 0.15
+    camera.position.x += (mouse.current.x * 0.5 - camera.position.x) * 0.05
+    camera.position.y += (mouse.current.y * 0.3 - camera.position.y) * 0.05
   })
 
   return null
