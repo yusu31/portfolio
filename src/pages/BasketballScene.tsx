@@ -1,80 +1,95 @@
-import { Suspense, useState } from 'react'
-import { SKILL_CATEGORIES, type SkillCategory } from '../data/skills'
-import BasketballCanvas from '../components/canvas/basketball/BasketballCanvas'
-import Hotspot from '../components/ui/Hotspot'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
-
-const ACCENT = '#ffb300'
-
-function SkillList({ category }: { category: SkillCategory }) {
-  return (
-    <div>
-      <p style={{ fontSize: '0.68rem', color: '#666', marginBottom: '1rem' }}>{category.description}</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {category.skills.map((s) => (
-          <div
-            key={s.name}
-            style={{
-              padding: '0.6rem 0.9rem',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
-              color: '#ccc',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-          >
-            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: category.color, flexShrink: 0 }} />
-            {s.name}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+import { useScrollProgress, scrollProgressRef } from '../hooks/useScrollProgress'
+import { BASKETBALL_HOTSPOTS, BASKETBALL_WAYPOINTS, HOTSPOT_RADIUS } from '../data/trajectories/basketball-trajectory'
+import { SKILL_CATEGORIES } from '../data/skills'
 
 export default function BasketballScene() {
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const activeCategory = SKILL_CATEGORIES.find((c) => c.id === activeId) ?? null
+  useScrollProgress()
+  const navigate = useNavigate()
+  const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
+  const [panelSkillId, setPanelSkillId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let raf: number
+    const check = () => {
+      const p = scrollProgressRef.current
+      let found: number | null = null
+      for (const wp of BASKETBALL_WAYPOINTS) {
+        if (wp.hotspotIndex !== undefined && Math.abs(p - wp.progress) < HOTSPOT_RADIUS) {
+          found = wp.hotspotIndex
+          break
+        }
+      }
+      setActiveHotspotIdx(found)
+      raf = requestAnimationFrame(check)
+    }
+    raf = requestAnimationFrame(check)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  const activeHotspot = activeHotspotIdx !== null ? BASKETBALL_HOTSPOTS[activeHotspotIdx] : null
+  const isLastHotspot = activeHotspotIdx === BASKETBALL_HOTSPOTS.length - 1
+  const activeSkillCat = SKILL_CATEGORIES.find(c => c.id === activeHotspot?.skillCategory)
 
   return (
     <>
-      <Suspense fallback={null}>
-        <BasketballCanvas />
-      </Suspense>
-
+      <div style={{ height: '250vh' }} />
       <div style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', bottom: '2.5rem', left: '3rem' }}>
-          <p style={{ fontSize: '0.6rem', color: '#333', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>/basketball</p>
-          <p style={{ fontSize: '0.75rem', color: ACCENT, fontWeight: 700, margin: '0.2rem 0 0' }}>Skills — できること</p>
+        <div style={{ position: 'absolute', bottom: '1.5rem', left: '2.5rem' }}>
+          <p style={{ fontSize: '0.55rem', color: '#333', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>/basketball</p>
+          <p style={{ fontSize: '0.7rem', color: '#ffb300', fontWeight: 700, margin: '0.15rem 0 0' }}>Skills — できること</p>
         </div>
-
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'auto' }}>
-          {SKILL_CATEGORIES.map((cat) => (
-            <Hotspot
-              key={cat.id}
-              x={cat.hotspotX}
-              y={cat.hotspotY}
-              label={cat.label}
-              color={cat.color}
-              active={activeId === cat.id}
-              onClick={() => setActiveId((prev) => (prev === cat.id ? null : cat.id))}
-            />
-          ))}
+        <div style={{ pointerEvents: 'auto' }}>
+          <SceneCard
+            visible={!!activeHotspot}
+            side={activeHotspot?.cardSide ?? 'right'}
+            category="SKILLS"
+            title={activeSkillCat?.label ?? ''}
+            description={activeSkillCat?.description ?? ''}
+            onExplore={activeHotspot ? () => setPanelSkillId(activeHotspot.skillCategory) : undefined}
+            onNext={isLastHotspot ? () => navigate('/volleyball') : undefined}
+            nextLabel="NEXT →"
+          />
         </div>
-
         <div style={{ pointerEvents: 'auto' }}>
           <GlassPanel
-            open={!!activeCategory}
-            onClose={() => setActiveId(null)}
-            title={activeCategory?.label ?? ''}
-            color={activeCategory?.color ?? ACCENT}
+            open={!!panelSkillId}
+            onClose={() => setPanelSkillId(null)}
+            title={SKILL_CATEGORIES.find(c => c.id === panelSkillId)?.label ?? ''}
+            color="#ffb300"
           >
-            {activeCategory && <SkillList category={activeCategory} />}
+            <div>
+              {SKILL_CATEGORIES.find(c => c.id === panelSkillId)?.skills.map((s) => (
+                <div
+                  key={s.name}
+                  style={{
+                    padding: '0.5rem 0.6rem',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    fontSize: '0.75rem',
+                    color: '#ccc',
+                  }}
+                >
+                  {s.name}
+                </div>
+              ))}
+            </div>
           </GlassPanel>
         </div>
+        <button
+          onClick={() => navigate('/volleyball')}
+          style={{
+            position: 'absolute', bottom: '2rem', right: '2.5rem',
+            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',
+            padding: '0.6rem 1.5rem', borderRadius: '999px',
+            border: '1px solid rgba(255,255,255,0.25)', color: '#fff',
+            background: 'transparent', cursor: 'pointer', pointerEvents: 'auto',
+          }}
+        >
+          NEXT: ABOUT →
+        </button>
       </div>
     </>
   )

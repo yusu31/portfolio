@@ -10,10 +10,12 @@ import HomeBg from './HomeBg'
 import Effects from './Effects'
 import JourneyCameraRig from './JourneyCameraRig'
 import SoccerBg from './soccer/SoccerBg'
+import BasketballBg from './basketball/BasketballBg'
 import { scrollProgressRef, scrollVelocityRef } from '../../hooks/useScrollProgress'
 import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
 import { SOCCER_WAYPOINTS } from '../../data/trajectories/soccer-trajectory'
+import { BASKETBALL_WAYPOINTS } from '../../data/trajectories/basketball-trajectory'
 
 const BG_COLORS: Record<string, string> = {
   '/': '#0a0a0f',
@@ -25,7 +27,7 @@ const BG_COLORS: Record<string, string> = {
 
 const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
   '/soccer':     SOCCER_WAYPOINTS,
-  '/basketball': [],
+  '/basketball': BASKETBALL_WAYPOINTS,
   '/volleyball': [],
 }
 
@@ -102,7 +104,8 @@ export default function GlobalCanvas() {
         <BgColor pathname={pathname} />
         {isHome && <HomeBg />}
         {pathname === '/soccer' && <SoccerBg />}
-        {/* Phase C以降: BasketballBg / VolleyballBg をここに追加 */}
+        {pathname === '/basketball' && <BasketballBg />}
+        {/* Phase D以降: VolleyballBg をここに追加 */}
         <CrystalRoot isHome={isHome} pathname={pathname} />
         {!isHome && <JourneyCameraRig />}
         <Effects />
