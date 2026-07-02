@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useLocation } from 'react-router-dom'
 import * as THREE from 'three'
-import { scrollProgressRef } from '../../hooks/useScrollProgress'
+import { scrollProgressRef, impactTriggerRef } from '../../hooks/useScrollProgress'
 import { SOCCER_WAYPOINTS } from '../../data/trajectories/soccer-trajectory'
 import { BASKETBALL_WAYPOINTS } from '../../data/trajectories/basketball-trajectory'
 import { VOLLEYBALL_WAYPOINTS } from '../../data/trajectories/volleyball-trajectory'
@@ -51,9 +51,10 @@ export default function JourneyEffects() {
 
     const color = RING_COLORS[pathname] ?? '#ffffff'
 
+    // hotspotIndex のみ到着検出（コンテンツカード連動）
+    // impact:true は navigate() 開始時に impactTriggerRef 経由で即時発火するため除外
     for (const wp of waypoints) {
-      const shouldFire = wp.hotspotIndex !== undefined || wp.impact
-      if (!shouldFire) continue
+      if (wp.hotspotIndex === undefined) continue
       if (
         (prev < wp.progress && current >= wp.progress) ||
         (prev > wp.progress && current <= wp.progress)
@@ -68,10 +69,6 @@ export default function JourneyEffects() {
           axis: isVertical ? 'vertical' : 'horizontal',
           color,
         }
-        // スパイク着地・シュートリング通過などの強いインパクトでカメラ震動
-        if (wp.impact) {
-          cameraShake.current = 0.2
-        }
         if (pathname === '/volleyball' && wp.hotspotIndex === 2) {
           cameraShake.current = 0.3
         }
@@ -80,7 +77,30 @@ export default function JourneyEffects() {
     prevProgress.current = current
   }
 
+  // impact:true ウェイポイントへの移動が始まった瞬間（スクロール開始時）に即時発火
+  const fireImmediateImpact = () => {
+    const triggerProgress = impactTriggerRef.current
+    if (triggerProgress === null) return
+    impactTriggerRef.current = null
+
+    const waypoints = SCENE_WAYPOINTS[pathname]
+    if (!waypoints) return
+    const color = RING_COLORS[pathname] ?? '#ffffff'
+
+    const { pos } = interpolateWaypoints(triggerProgress, waypoints)
+    const slot = states.current.findIndex(s => !s.active)
+    if (slot < 0) return
+    states.current[slot] = {
+      active: true, progress: 0,
+      x: pos.x, y: pos.y, z: pos.z,
+      axis: 'horizontal',
+      color,
+    }
+    cameraShake.current = 0.2
+  }
+
   useFrame((_, delta) => {
+    fireImmediateImpact()
     const current = scrollProgressRef.current
     maybeFireEffect(current)
 
