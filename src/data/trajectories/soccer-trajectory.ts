@@ -72,20 +72,19 @@ export const SOCCER_WAYPOINTS: Waypoint[] = [
   { progress: 0.60, pos: [ 4, 0.0,-31], camOffset: [-1.2,  0.0, 5.0], rotSpeed: 0.4, hotspotIndex: 3, impact: true },
 
   // ── Phase 3: ゴール前センタリング → ロングパス放物線 ─────────────────
-  // カメラ: 引き気味で放物線の弧全体を見せる
+  // カメラ: サイドビューで弧の形状を見せる（ボール後方では弧が見えない）
   // センター軸に戻りながら助走（蹴る体勢）
   { progress: 0.65, pos: [ 0, 0.0,-33], camOffset: [0,   0.2, 6.5], rotSpeed: 2.0 },
-  // キック瞬間（impact）─ 打ち出し直後・低空で水平に出る
-  { progress: 0.70, pos: [-3, 0.5,-35], camOffset: [0,   0.0, 7.5], rotSpeed: 4.5, impact: true },
-  // 上昇（弧の前半 — 急な立ち上がり）
-  // 制御点: CR曲線を上向きに引っ張る
-  { progress: 0.77, pos: [-6, 5.0,-37], camOffset: [0,  -0.3, 8.0], rotSpeed: 4.0 },
-  // 放物線頂点（Y=10程度: リアルな高さ感）
-  { progress: 0.84, pos: [-9, 9.5,-39], camOffset: [0,  -0.8, 9.0], rotSpeed: 3.0 },
-  // 下降（なだらか — 放物線後半・重力加速）
-  { progress: 0.92, pos: [-11, 12.0,-41], camOffset: [0, -0.3, 8.5], rotSpeed: 2.5 },
+  // キック瞬間（impact）─ カメラをサイドへ展開し始める
+  { progress: 0.70, pos: [-3, 0.5,-35], camOffset: [2.0, -0.5, 6.0], rotSpeed: 4.5, impact: true },
+  // 上昇（弧の前半）─ サイドビューで立ち上がる弧が見える
+  { progress: 0.77, pos: [-6, 5.0,-37], camOffset: [3.0, -0.5, 7.0], rotSpeed: 4.0 },
+  // 放物線頂点（Y=10程度）─ ワイドサイドビューで弧の全体像が見える
+  { progress: 0.84, pos: [-9, 9.5,-39], camOffset: [4.0, -1.5, 7.5], rotSpeed: 3.0 },
+  // 下降（放物線後半）─ サイドビュー継続・Basketball開始点へ吸い込まれる感
+  { progress: 0.92, pos: [-11, 12.0,-41], camOffset: [3.5, -0.5, 7.0], rotSpeed: 2.5 },
   // Basketball開始点へ接続（X=-12, Y=12 近傍で終了）
-  { progress: 1.00, pos: [-12, 12.0,-43], camOffset: [0,  0.5, 7.0], rotSpeed: 2.0 },
+  { progress: 1.00, pos: [-12, 12.0,-43], camOffset: [2.5,  0.5, 6.5], rotSpeed: 2.0 },
 ]
 
 export const HOTSPOT_RADIUS = 0.025

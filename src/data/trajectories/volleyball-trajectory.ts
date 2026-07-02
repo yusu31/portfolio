@@ -73,22 +73,22 @@ export const VOLLEYBALL_WAYPOINTS: Waypoint[] = [
 
   // ── Phase 3: スパイク ─ impact ────────────────────────────────────────
   // ジャンプ最高点でインパクト（ネット上辺+2.5ユニット ≈ Y=3.5）
-  // カメラ: ネット後方斜め横（スパイクの打ち下ろしが見える）
-  { progress: 0.63, pos: [ 3,  3.5, -3], camOffset: [-2.5,  1.5,  4.0], rotSpeed: 7.0,
+  // カメラ: ボール高さ近め・低め横から（スパイクの鋭さと打ち下ろし感を強調）
+  { progress: 0.63, pos: [ 3,  3.5, -3], camOffset: [-2.0,  0.5,  3.5], rotSpeed: 7.0,
     impact: true },
 
   // ── Phase 4: スパイク急降下（ぎゅーーーん） ──────────────────────────
   // トップスピンのMagnus効果で相手コートへ急落下
-  // カメラ: 斜め俯瞰（完全真上は避け、45〜60度の仰角で迫力を演出）
-  // ネット越え直後（Y急下降開始） — 斜め後上から見下ろし
-  { progress: 0.71, pos: [ 4,  1.5, -5], camOffset: [ 2.0,  4.0,  4.0], rotSpeed: 6.5 },
-  // 相手コート落下中（Magnus効果で一気に落ちる） — カメラをやや寄せる
-  { progress: 0.81, pos: [ 4, -0.2, -7], camOffset: [ 1.5,  3.5,  3.0], rotSpeed: 8.0 },
+  // カメラ: 斜め俯瞰・やや寄りで落下の速さを強調（タイトな追い方）
+  // ネット越え直後（Y急下降開始）
+  { progress: 0.71, pos: [ 4,  1.5, -5], camOffset: [ 1.5,  3.0,  3.5], rotSpeed: 6.5 },
+  // 相手コート落下中（Magnus効果で一気に落ちる）
+  { progress: 0.81, pos: [ 4, -0.2, -7], camOffset: [ 1.0,  2.5,  2.5], rotSpeed: 8.0 },
   // 床着地（impact: floor Y=-1.2）
-  { progress: 0.91, pos: [ 4, -1.2, -7], camOffset: [ 1.0,  3.0,  2.5], rotSpeed: 9.5,
+  { progress: 0.91, pos: [ 4, -1.2, -7], camOffset: [ 0.5,  2.5,  2.5], rotSpeed: 9.5,
     impact: true },
   // 終点
-  { progress: 1.00, pos: [ 4, -1.2, -7], camOffset: [ 1.0,  3.0,  2.5], rotSpeed: 0.5 },
+  { progress: 1.00, pos: [ 4, -1.2, -7], camOffset: [ 0.5,  2.5,  2.5], rotSpeed: 0.5 },
 ]
 
 export const HOTSPOT_RADIUS = 0.025
