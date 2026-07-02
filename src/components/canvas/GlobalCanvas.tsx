@@ -13,7 +13,7 @@ import JourneyEffects from './JourneyEffects'
 import SoccerBg from './soccer/SoccerBg'
 import BasketballBg from './basketball/BasketballBg'
 import VolleyballBg from './volleyball/VolleyballBg'
-import { scrollProgressRef, scrollVelocityRef } from '../../hooks/useScrollProgress'
+import { scrollProgressRef, scrollIsAnimatingRef } from '../../hooks/useScrollProgress'
 import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
 import { SOCCER_WAYPOINTS } from '../../data/trajectories/soccer-trajectory'
@@ -85,13 +85,13 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
 
   useFrame(() => {
     if (!isHome) {
-      journeySpeedRef.current = Math.min(scrollVelocityRef.current * 2 + 0.3, 4)
+      journeySpeedRef.current = scrollIsAnimatingRef.current ? 2.5 : 0.3
     }
   })
 
   return (
     <>
-      <group ref={grpRef} position={[0, isHome ? -0.4 : 0, 0]}>
+      <group ref={grpRef} position={[0, isHome ? -0.4 : 0, 0]} scale={isHome ? 1 : 0.65}>
         <Crystal mode={isHome ? 'interactive' : 'journey'} journeySpeedRef={journeySpeedRef} />
       </group>
       {!isHome && <CrystalJourneyMover groupRef={grpRef} />}

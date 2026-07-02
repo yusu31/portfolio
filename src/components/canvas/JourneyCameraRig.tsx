@@ -32,7 +32,7 @@ export default function JourneyCameraRig() {
     _targetPos.copy(pos)
     _targetCamPos.copy(pos).add(camOffset)
 
-    camera.position.lerp(_targetCamPos, 0.05)
+    camera.position.copy(_targetCamPos)
     camera.lookAt(_targetPos)
   })
 
