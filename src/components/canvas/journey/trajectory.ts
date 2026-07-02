@@ -1,9 +1,5 @@
 import { Vector3 } from 'three'
 
-/**
- * start→end間を進む放物線軌道上の、進捗t(0〜1)時点の座標を返す。
- * peakHeightはt=0.5時点でのY方向の盛り上がり量。
- */
 export function parabolaPoint(
   t: number,
   start: Vector3,
@@ -17,10 +13,6 @@ export function parabolaPoint(
   return new Vector3(x, baseY + arc, z)
 }
 
-/**
- * ドリブル中のバウンド高さ。t(0〜1)の全区間でbounces回バウンドする。
- * 戻り値は常にbaseY以上。
- */
 export function dribbleBounceY(
   t: number,
   baseY: number,
@@ -31,22 +23,51 @@ export function dribbleBounceY(
   return baseY + Math.abs(Math.sin(phase)) * bounceHeight
 }
 
-/**
- * ジャーニー内での経由地点を表す型。
- * 進捗値(0〜1)に対応する3D位置、カメラオフセット、回転速度、ホットスポットインデックスを保持。
- */
 export interface Waypoint {
   progress: number
   pos: [number, number, number]
   camOffset: [number, number, number]
   rotSpeed: number
   hotspotIndex?: number
-  impact?: boolean   // 通過時にShockwaveを発火（打つ・蹴る・受ける瞬間）
+  impact?: boolean
+}
+
+// Catmull-Romスプライン（端点は直線外挿。直線上の点では線形補間と一致する）
+function cr(p0: number, p1: number, p2: number, p3: number, t: number): number {
+  return 0.5 * (
+    2 * p1 +
+    (-p0 + p2) * t +
+    (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t +
+    (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t
+  )
+}
+
+// 配列インデックスを範囲内にクランプし、端点は直線外挿で仮想点を生成
+function getPos(waypoints: Waypoint[], i: number): [number, number, number] {
+  if (i >= 0 && i < waypoints.length) return waypoints[i].pos
+  if (i < 0) {
+    const a = waypoints[0].pos, b = waypoints[1].pos
+    return [2 * a[0] - b[0], 2 * a[1] - b[1], 2 * a[2] - b[2]]
+  }
+  const n = waypoints.length
+  const a = waypoints[n - 1].pos, b = waypoints[n - 2].pos
+  return [2 * a[0] - b[0], 2 * a[1] - b[1], 2 * a[2] - b[2]]
+}
+
+function getCam(waypoints: Waypoint[], i: number): [number, number, number] {
+  if (i >= 0 && i < waypoints.length) return waypoints[i].camOffset
+  if (i < 0) {
+    const a = waypoints[0].camOffset, b = waypoints[1].camOffset
+    return [2 * a[0] - b[0], 2 * a[1] - b[1], 2 * a[2] - b[2]]
+  }
+  const n = waypoints.length
+  const a = waypoints[n - 1].camOffset, b = waypoints[n - 2].camOffset
+  return [2 * a[0] - b[0], 2 * a[1] - b[1], 2 * a[2] - b[2]]
 }
 
 /**
- * 進捗値に基づいてwaypointsを補間し、位置・カメラオフセット・回転速度・ホットスポットインデックスを返す。
- * progressが範囲外の場合は端点を返す。
+ * 進捗値に基づいてウェイポイントをCatmull-Romスプライン補間する。
+ * 各ウェイポイントを滑らかな曲線で結ぶため、放物線軌道がカクカクせずなめらかになる。
  */
 export function interpolateWaypoints(
   progress: number,
@@ -80,19 +101,29 @@ export function interpolateWaypoints(
     const b = waypoints[i + 1]
     if (progress >= a.progress && progress < b.progress) {
       const t = (progress - a.progress) / (b.progress - a.progress)
-      const lerp = (x: number, y: number) => x + (y - x) * t
+
+      const p0 = getPos(waypoints, i - 1)
+      const p1 = a.pos
+      const p2 = b.pos
+      const p3 = getPos(waypoints, i + 2)
+
+      const c0 = getCam(waypoints, i - 1)
+      const c1 = a.camOffset
+      const c2 = b.camOffset
+      const c3 = getCam(waypoints, i + 2)
+
       return {
         pos: new Vector3(
-          lerp(a.pos[0], b.pos[0]),
-          lerp(a.pos[1], b.pos[1]),
-          lerp(a.pos[2], b.pos[2]),
+          cr(p0[0], p1[0], p2[0], p3[0], t),
+          cr(p0[1], p1[1], p2[1], p3[1], t),
+          cr(p0[2], p1[2], p2[2], p3[2], t),
         ),
         camOffset: new Vector3(
-          lerp(a.camOffset[0], b.camOffset[0]),
-          lerp(a.camOffset[1], b.camOffset[1]),
-          lerp(a.camOffset[2], b.camOffset[2]),
+          cr(c0[0], c1[0], c2[0], c3[0], t),
+          cr(c0[1], c1[1], c2[1], c3[1], t),
+          cr(c0[2], c1[2], c2[2], c3[2], t),
         ),
-        rotSpeed: lerp(a.rotSpeed, b.rotSpeed),
+        rotSpeed: a.rotSpeed + (b.rotSpeed - a.rotSpeed) * t,
         hotspotIndex: a.hotspotIndex,
       }
     }
