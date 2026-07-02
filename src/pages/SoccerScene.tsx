@@ -1,120 +1,116 @@
-import { Suspense, useState } from 'react'
-import { PROJECT_CATEGORIES, type ProjectCategory } from '../data/projects'
-import SoccerCanvas from '../components/canvas/soccer/SoccerCanvas'
-import Hotspot from '../components/ui/Hotspot'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
-
-const ACCENT = '#4fc3f7'
-
-function ProjectList({ category }: { category: ProjectCategory }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-      {category.projects.map((p) => (
-        <div
-          key={p.id}
-          style={{
-            padding: '0.9rem 1rem',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: '8px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.35rem' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#ddd' }}>{p.name}</span>
-            <span
-              style={{
-                fontSize: '0.55rem',
-                padding: '0.15rem 0.5rem',
-                borderRadius: '3px',
-                background: p.status === 'live' ? '#1a2a10' : '#1a1a2a',
-                color: p.status === 'live' ? '#6dbf40' : '#7986cb',
-                fontWeight: 700,
-              }}
-            >
-              {p.status === 'live' ? 'LIVE' : 'PLANNED'}
-            </span>
-          </div>
-          <p style={{ fontSize: '0.68rem', color: '#666', margin: '0 0 0.5rem' }}>{p.description}</p>
-          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-            {p.tech.map((t) => (
-              <span
-                key={t}
-                style={{
-                  fontSize: '0.55rem',
-                  padding: '0.1rem 0.45rem',
-                  borderRadius: '3px',
-                  background: 'rgba(79,195,247,0.1)',
-                  color: ACCENT,
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-          {p.githubUrl && (
-            <a
-              href={p.githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontSize: '0.62rem',
-                color: ACCENT,
-                textDecoration: 'none',
-                border: `1px solid ${ACCENT}44`,
-                padding: '0.2rem 0.6rem',
-                borderRadius: '4px',
-                display: 'inline-block',
-              }}
-            >
-              GitHub →
-            </a>
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
+import { useScrollProgress, scrollProgressRef } from '../hooks/useScrollProgress'
+import { SOCCER_HOTSPOTS, SOCCER_WAYPOINTS, HOTSPOT_RADIUS } from '../data/trajectories/soccer-trajectory'
+import { PROJECT_CATEGORIES } from '../data/projects'
 
 export default function SoccerScene() {
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const activeCategory = PROJECT_CATEGORIES.find((c) => c.id === activeId) ?? null
+  useScrollProgress()
+  const navigate = useNavigate()
+  const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
+  const [panelCategoryId, setPanelCategoryId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let raf: number
+    const check = () => {
+      const p = scrollProgressRef.current
+      let found: number | null = null
+      for (const wp of SOCCER_WAYPOINTS) {
+        if (wp.hotspotIndex !== undefined && Math.abs(p - wp.progress) < HOTSPOT_RADIUS) {
+          found = wp.hotspotIndex
+          break
+        }
+      }
+      setActiveHotspotIdx(found)
+      raf = requestAnimationFrame(check)
+    }
+    raf = requestAnimationFrame(check)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  const activeHotspot = activeHotspotIdx !== null ? SOCCER_HOTSPOTS[activeHotspotIdx] : null
+  const isLastHotspot = activeHotspotIdx === SOCCER_HOTSPOTS.length - 1
+  const activeCategory = PROJECT_CATEGORIES.find(c => c.id === activeHotspot?.categoryId)
 
   return (
     <>
-      <Suspense fallback={null}>
-        <SoccerCanvas />
-      </Suspense>
+      {/* 300vhのスクロール領域 */}
+      <div style={{ height: '300vh' }} />
 
+      {/* 固定UIオーバーレイ */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', bottom: '2.5rem', left: '3rem' }}>
-          <p style={{ fontSize: '0.6rem', color: '#333', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>/soccer</p>
-          <p style={{ fontSize: '0.75rem', color: ACCENT, fontWeight: 700, margin: '0.2rem 0 0' }}>Projects — 作ったもの</p>
+        {/* ページラベル */}
+        <div style={{ position: 'absolute', bottom: '1.5rem', left: '2.5rem' }}>
+          <p style={{ fontSize: '0.55rem', color: '#333', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>/soccer</p>
+          <p style={{ fontSize: '0.7rem', color: '#4fc3f7', fontWeight: 700, margin: '0.15rem 0 0' }}>Projects — 作ったもの</p>
         </div>
 
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'auto' }}>
-          {PROJECT_CATEGORIES.map((cat) => (
-            <Hotspot
-              key={cat.id}
-              x={cat.hotspotX}
-              y={cat.hotspotY}
-              label={cat.label}
-              color={cat.color}
-              active={activeId === cat.id}
-              onClick={() => setActiveId((prev) => (prev === cat.id ? null : cat.id))}
-            />
-          ))}
+        {/* SceneCard（ホットスポット付近で出現） */}
+        <div style={{ pointerEvents: 'auto' }}>
+          <SceneCard
+            visible={!!activeHotspot}
+            side={activeHotspot?.cardSide ?? 'right'}
+            category="PROJECTS"
+            title={activeCategory?.label ?? ''}
+            description={`${activeCategory?.projects?.length ?? 0} projects`}
+            onExplore={activeHotspot ? () => setPanelCategoryId(activeHotspot.categoryId) : undefined}
+            onNext={isLastHotspot ? () => navigate('/basketball') : undefined}
+            nextLabel="NEXT →"
+          />
         </div>
 
+        {/* GlassPanel（EXPLOREで開く） */}
         <div style={{ pointerEvents: 'auto' }}>
           <GlassPanel
-            open={!!activeCategory}
-            onClose={() => setActiveId(null)}
-            title={activeCategory ? `${activeCategory.icon} ${activeCategory.label}` : ''}
-            color={activeCategory?.color ?? ACCENT}
+            open={!!panelCategoryId}
+            onClose={() => setPanelCategoryId(null)}
+            title={PROJECT_CATEGORIES.find(c => c.id === panelCategoryId)?.label ?? ''}
+            color="#4fc3f7"
           >
-            {activeCategory && <ProjectList category={activeCategory} />}
+            <div>
+              {PROJECT_CATEGORIES.find(c => c.id === panelCategoryId)?.projects.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    padding: '0.7rem 0.8rem',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: '6px',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ddd' }}>{p.name}</span>
+                    <span style={{
+                      fontSize: '0.52rem', padding: '0.1rem 0.4rem', borderRadius: '3px',
+                      background: p.status === 'live' ? '#1a2a10' : '#1a1a2a',
+                      color: p.status === 'live' ? '#6dbf40' : '#7986cb', fontWeight: 700,
+                    }}>
+                      {p.status === 'live' ? 'LIVE' : 'PLANNED'}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.65rem', color: '#555', margin: 0 }}>{p.description}</p>
+                </div>
+              ))}
+            </div>
           </GlassPanel>
         </div>
+
+        {/* NEXT ボタン（常時表示） */}
+        <button
+          onClick={() => navigate('/basketball')}
+          style={{
+            position: 'absolute', bottom: '2rem', right: '2.5rem',
+            fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',
+            padding: '0.6rem 1.5rem', borderRadius: '999px',
+            border: '1px solid rgba(255,255,255,0.25)', color: '#fff',
+            background: 'transparent', cursor: 'pointer', pointerEvents: 'auto',
+          }}
+        >
+          NEXT: SKILLS →
+        </button>
       </div>
     </>
   )

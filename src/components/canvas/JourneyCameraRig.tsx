@@ -5,11 +5,10 @@ import { Vector3 } from 'three'
 import { scrollProgressRef } from '../../hooks/useScrollProgress'
 import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
+import { SOCCER_WAYPOINTS } from '../../data/trajectories/soccer-trajectory'
 
-// 各スポーツシーンのウェイポイントはPhase B〜Dで import する
-// Phase Aではスポーツシーンでカメラが初期位置のままになる（OK）
 const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
-  '/soccer': [],
+  '/soccer':     SOCCER_WAYPOINTS,
   '/basketball': [],
   '/volleyball': [],
 }
