@@ -22,7 +22,7 @@ export default function JourneyCameraRig() {
   const { camera } = useThree()
   const { pathname } = useLocation()
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     const waypoints = SCENE_WAYPOINTS[pathname]
     if (!waypoints || waypoints.length === 0) return
 
@@ -32,7 +32,9 @@ export default function JourneyCameraRig() {
     _targetPos.copy(pos)
     _targetCamPos.copy(pos).add(camOffset)
 
-    camera.position.copy(_targetCamPos)
+    // 軽いlerpでカメラ方向転換を滑らか化。ボールはdirect(position.set)のまま
+    const alpha = 1 - Math.pow(0.01, delta)
+    camera.position.lerp(_targetCamPos, alpha)
     camera.lookAt(_targetPos)
   })
 
