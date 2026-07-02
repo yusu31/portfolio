@@ -50,10 +50,11 @@ function Orb({ orb }: { orb: OrbData }) {
 
 interface CrystalProps {
   mode?: 'interactive' | 'journey'
-  journeySpeedRef?: React.RefObject<number>  // journey mode用（毎frameで読む）
+  journeySpeedRef?: React.RefObject<number>
+  journeyRotRef?: React.RefObject<{ dirX: number; dirZ: number; rotSpeed: number }>
 }
 
-export default function Crystal({ mode = 'interactive', journeySpeedRef }: CrystalProps) {
+export default function Crystal({ mode = 'interactive', journeySpeedRef, journeyRotRef }: CrystalProps) {
   const floatRef   = useRef<THREE.Group>(null)
   const shellRef   = useRef<THREE.Mesh>(null)
   const coreGrpRef = useRef<THREE.Group>(null)
@@ -149,18 +150,27 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef }: Cryst
     // 外殻: ドラッグ中はuseFrameの回転を停止、リリース後は慣性で滑走
     if (shellRef.current) {
       if (!isDragging.current) {
-        const speed = mode === 'journey'
-          ? (journeySpeedRef?.current ?? 1)
-          : 1
-        shellRef.current.rotation.y += delta * 0.18 * speed + angularVel.current.y
-        shellRef.current.rotation.x = MathUtils.lerp(
-          shellRef.current.rotation.x,
-          state.pointer.y * -0.3,
-          0.04
-        ) + angularVel.current.x
-        // 慣性を DAMPING 0.93 で指数減衰（ohzi.io 調査値）
-        angularVel.current.x *= DRAG_DAMPING
-        angularVel.current.y *= DRAG_DAMPING
+        if (mode === 'journey') {
+          // 移動方向ベースのローリング回転
+          // rotation.x: Z方向移動 → 前転（soccer/basketball放物線）
+          // rotation.z: X方向移動 → 横転（soccer ジグザグ）
+          // rotSpeed が負 → バックスピン（basketball シュート）
+          const rot = journeyRotRef?.current ?? { dirX: 0, dirZ: -1, rotSpeed: 1 }
+          const animSpeed = journeySpeedRef?.current ?? 1
+          const base = delta * animSpeed * 0.35
+          shellRef.current.rotation.x -= rot.dirZ * rot.rotSpeed * base
+          shellRef.current.rotation.z -= rot.dirX * rot.rotSpeed * base
+        } else {
+          shellRef.current.rotation.y += delta * 0.18 + angularVel.current.y
+          shellRef.current.rotation.x = MathUtils.lerp(
+            shellRef.current.rotation.x,
+            state.pointer.y * -0.3,
+            0.04
+          ) + angularVel.current.x
+          // 慣性を DAMPING 0.93 で指数減衰（ohzi.io 調査値）
+          angularVel.current.x *= DRAG_DAMPING
+          angularVel.current.y *= DRAG_DAMPING
+        }
       }
     }
 
