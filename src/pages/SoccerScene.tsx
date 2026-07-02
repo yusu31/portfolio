@@ -2,19 +2,20 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
+import JourneyNav from '../components/ui/JourneyNav'
 import { useScrollProgress, scrollProgressRef } from '../hooks/useScrollProgress'
 import { SOCCER_HOTSPOTS, SOCCER_WAYPOINTS } from '../data/trajectories/soccer-trajectory'
 import { interpolateWaypoints } from '../components/canvas/journey/trajectory'
 import { PROJECT_CATEGORIES } from '../data/projects'
 
 export default function SoccerScene() {
-  const navigate = useNavigate()
+  const goScene = useNavigate()
   const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
   const [panelCategoryId, setPanelCategoryId] = useState<string | null>(null)
 
   const goNext = () => {
     const { pos } = interpolateWaypoints(scrollProgressRef.current, SOCCER_WAYPOINTS)
-    navigate('/basketball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } })
+    goScene('/basketball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } })
   }
 
   const onArrive = useCallback((wpIdx: number) => {
@@ -22,7 +23,7 @@ export default function SoccerScene() {
     setActiveHotspotIdx(wp.hotspotIndex !== undefined ? wp.hotspotIndex : null)
   }, [])
 
-  useScrollProgress(SOCCER_WAYPOINTS, onArrive)
+  const { navigate } = useScrollProgress(SOCCER_WAYPOINTS, onArrive)
 
   const activeHotspot = activeHotspotIdx !== null ? SOCCER_HOTSPOTS[activeHotspotIdx] : null
   const isLastHotspot = activeHotspotIdx === SOCCER_HOTSPOTS.length - 1
@@ -96,6 +97,8 @@ export default function SoccerScene() {
       >
         NEXT: SKILLS →
       </button>
+
+      <JourneyNav navigate={navigate} accentColor="#4fc3f7" />
     </div>
   )
 }

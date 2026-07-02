@@ -33,6 +33,12 @@ const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
   '/volleyball': VOLLEYBALL_WAYPOINTS,
 }
 
+// CR補間が床を突き抜けないようにするクランプ値
+const FLOOR_Y: Record<string, number> = {
+  '/soccer':     0.0,
+  '/basketball': 0.0,
+  '/volleyball': -1.2,
+}
 
 function CrystalJourneyMover({ groupRef }: { groupRef: React.RefObject<THREE.Group | null> }) {
   const { pathname } = useLocation()
@@ -40,7 +46,8 @@ function CrystalJourneyMover({ groupRef }: { groupRef: React.RefObject<THREE.Gro
     const waypoints = SCENE_WAYPOINTS[pathname]
     if (!waypoints?.length || !groupRef.current) return
     const { pos } = interpolateWaypoints(scrollProgressRef.current, waypoints)
-    groupRef.current.position.set(pos.x, pos.y, pos.z)
+    const floorY = FLOOR_Y[pathname] ?? -99
+    groupRef.current.position.set(pos.x, Math.max(floorY, pos.y), pos.z)
   })
   return null
 }
