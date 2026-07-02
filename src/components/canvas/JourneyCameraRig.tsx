@@ -6,10 +6,11 @@ import { scrollProgressRef } from '../../hooks/useScrollProgress'
 import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
 import { SOCCER_WAYPOINTS } from '../../data/trajectories/soccer-trajectory'
+import { BASKETBALL_WAYPOINTS } from '../../data/trajectories/basketball-trajectory'
 
 const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
   '/soccer':     SOCCER_WAYPOINTS,
-  '/basketball': [],
+  '/basketball': BASKETBALL_WAYPOINTS,
   '/volleyball': [],
 }
 
