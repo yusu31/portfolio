@@ -2,7 +2,6 @@
 import { Suspense, useRef, useEffect } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useLocation } from 'react-router-dom'
-import { Vector3 } from 'three'
 import type * as THREE from 'three'
 import gsap from 'gsap'
 import Crystal from './Crystal'
@@ -34,7 +33,6 @@ const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
   '/volleyball': VOLLEYBALL_WAYPOINTS,
 }
 
-const _lerpTarget = new Vector3()
 
 function CrystalJourneyMover({ groupRef }: { groupRef: React.RefObject<THREE.Group | null> }) {
   const { pathname } = useLocation()
@@ -42,8 +40,7 @@ function CrystalJourneyMover({ groupRef }: { groupRef: React.RefObject<THREE.Gro
     const waypoints = SCENE_WAYPOINTS[pathname]
     if (!waypoints?.length || !groupRef.current) return
     const { pos } = interpolateWaypoints(scrollProgressRef.current, waypoints)
-    _lerpTarget.set(pos.x, pos.y, pos.z)
-    groupRef.current.position.lerp(_lerpTarget, 0.08)
+    groupRef.current.position.set(pos.x, pos.y, pos.z)
   })
   return null
 }
