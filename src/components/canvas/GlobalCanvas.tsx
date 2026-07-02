@@ -9,6 +9,7 @@ import Crystal from './Crystal'
 import HomeBg from './HomeBg'
 import Effects from './Effects'
 import JourneyCameraRig from './JourneyCameraRig'
+import JourneyEffects from './JourneyEffects'
 import SoccerBg from './soccer/SoccerBg'
 import BasketballBg from './basketball/BasketballBg'
 import VolleyballBg from './volleyball/VolleyballBg'
@@ -47,7 +48,9 @@ function CrystalJourneyMover({ groupRef }: { groupRef: React.RefObject<THREE.Gro
   return null
 }
 
-function CrystalRoot({ isHome, pathname }: { isHome: boolean; pathname: string }) {
+interface BallEntry { x: number; y: number; z: number }
+
+function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathname: string; ballEntry?: BallEntry }) {
   const grpRef = useRef<THREE.Group>(null)
   const journeySpeedRef = useRef(1)
 
@@ -69,6 +72,16 @@ function CrystalRoot({ isHome, pathname }: { isHome: boolean; pathname: string }
     window.addEventListener('explore-click', onExplore)
     return () => window.removeEventListener('explore-click', onExplore)
   }, [isHome])
+
+  useEffect(() => {
+    if (!grpRef.current || !ballEntry || isHome) return
+    grpRef.current.position.set(ballEntry.x, ballEntry.y, ballEntry.z)
+    gsap.to(grpRef.current.position, {
+      x: 0, y: 0, z: 0,
+      duration: 0.8,
+      ease: 'power2.out',
+    })
+  }, [ballEntry, isHome])
 
   useFrame(() => {
     if (!isHome) {
@@ -92,8 +105,9 @@ function BgColor({ pathname }: { pathname: string }) {
 }
 
 export default function GlobalCanvas() {
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
   const isHome = pathname === '/'
+  const ballEntry = (state as { ballEntry?: BallEntry } | null)?.ballEntry
 
   return (
     <Canvas
@@ -108,8 +122,9 @@ export default function GlobalCanvas() {
         {pathname === '/soccer' && <SoccerBg />}
         {pathname === '/basketball' && <BasketballBg />}
         {pathname === '/volleyball' && <VolleyballBg />}
-        <CrystalRoot isHome={isHome} pathname={pathname} />
+        <CrystalRoot isHome={isHome} pathname={pathname} ballEntry={ballEntry} />
         {!isHome && <JourneyCameraRig />}
+        {!isHome && <JourneyEffects />}
         <Effects />
       </Suspense>
     </Canvas>
