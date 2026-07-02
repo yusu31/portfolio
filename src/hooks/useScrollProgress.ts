@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { gsap } from 'gsap'
 import type { Waypoint } from '../components/canvas/journey/trajectory'
 
@@ -6,7 +6,6 @@ export const scrollProgressRef = { current: 0 }
 export const scrollIsAnimatingRef = { current: false }
 
 // hotspotIndex or impact を持つウェイポイントが「止まれる点」
-// それ以外の中間点は放物線補間のためだけに存在し、ホイール操作ではスキップ
 function findNextStopIdx(from: number, direction: 1 | -1, waypoints: Waypoint[]): number {
   let idx = from + direction
   while (idx > 0 && idx < waypoints.length - 1) {
@@ -17,52 +16,72 @@ function findNextStopIdx(from: number, direction: 1 | -1, waypoints: Waypoint[])
 }
 
 /**
- * ホイール1回で次の「コンテンツ停止点」へGSAPアニメーション。
- * hotspotIndex or impact フラグのないウェイポイントは放物線補間用の通過点として自動スキップ。
+ * ホイール1回 / クリック / キー操作で次の「コンテンツ停止点」へGSAPアニメーション。
+ * power3.in: ゆっくりためて→爆発的に到達（スーパープレイ集感）
+ * navigate関数を返すのでクリックUIからも呼べる。
  */
 export function useScrollProgress(
   waypoints: Waypoint[],
   onArrive?: (wpIdx: number) => void,
-) {
+): { navigate: (dir: 1 | -1) => void } {
+  const isAnimatingRef = useRef(false)
+  const currentIdxRef = useRef(0)
+  const waypointsRef = useRef(waypoints)
+  const onArriveRef = useRef(onArrive)
+
+  useEffect(() => { waypointsRef.current = waypoints }, [waypoints])
+  useEffect(() => { onArriveRef.current = onArrive }, [onArrive])
+
+  const navigate = useCallback((direction: 1 | -1) => {
+    const wps = waypointsRef.current
+    if (isAnimatingRef.current || wps.length === 0) return
+
+    const nextIdx = findNextStopIdx(currentIdxRef.current, direction, wps)
+    if (nextIdx === currentIdxRef.current) return
+
+    currentIdxRef.current = nextIdx
+    isAnimatingRef.current = true
+    scrollIsAnimatingRef.current = true
+
+    gsap.to(scrollProgressRef, {
+      current: wps[nextIdx].progress,
+      duration: 1.5,
+      ease: 'power3.in',
+      onComplete: () => {
+        isAnimatingRef.current = false
+        scrollIsAnimatingRef.current = false
+        onArriveRef.current?.(nextIdx)
+      },
+    })
+  }, [])
+
   useEffect(() => {
     if (waypoints.length === 0) return
 
-    const isAnimating = { current: false }
-    const currentIdx = { current: 0 }
-
+    currentIdxRef.current = 0
     scrollProgressRef.current = waypoints[0].progress
     document.body.style.overflow = 'hidden'
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      if (isAnimating.current) return
+      navigate(e.deltaY > 0 ? 1 : -1)
+    }
 
-      const direction = e.deltaY > 0 ? 1 : -1
-      const nextIdx = findNextStopIdx(currentIdx.current, direction, waypoints)
-      if (nextIdx === currentIdx.current) return
-
-      currentIdx.current = nextIdx
-      isAnimating.current = true
-      scrollIsAnimatingRef.current = true
-
-      gsap.to(scrollProgressRef, {
-        current: waypoints[nextIdx].progress,
-        duration: 1.0,
-        ease: 'expo.out',
-        onComplete: () => {
-          isAnimating.current = false
-          scrollIsAnimatingRef.current = false
-          onArrive?.(nextIdx)
-        },
-      })
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') navigate(1)
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') navigate(-1)
     }
 
     window.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('keydown', onKeyDown)
 
     return () => {
       window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('keydown', onKeyDown)
       document.body.style.overflow = ''
       scrollProgressRef.current = 0
     }
-  }, [waypoints, onArrive])
+  }, [waypoints, navigate])
+
+  return { navigate }
 }

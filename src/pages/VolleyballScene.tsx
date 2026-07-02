@@ -2,12 +2,13 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
+import JourneyNav from '../components/ui/JourneyNav'
 import { useScrollProgress } from '../hooks/useScrollProgress'
 import { VOLLEYBALL_HOTSPOTS, VOLLEYBALL_WAYPOINTS } from '../data/trajectories/volleyball-trajectory'
 import { ABOUT_POINTS } from '../data/about'
 
 export default function VolleyballScene() {
-  const navigate = useNavigate()
+  const goScene = useNavigate()
   const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
   const [panelAboutId, setPanelAboutId] = useState<string | null>(null)
 
@@ -16,7 +17,7 @@ export default function VolleyballScene() {
     setActiveHotspotIdx(wp.hotspotIndex !== undefined ? wp.hotspotIndex : null)
   }, [])
 
-  useScrollProgress(VOLLEYBALL_WAYPOINTS, onArrive)
+  const { navigate } = useScrollProgress(VOLLEYBALL_WAYPOINTS, onArrive)
 
   const activeHotspot = activeHotspotIdx !== null ? VOLLEYBALL_HOTSPOTS[activeHotspotIdx] : null
   const isLastHotspot = activeHotspotIdx === VOLLEYBALL_HOTSPOTS.length - 1
@@ -38,7 +39,7 @@ export default function VolleyballScene() {
           title={activeAbout?.title ?? ''}
           description={activeAbout ? activeAbout.body.slice(0, 60) + (activeAbout.body.length > 60 ? '...' : '') : ''}
           onExplore={activeHotspot ? () => setPanelAboutId(activeHotspot.aboutId) : undefined}
-          onNext={isLastHotspot ? () => navigate('/contact') : undefined}
+          onNext={isLastHotspot ? () => goScene('/contact') : undefined}
           nextLabel="CONTACT →"
         />
       </div>
@@ -57,7 +58,7 @@ export default function VolleyballScene() {
       </div>
 
       <button
-        onClick={() => navigate('/contact')}
+        onClick={() => goScene('/contact')}
         style={{
           position: 'absolute', bottom: '2rem', right: '2.5rem',
           fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',
@@ -68,6 +69,8 @@ export default function VolleyballScene() {
       >
         CONTACT →
       </button>
+
+      <JourneyNav navigate={navigate} accentColor="#69f0ae" />
     </div>
   )
 }
