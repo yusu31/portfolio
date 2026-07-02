@@ -34,9 +34,10 @@ const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
 }
 
 // CR補間が床を突き抜けないようにするクランプ値
+// basketball: BasketballBg floor mesh Y=-1.2 に合わせて変更（旧: 0.0）
 const FLOOR_Y: Record<string, number> = {
   '/soccer':     0.0,
-  '/basketball': 0.0,
+  '/basketball': -1.2,
   '/volleyball': -1.2,
 }
 

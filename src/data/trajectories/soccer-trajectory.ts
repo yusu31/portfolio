@@ -1,18 +1,26 @@
 // src/data/trajectories/soccer-trajectory.ts
 //
-// 設計原則（スーパープレイ集 + 物理リサーチ）:
-//   - ドリブル: バウンスしながら転がる（Y軸に小さな弧の連続）
-//              実際のサッカーボールバウンス高さ: 地面から15〜30cm → Y=0.3〜0.5
-//   - ジグザグ: 実際のスラロームドリブル（コーン間隔1〜2m相当）
-//              折り返し時に速度が落ちる → progressの間隔を広く
-//              折り返し瞬間はボールが地面に近い（バウンス谷）
-//   - ロングパス: 打ち出し角30〜45度、弧の後半がなだらかに落ちる
-//              終点をBasketballシーン開始点（X=-12, Y=12）に合わせる
-//   - カメラ: ドリブル中はボール真後ろ低め（スプリント感・地面の流れが見える）
-//             ジグザグ折り返しは外側に振ってダイナミズム追加
-//             ロングパスは引き気味で弧全体を見せる
-//   - Z軸範囲: SoccerBgのフォグ範囲（fog: 12〜40）内に収める
-//              GrassFloor: Z=-30まで、AudienceSilhouette: Z=-32まで
+// 実スペックベース再設計（v3）:
+//   SoccerBg.tsx 読み取り結果:
+//     GrassFloor: position=[0,-1.2,-10], size=[30,40] → Z: +10〜-30, X: ±15
+//     GoalFrame: position=[0,-0.2,-20]
+//       左ポスト  [-3.66, 1.02, -20], 右ポスト [3.66, 1.02, -20]
+//       クロスバー [0, 2.24, -20]  高さ 2.24ユニット = 2.44m (FIFA規格)
+//     1ユニット ≈ 1m（クロスバー幅 7.32ユニット = FIFA規格 7.32m）
+//     フィールド中央 Z=-10, ペナルティエリア端 Z≈-3.5 (16.5m from goal)
+//     観客シルエット: Z=-28〜-32
+//
+//   軌道設計:
+//     - 開始: Z=+6（自陣ゴール付近 = ゴールから26m地点）
+//     - ドリブル: Z=+6→Z=-4 (10m, 自陣→中盤)
+//     - ジグザグ×4: Z=-5〜-14 (中盤〜アタッキングサード)
+//     - キック: Z=-15〜-16（ペナルティエリア内、ゴールから5m）
+//     - 放物線: ゴール(Z=-20)を越えフィールド外へ飛ぶ
+//
+//   カメラ方針:
+//     - ドリブル: 「若干斜め上」= camOffset Y=+0.8 で前方も見える
+//     - キック: 「進行方向を見る」= ボール後方から前方を向く (camOffset Z=+5〜6)
+//     - 放物線: サイドビューで弧の形状を見せる（弦を後方から見ると弧が見えない）
 
 import type { Waypoint } from '../../components/canvas/journey/trajectory'
 
@@ -30,61 +38,71 @@ export const SOCCER_HOTSPOTS: SoccerHotspot[] = [
 ]
 
 export const SOCCER_WAYPOINTS: Waypoint[] = [
-  // ── Phase 1: ドリブル開始（バウンスしながら前進） ─────────────────────
-  // カメラ: 低め真後ろ、スプリント感（地面の流れが見える）
-  { progress: 0.00, pos: [ 0, 0.0,  0], camOffset: [0,  -0.3, 4.5], rotSpeed: 1.5 },
-  // バウンス頂点1（実際のサッカーボール: 30cm程度の低いバウンス）
-  { progress: 0.03, pos: [ 0, 0.4, -2], camOffset: [0,  -0.4, 4.3], rotSpeed: 1.8 },
+  // ── Phase 1: 自陣からドリブル開始（ゴールから26m地点）────────────────
+  // カメラ: 「若干斜め上」= 前方のフィールドが見える (Y=+0.8 = slightly above ball)
+  { progress: 0.00, pos: [ 0, 0.0, +6], camOffset: [0,  0.8, 4.0], rotSpeed: 1.5 },
+  // バウンス頂点1
+  { progress: 0.03, pos: [ 0, 0.4, +4], camOffset: [0,  0.8, 4.0], rotSpeed: 1.8 },
   // 着地1
-  { progress: 0.06, pos: [ 0, 0.0, -4], camOffset: [0,  -0.5, 4.2], rotSpeed: 1.5 },
-  // バウンス頂点2
-  { progress: 0.09, pos: [ 0, 0.4, -6], camOffset: [0,  -0.4, 4.3], rotSpeed: 1.8 },
-  // 着地2（ジグザグへの助走開始点）
-  { progress: 0.12, pos: [ 0, 0.0, -8], camOffset: [0,  -0.5, 4.2], rotSpeed: 1.5 },
+  { progress: 0.06, pos: [ 0, 0.0, +2], camOffset: [0,  0.8, 4.0], rotSpeed: 1.5 },
+  // バウンス頂点2（中盤越え）
+  { progress: 0.09, pos: [ 0, 0.4, -0], camOffset: [0,  0.8, 4.2], rotSpeed: 1.8 },
+  // 着地2
+  { progress: 0.12, pos: [ 0, 0.0, -2], camOffset: [0,  0.8, 4.0], rotSpeed: 1.5 },
+  // バウンス頂点3
+  { progress: 0.15, pos: [ 0, 0.4, -4], camOffset: [0,  0.8, 4.2], rotSpeed: 1.8 },
+  // 着地3（ジグザグ開始地点）
+  { progress: 0.18, pos: [ 0, 0.0, -5], camOffset: [0,  0.8, 4.0], rotSpeed: 1.5 },
 
-  // ── Phase 2: ジグザグ×4（折り返しにホットスポット） ──────────────────
-  // カメラ: 折り返し点は外側に大きく振って迫力を出す
-  // 左折り返しへの助走（バウンスしながら斜め前進）
-  { progress: 0.17, pos: [-2, 0.3,-11], camOffset: [ 0.5, -0.3, 4.5], rotSpeed: 1.6 },
+  // ── Phase 2: ジグザグ×4（中盤〜アタッキングサード） ───────────────────
+  // カメラ: 折り返しの外側に振ってダイナミクス + 前方視野を維持
 
-  // 左折り返し（hotspot 0）─ 地面近く・速度が落ちる瞬間
-  { progress: 0.22, pos: [-4, 0.0,-13], camOffset: [ 1.2,  0.0, 5.0], rotSpeed: 0.4, hotspotIndex: 0, impact: true },
-  // 右へ切り返し（バウンスしながら加速）
-  { progress: 0.27, pos: [-1, 0.4,-16], camOffset: [-0.3, -0.3, 4.8], rotSpeed: 1.8 },
-
-  // 右折り返しへの助走
-  { progress: 0.31, pos: [ 2, 0.0,-18], camOffset: [-0.8, -0.3, 4.5], rotSpeed: 1.6 },
-
-  // 右折り返し（hotspot 1）
-  { progress: 0.36, pos: [ 4, 0.0,-20], camOffset: [-1.2,  0.0, 5.0], rotSpeed: 0.4, hotspotIndex: 1, impact: true },
-  // 左へ切り返し（バウンスしながら加速）
-  { progress: 0.41, pos: [ 1, 0.4,-23], camOffset: [ 0.3, -0.3, 4.8], rotSpeed: 1.8 },
-
-  // 左折り返しへの助走
-  { progress: 0.45, pos: [-2, 0.0,-25], camOffset: [ 0.8, -0.3, 4.5], rotSpeed: 1.6 },
-
-  // 左折り返し（hotspot 2）
-  { progress: 0.50, pos: [-4, 0.0,-27], camOffset: [ 1.2,  0.0, 5.0], rotSpeed: 0.4, hotspotIndex: 2, impact: true },
+  // 左への助走
+  { progress: 0.22, pos: [-2, 0.3, -7], camOffset: [ 0.5, 0.8, 4.5], rotSpeed: 1.6 },
+  // 左折り返し（hotspot 0）─ ゴールから13m地点
+  { progress: 0.27, pos: [-4, 0.0, -9], camOffset: [ 1.2, 0.8, 5.0], rotSpeed: 0.4,
+    hotspotIndex: 0, impact: true },
   // 右へ切り返し
-  { progress: 0.55, pos: [-1, 0.4,-29], camOffset: [-0.3, -0.3, 4.8], rotSpeed: 1.8 },
+  { progress: 0.31, pos: [-1, 0.3,-10], camOffset: [-0.3, 0.8, 4.8], rotSpeed: 1.8 },
 
-  // 右折り返し（hotspot 3）─ パスモーション開始直前
-  { progress: 0.60, pos: [ 4, 0.0,-31], camOffset: [-1.2,  0.0, 5.0], rotSpeed: 0.4, hotspotIndex: 3, impact: true },
+  // 右への助走
+  { progress: 0.35, pos: [ 2, 0.0,-11], camOffset: [-0.8, 0.8, 4.5], rotSpeed: 1.6 },
+  // 右折り返し（hotspot 1）─ フィールド中央付近
+  { progress: 0.40, pos: [ 4, 0.0,-12], camOffset: [-1.2, 0.8, 5.0], rotSpeed: 0.4,
+    hotspotIndex: 1, impact: true },
+  // 左へ切り返し
+  { progress: 0.44, pos: [ 1, 0.3,-13], camOffset: [ 0.3, 0.8, 4.8], rotSpeed: 1.8 },
 
-  // ── Phase 3: ゴール前センタリング → ロングパス放物線 ─────────────────
-  // カメラ: サイドビューで弧の形状を見せる（ボール後方では弧が見えない）
-  // センター軸に戻りながら助走（蹴る体勢）
-  { progress: 0.65, pos: [ 0, 0.0,-33], camOffset: [0,   0.2, 6.5], rotSpeed: 2.0 },
-  // キック瞬間（impact）─ カメラをサイドへ展開し始める
-  { progress: 0.70, pos: [-3, 0.5,-35], camOffset: [2.0, -0.5, 6.0], rotSpeed: 4.5, impact: true },
-  // 上昇（弧の前半）─ サイドビューで立ち上がる弧が見える
-  { progress: 0.77, pos: [-6, 5.0,-37], camOffset: [3.0, -0.5, 7.0], rotSpeed: 4.0 },
-  // 放物線頂点（Y=10程度）─ ワイドサイドビューで弧の全体像が見える
-  { progress: 0.84, pos: [-9, 9.5,-39], camOffset: [4.0, -1.5, 7.5], rotSpeed: 3.0 },
-  // 下降（放物線後半）─ サイドビュー継続・Basketball開始点へ吸い込まれる感
-  { progress: 0.92, pos: [-11, 12.0,-41], camOffset: [3.5, -0.5, 7.0], rotSpeed: 2.5 },
-  // Basketball開始点へ接続（X=-12, Y=12 近傍で終了）
-  { progress: 1.00, pos: [-12, 12.0,-43], camOffset: [2.5,  0.5, 6.5], rotSpeed: 2.0 },
+  // 左への助走
+  { progress: 0.47, pos: [-2, 0.0,-13], camOffset: [ 0.8, 0.8, 4.5], rotSpeed: 1.6 },
+  // 左折り返し（hotspot 2）─ アタッキングサード
+  { progress: 0.52, pos: [-4, 0.0,-14], camOffset: [ 1.2, 0.8, 5.0], rotSpeed: 0.4,
+    hotspotIndex: 2, impact: true },
+  // 右へ切り返し
+  { progress: 0.55, pos: [-1, 0.3,-14], camOffset: [-0.3, 0.8, 4.8], rotSpeed: 1.8 },
+
+  // 右折り返し（hotspot 3）─ ペナルティエリア内
+  { progress: 0.60, pos: [ 3, 0.0,-15], camOffset: [-1.2, 0.8, 5.0], rotSpeed: 0.4,
+    hotspotIndex: 3, impact: true },
+
+  // ── Phase 3: ゴール前ロングボール放出 ────────────────────────────────
+  // カメラ: 「進行方向を見る」= ボール後方(Z+) からゴール方向(-Z)を向く
+  // ゴールへ走り込み（wind-up）
+  { progress: 0.64, pos: [ 0, 0.0,-16], camOffset: [0,  0.5, 5.5], rotSpeed: 2.0 },
+  // キック（impact）─ ゴールから4m・ペナルティエリア内
+  // 「進行方向を見る」= camOffset Z=+5.5 でボール後方 → ゴール方向が視野正面に来る
+  { progress: 0.70, pos: [-1, 0.5,-17], camOffset: [0,  0.5, 5.5], rotSpeed: 4.5, impact: true },
+
+  // ── Phase 4: ロングパス放物線（ゴール(Z=-20)を越えてフィールド外へ） ──
+  // カメラ: サイドビューで弧の形状を見せる
+  // 上昇（ゴール(Z=-20)をクロスバー(Y=2.24)越えで通過）
+  { progress: 0.77, pos: [-4, 5.0,-21], camOffset: [2.5,  0.0, 5.5], rotSpeed: 4.0 },
+  // 頂点（フィールド外, ゴールの奥）
+  { progress: 0.84, pos: [-7, 9.0,-24], camOffset: [3.5, -0.5, 6.0], rotSpeed: 3.0 },
+  // 下降（観客エリア上空, Basketballへの橋渡し）
+  { progress: 0.92, pos: [-10, 11.0,-28], camOffset: [3.0, -0.5, 5.5], rotSpeed: 2.5 },
+  // 終点（フィールド外）
+  { progress: 1.00, pos: [-12, 12.0,-32], camOffset: [2.5,  0.5, 5.5], rotSpeed: 2.0 },
 ]
 
 export const HOTSPOT_RADIUS = 0.025
