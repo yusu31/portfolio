@@ -4,11 +4,17 @@ import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
 import { useScrollProgress, scrollProgressRef } from '../hooks/useScrollProgress'
 import { BASKETBALL_HOTSPOTS, BASKETBALL_WAYPOINTS, HOTSPOT_RADIUS } from '../data/trajectories/basketball-trajectory'
+import { interpolateWaypoints } from '../components/canvas/journey/trajectory'
 import { SKILL_CATEGORIES } from '../data/skills'
 
 export default function BasketballScene() {
   useScrollProgress()
   const navigate = useNavigate()
+
+  const goNext = () => {
+    const { pos } = interpolateWaypoints(scrollProgressRef.current, BASKETBALL_WAYPOINTS)
+    navigate('/volleyball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } })
+  }
   const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
   const [panelSkillId, setPanelSkillId] = useState<string | null>(null)
 
@@ -50,7 +56,7 @@ export default function BasketballScene() {
             title={activeSkillCat?.label ?? ''}
             description={activeSkillCat?.description ?? ''}
             onExplore={activeHotspot ? () => setPanelSkillId(activeHotspot.skillCategory) : undefined}
-            onNext={isLastHotspot ? () => navigate('/volleyball') : undefined}
+            onNext={isLastHotspot ? goNext : undefined}
             nextLabel="NEXT →"
           />
         </div>
@@ -79,7 +85,7 @@ export default function BasketballScene() {
           </GlassPanel>
         </div>
         <button
-          onClick={() => navigate('/volleyball')}
+          onClick={goNext}
           style={{
             position: 'absolute', bottom: '2rem', right: '2.5rem',
             fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',

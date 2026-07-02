@@ -4,11 +4,17 @@ import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
 import { useScrollProgress, scrollProgressRef } from '../hooks/useScrollProgress'
 import { SOCCER_HOTSPOTS, SOCCER_WAYPOINTS, HOTSPOT_RADIUS } from '../data/trajectories/soccer-trajectory'
+import { interpolateWaypoints } from '../components/canvas/journey/trajectory'
 import { PROJECT_CATEGORIES } from '../data/projects'
 
 export default function SoccerScene() {
   useScrollProgress()
   const navigate = useNavigate()
+
+  const goNext = () => {
+    const { pos } = interpolateWaypoints(scrollProgressRef.current, SOCCER_WAYPOINTS)
+    navigate('/basketball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } })
+  }
   const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
   const [panelCategoryId, setPanelCategoryId] = useState<string | null>(null)
 
@@ -56,7 +62,7 @@ export default function SoccerScene() {
             title={activeCategory?.label ?? ''}
             description={`${activeCategory?.projects?.length ?? 0} projects`}
             onExplore={activeHotspot ? () => setPanelCategoryId(activeHotspot.categoryId) : undefined}
-            onNext={isLastHotspot ? () => navigate('/basketball') : undefined}
+            onNext={isLastHotspot ? goNext : undefined}
             nextLabel="NEXT →"
           />
         </div>
@@ -100,7 +106,7 @@ export default function SoccerScene() {
 
         {/* NEXT ボタン（常時表示） */}
         <button
-          onClick={() => navigate('/basketball')}
+          onClick={goNext}
           style={{
             position: 'absolute', bottom: '2rem', right: '2.5rem',
             fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',
