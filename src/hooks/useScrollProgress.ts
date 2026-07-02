@@ -5,10 +5,20 @@ import type { Waypoint } from '../components/canvas/journey/trajectory'
 export const scrollProgressRef = { current: 0 }
 export const scrollIsAnimatingRef = { current: false }
 
+// hotspotIndex or impact を持つウェイポイントが「止まれる点」
+// それ以外の中間点は放物線補間のためだけに存在し、ホイール操作ではスキップ
+function findNextStopIdx(from: number, direction: 1 | -1, waypoints: Waypoint[]): number {
+  let idx = from + direction
+  while (idx > 0 && idx < waypoints.length - 1) {
+    if (waypoints[idx].hotspotIndex !== undefined || waypoints[idx].impact) return idx
+    idx += direction
+  }
+  return Math.max(0, Math.min(waypoints.length - 1, idx))
+}
+
 /**
- * ホイール1回で次ウェイポイントへGSAPアニメーションする方式。
- * Lenis廃止。スクロール領域不要。
- * onArrive: アニメーション完了時に到達ウェイポイントのインデックスを返す。
+ * ホイール1回で次の「コンテンツ停止点」へGSAPアニメーション。
+ * hotspotIndex or impact フラグのないウェイポイントは放物線補間用の通過点として自動スキップ。
  */
 export function useScrollProgress(
   waypoints: Waypoint[],
@@ -27,14 +37,14 @@ export function useScrollProgress(
       e.preventDefault()
       if (isAnimating.current) return
 
-      const delta = e.deltaY > 0 ? 1 : -1
-      const nextIdx = Math.max(0, Math.min(waypoints.length - 1, currentIdx.current + delta))
+      const direction = e.deltaY > 0 ? 1 : -1
+      const nextIdx = findNextStopIdx(currentIdx.current, direction, waypoints)
       if (nextIdx === currentIdx.current) return
 
       currentIdx.current = nextIdx
       isAnimating.current = true
-
       scrollIsAnimatingRef.current = true
+
       gsap.to(scrollProgressRef, {
         current: waypoints[nextIdx].progress,
         duration: 1.0,

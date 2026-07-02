@@ -37,25 +37,25 @@ export const SOCCER_WAYPOINTS: Waypoint[] = [
 
   // 左折り返し（hotspot 0）─ バウンスしながら到達
   { progress: 0.13, pos: [-4, 1.0,-10], camOffset: [ 1.2, 0.3, 5.0], rotSpeed: 0.5 },
-  { progress: 0.18, pos: [-6, 0.0,-13], camOffset: [ 1.4, 0.4, 5.2], rotSpeed: 0.3, hotspotIndex: 0 },
+  { progress: 0.18, pos: [-6, 0.0,-13], camOffset: [ 1.4, 0.4, 5.2], rotSpeed: 0.3, hotspotIndex: 0, impact: true },
   // 右へ加速（バウンス頂点）
   { progress: 0.23, pos: [-2, 1.8,-17], camOffset: [-0.5, 0.2, 5.0], rotSpeed: 2.0 },
 
   // 右折り返し（hotspot 1）
   { progress: 0.27, pos: [ 4, 1.0,-20], camOffset: [-1.2, 0.3, 5.0], rotSpeed: 0.5 },
-  { progress: 0.32, pos: [ 6, 0.0,-23], camOffset: [-1.4, 0.4, 5.2], rotSpeed: 0.3, hotspotIndex: 1 },
+  { progress: 0.32, pos: [ 6, 0.0,-23], camOffset: [-1.4, 0.4, 5.2], rotSpeed: 0.3, hotspotIndex: 1, impact: true },
   // 左へ加速（バウンス頂点）
   { progress: 0.37, pos: [ 2, 1.8,-27], camOffset: [ 0.5, 0.2, 5.0], rotSpeed: 2.0 },
 
   // 左折り返し（hotspot 2）
   { progress: 0.41, pos: [-4, 1.0,-30], camOffset: [ 1.2, 0.3, 5.0], rotSpeed: 0.5 },
-  { progress: 0.46, pos: [-6, 0.0,-33], camOffset: [ 1.4, 0.4, 5.2], rotSpeed: 0.3, hotspotIndex: 2 },
+  { progress: 0.46, pos: [-6, 0.0,-33], camOffset: [ 1.4, 0.4, 5.2], rotSpeed: 0.3, hotspotIndex: 2, impact: true },
   // 右へ加速（バウンス頂点）
   { progress: 0.51, pos: [-2, 1.8,-37], camOffset: [-0.5, 0.2, 5.0], rotSpeed: 2.0 },
 
   // 右折り返し（hotspot 3）
   { progress: 0.55, pos: [ 4, 1.0,-40], camOffset: [-1.2, 0.3, 5.0], rotSpeed: 0.5 },
-  { progress: 0.60, pos: [ 6, 0.0,-43], camOffset: [-1.4, 0.4, 5.2], rotSpeed: 0.3, hotspotIndex: 3 },
+  { progress: 0.60, pos: [ 6, 0.0,-43], camOffset: [-1.4, 0.4, 5.2], rotSpeed: 0.3, hotspotIndex: 3, impact: true },
 
   // ── Phase 3: ゴール前突進 → ロングパス放物線 ─────────────────────────
   // カメラ: 引き気味で放物線の弧全体を見せる

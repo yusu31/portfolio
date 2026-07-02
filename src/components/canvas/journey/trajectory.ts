@@ -41,6 +41,7 @@ export interface Waypoint {
   camOffset: [number, number, number]
   rotSpeed: number
   hotspotIndex?: number
+  impact?: boolean   // 通過時にShockwaveを発火（打つ・蹴る・受ける瞬間）
 }
 
 /**

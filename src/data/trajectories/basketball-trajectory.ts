@@ -34,8 +34,8 @@ export const BASKETBALL_WAYPOINTS: Waypoint[] = [
   // カメラ: 横から弧全体を捉える（サイドライン高所視点）
   // 溜め（ボールを腰まで引き下ろす — トリプルスレット→ジャンプシュート）
   { progress: 0.22, pos: [  0, -1.2,  0], camOffset: [ 1.5,  0.3, 5.0], rotSpeed: 0.3 },
-  // ジャンプ開始・打ち出し体制
-  { progress: 0.28, pos: [  0,  1.5,  0], camOffset: [ 3.0,  0.4, 6.0], rotSpeed: 0.4 },
+  // ジャンプ開始・打ち出し（リリース瞬間 impact）
+  { progress: 0.28, pos: [  0,  1.5,  0], camOffset: [ 3.0,  0.4, 6.0], rotSpeed: 0.4, impact: true },
   // 上昇（45度で力強く打ち出す）
   { progress: 0.37, pos: [  3, 10.0, -8], camOffset: [ 3.5, -0.2, 6.5], rotSpeed: 1.5 },
   // 頂点（リングより高い位置・バックスピンの浮力）─ hotspot 1
@@ -47,8 +47,8 @@ export const BASKETBALL_WAYPOINTS: Waypoint[] = [
 
   // ── Phase 3: リング通過 → ダンカム視点 → 落下 ──────────────────────────
   // カメラ: バスケット後方下方からリング通過を見上げる（ダンカム）
-  // リング通過（リングの向こう側へ）
-  { progress: 0.66, pos: [  0,  5.5,-24], camOffset: [ 0.0, -2.5, -4.0], rotSpeed: 3.0 },
+  // リング通過（リングの向こう側へ）impact: リム当たりの衝撃
+  { progress: 0.66, pos: [  0,  5.5,-24], camOffset: [ 0.0, -2.5, -4.0], rotSpeed: 3.0, impact: true },
   // ネット抜け落下（急加速）
   { progress: 0.78, pos: [  0,  1.5,-24], camOffset: [ 0.0, -1.5, -3.5], rotSpeed: 4.0 },
   // バウンド

@@ -52,7 +52,8 @@ export default function JourneyEffects() {
     const color = RING_COLORS[pathname] ?? '#ffffff'
 
     for (const wp of waypoints) {
-      if (wp.hotspotIndex === undefined) continue
+      const shouldFire = wp.hotspotIndex !== undefined || wp.impact
+      if (!shouldFire) continue
       if (
         (prev < wp.progress && current >= wp.progress) ||
         (prev > wp.progress && current <= wp.progress)
@@ -66,6 +67,10 @@ export default function JourneyEffects() {
           x: pos.x, y: pos.y, z: pos.z,
           axis: isVertical ? 'vertical' : 'horizontal',
           color,
+        }
+        // スパイク着地・シュートリング通過などの強いインパクトでカメラ震動
+        if (wp.impact) {
+          cameraShake.current = 0.2
         }
         if (pathname === '/volleyball' && wp.hotspotIndex === 2) {
           cameraShake.current = 0.3
