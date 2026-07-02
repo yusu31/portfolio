@@ -58,6 +58,7 @@ interface BallEntry { x: number; y: number; z: number }
 function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathname: string; ballEntry?: BallEntry }) {
   const grpRef = useRef<THREE.Group>(null)
   const journeySpeedRef = useRef(1)
+  const journeyRotRef = useRef({ dirX: 0, dirZ: -1, rotSpeed: 1 })
 
   useEffect(() => {
     if (!isHome) return
@@ -91,13 +92,29 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
   useFrame(() => {
     if (!isHome) {
       journeySpeedRef.current = scrollIsAnimatingRef.current ? 2.5 : 0.3
+
+      // 移動方向ベクトルを progress ± ε の差分から計算して journeyRotRef に書き込む
+      const waypoints = SCENE_WAYPOINTS[pathname]
+      if (waypoints?.length) {
+        const p = scrollProgressRef.current
+        const curr = interpolateWaypoints(p, waypoints)
+        const next = interpolateWaypoints(Math.min(1, p + 0.003), waypoints)
+        const dx = next.pos.x - curr.pos.x
+        const dz = next.pos.z - curr.pos.z
+        const len = Math.sqrt(dx * dx + dz * dz)
+        if (len > 0.0001) {
+          journeyRotRef.current.dirX = dx / len
+          journeyRotRef.current.dirZ = dz / len
+        }
+        journeyRotRef.current.rotSpeed = curr.rotSpeed
+      }
     }
   })
 
   return (
     <>
       <group ref={grpRef} position={[0, isHome ? -0.4 : 0, 0]} scale={isHome ? 1 : 0.45}>
-        <Crystal mode={isHome ? 'interactive' : 'journey'} journeySpeedRef={journeySpeedRef} />
+        <Crystal mode={isHome ? 'interactive' : 'journey'} journeySpeedRef={journeySpeedRef} journeyRotRef={journeyRotRef} />
       </group>
       {!isHome && <CrystalJourneyMover groupRef={grpRef} />}
     </>

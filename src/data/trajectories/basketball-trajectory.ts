@@ -37,24 +37,25 @@ export const BASKETBALL_WAYPOINTS: Waypoint[] = [
   { progress: 0.16, pos: [  0, -0.2,  0], camOffset: [ 0.0,  0.5, 5.5], rotSpeed: 0.2, hotspotIndex: 0 },
 
   // ── Phase 2: シュート → リム [0, 2.6, -8.77] ────────────────────────────
+  // rotSpeed 負値 = バックスピン（rotation.x -= dirZ * rotSpeed → dirZ<0 かつ rotSpeed<0 = 逆回転）
   // 溜め（腰まで引き下げ）
-  { progress: 0.22, pos: [  0, -0.5,  0], camOffset: [ 2.0,  0.5, 5.0], rotSpeed: 0.3 },
-  // リリース（impact）
-  { progress: 0.28, pos: [  0,  0.5,  0], camOffset: [ 2.5,  0.3, 5.5], rotSpeed: 0.4, impact: true },
+  { progress: 0.22, pos: [  0, -0.5,  0], camOffset: [ 2.0,  0.5, 5.0], rotSpeed: -0.5 },
+  // リリース（impact）— バックスピン開始
+  { progress: 0.28, pos: [  0,  0.5,  0], camOffset: [ 2.5,  0.3, 5.5], rotSpeed: -3.5, impact: true },
   // 上昇
-  { progress: 0.35, pos: [1.5,  3.5, -3], camOffset: [ 3.0,  0.0, 6.0], rotSpeed: 2.0 },
+  { progress: 0.35, pos: [1.5,  3.5, -3], camOffset: [ 3.0,  0.0, 6.0], rotSpeed: -4.0 },
   // 上昇後半
-  { progress: 0.42, pos: [2.0,  6.0, -5], camOffset: [ 3.0, -0.8, 6.5], rotSpeed: 1.5 },
+  { progress: 0.42, pos: [2.0,  6.0, -5], camOffset: [ 3.0, -0.8, 6.5], rotSpeed: -3.5 },
   // 頂点（hotspot 1: backend）
-  { progress: 0.47, pos: [2.5,  7.0, -6], camOffset: [ 3.0, -1.2, 6.5], rotSpeed: 0.3, hotspotIndex: 1 },
+  { progress: 0.47, pos: [2.5,  7.0, -6], camOffset: [ 3.0, -1.2, 6.5], rotSpeed: -2.5, hotspotIndex: 1 },
   // 下降（カメラをボール後方へ移行→リングが視野に入り始める）
-  { progress: 0.53, pos: [1.5,  5.0, -7], camOffset: [ 2.0,  0.0, 6.0], rotSpeed: 1.2 },
+  { progress: 0.53, pos: [1.5,  5.0, -7], camOffset: [ 2.0,  0.0, 6.0], rotSpeed: -3.5 },
   // リム接近（ボール後方カメラ確立・リング見える）
-  { progress: 0.58, pos: [0.5,  3.5,-8.0], camOffset: [ 1.0,  0.5, 5.5], rotSpeed: 1.8 },
+  { progress: 0.58, pos: [0.5,  3.5,-8.0], camOffset: [ 1.0,  0.5, 5.5], rotSpeed: -4.0 },
   // 急降下アプローチ制御点（CR入射角≈50°確保）
-  { progress: 0.63, pos: [0.0,  3.2,-8.3], camOffset: [ 0.0,  0.5, 4.5], rotSpeed: 0.5 },
+  { progress: 0.63, pos: [0.0,  3.2,-8.3], camOffset: [ 0.0,  0.5, 4.5], rotSpeed: -4.5 },
   // リム手前（hotspot 2: infrastructure）— カメラ後方上→リング・バックボード見える
-  { progress: 0.68, pos: [0.0,  3.0,-8.5], camOffset: [ 0.0,  1.0, 4.0], rotSpeed: 0.3, hotspotIndex: 2 },
+  { progress: 0.68, pos: [0.0,  3.0,-8.5], camOffset: [ 0.0,  1.0, 4.0], rotSpeed: -4.0, hotspotIndex: 2 },
 
   // ── Phase 3: リング通過 → Classic Basket Cam → 落下 ──────────────────
   // Impact: リム通過。camera = rim + [0,-2.5,0] = [0, 0.1, -8.77] → 真下から真上を見る
