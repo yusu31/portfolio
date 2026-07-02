@@ -7,11 +7,12 @@ import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
 import { SOCCER_WAYPOINTS } from '../../data/trajectories/soccer-trajectory'
 import { BASKETBALL_WAYPOINTS } from '../../data/trajectories/basketball-trajectory'
+import { VOLLEYBALL_WAYPOINTS } from '../../data/trajectories/volleyball-trajectory'
 
 const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
   '/soccer':     SOCCER_WAYPOINTS,
   '/basketball': BASKETBALL_WAYPOINTS,
-  '/volleyball': [],
+  '/volleyball': VOLLEYBALL_WAYPOINTS,
 }
 
 const _targetPos = new Vector3()

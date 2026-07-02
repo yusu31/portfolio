@@ -11,11 +11,13 @@ import Effects from './Effects'
 import JourneyCameraRig from './JourneyCameraRig'
 import SoccerBg from './soccer/SoccerBg'
 import BasketballBg from './basketball/BasketballBg'
+import VolleyballBg from './volleyball/VolleyballBg'
 import { scrollProgressRef, scrollVelocityRef } from '../../hooks/useScrollProgress'
 import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
 import { SOCCER_WAYPOINTS } from '../../data/trajectories/soccer-trajectory'
 import { BASKETBALL_WAYPOINTS } from '../../data/trajectories/basketball-trajectory'
+import { VOLLEYBALL_WAYPOINTS } from '../../data/trajectories/volleyball-trajectory'
 
 const BG_COLORS: Record<string, string> = {
   '/': '#0a0a0f',
@@ -28,7 +30,7 @@ const BG_COLORS: Record<string, string> = {
 const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
   '/soccer':     SOCCER_WAYPOINTS,
   '/basketball': BASKETBALL_WAYPOINTS,
-  '/volleyball': [],
+  '/volleyball': VOLLEYBALL_WAYPOINTS,
 }
 
 const _lerpTarget = new Vector3()
@@ -105,7 +107,7 @@ export default function GlobalCanvas() {
         {isHome && <HomeBg />}
         {pathname === '/soccer' && <SoccerBg />}
         {pathname === '/basketball' && <BasketballBg />}
-        {/* Phase D以降: VolleyballBg をここに追加 */}
+        {pathname === '/volleyball' && <VolleyballBg />}
         <CrystalRoot isHome={isHome} pathname={pathname} />
         {!isHome && <JourneyCameraRig />}
         <Effects />
