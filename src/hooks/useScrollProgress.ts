@@ -5,6 +5,10 @@ import type { Waypoint } from '../components/canvas/journey/trajectory'
 export const scrollProgressRef = { current: 0 }
 export const scrollIsAnimatingRef = { current: false }
 
+// navigate() 開始時に impact:true ターゲットの progress を即時セット。
+// JourneyEffects がこれを読み取って即時波動発火し、null にクリアする。
+export const impactTriggerRef: { current: number | null } = { current: null }
+
 // hotspotIndex or impact を持つウェイポイントが「止まれる点」
 function findNextStopIdx(from: number, direction: 1 | -1, waypoints: Waypoint[]): number {
   let idx = from + direction
@@ -42,6 +46,11 @@ export function useScrollProgress(
     currentIdxRef.current = nextIdx
     isAnimatingRef.current = true
     scrollIsAnimatingRef.current = true
+
+    // impact:true ターゲットへの移動開始時に即時発火トリガーをセット
+    if (wps[nextIdx].impact) {
+      impactTriggerRef.current = wps[nextIdx].progress
+    }
 
     gsap.to(scrollProgressRef, {
       current: wps[nextIdx].progress,
