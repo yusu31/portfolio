@@ -91,7 +91,7 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
 
   return (
     <>
-      <group ref={grpRef} position={[0, isHome ? -0.4 : 0, 0]} scale={isHome ? 1 : 0.65}>
+      <group ref={grpRef} position={[0, isHome ? -0.4 : 0, 0]} scale={isHome ? 1 : 0.45}>
         <Crystal mode={isHome ? 'interactive' : 'journey'} journeySpeedRef={journeySpeedRef} />
       </group>
       {!isHome && <CrystalJourneyMover groupRef={grpRef} />}

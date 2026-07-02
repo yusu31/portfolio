@@ -37,8 +37,8 @@ export function useScrollProgress(
       scrollIsAnimatingRef.current = true
       gsap.to(scrollProgressRef, {
         current: waypoints[nextIdx].progress,
-        duration: 1.8,
-        ease: 'power2.inOut',
+        duration: 1.0,
+        ease: 'expo.out',
         onComplete: () => {
           isAnimating.current = false
           scrollIsAnimatingRef.current = false
