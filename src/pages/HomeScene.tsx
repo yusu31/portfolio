@@ -1,9 +1,7 @@
-import { Suspense, useEffect, useRef } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
-import Scene from '../components/canvas/Scene'
 
 const NAV_GRID = [
   { path: '/soccer',     icon: '⚽', label: 'Projects', desc: '作ったもの',    color: '#4fc3f7' },
@@ -51,17 +49,6 @@ export default function HomeScene() {
 
   return (
     <>
-      <Canvas
-        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 0 }}
-        camera={{ position: [0, 0, 5], fov: 60 }}
-        gl={{ antialias: true, alpha: false }}
-        dpr={[1, 2]}
-      >
-        <Suspense fallback={null}>
-          <Scene />
-        </Suspense>
-      </Canvas>
-
       <div
         style={{
           position: 'relative',

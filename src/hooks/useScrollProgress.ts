@@ -1,18 +1,34 @@
-import { useEffect, useState } from 'react'
+import Lenis from 'lenis'
+import { useEffect } from 'react'
+import { gsap } from 'gsap'
 
-export function useScrollProgress(): number {
-  const [progress, setProgress] = useState(0)
+// module-levelのref：R3FのuseFrame内でも参照可能
+export const scrollProgressRef = { current: 0 }
+export const scrollVelocityRef = { current: 0 }
 
+/**
+ * スポーツシーンのページコンポーネントでmountする。
+ * Lenisを初期化してスクロールをスムーズにし、progressとvelocityをrefに書き込む。
+ * アンマウント時にLenisを破棄する（ルート遷移でクリーンアップされる）。
+ */
+export function useScrollProgress() {
   useEffect(() => {
-    const onScroll = () => {
-      const el = document.documentElement
-      const scrolled = el.scrollTop
-      const max = el.scrollHeight - el.clientHeight
-      setProgress(max > 0 ? scrolled / max : 0)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+    const lenis = new Lenis({ lerp: 0.07 })
 
-  return progress
+    lenis.on('scroll', ({ progress, velocity }: { progress: number; velocity: number }) => {
+      scrollProgressRef.current = progress
+      scrollVelocityRef.current = Math.abs(velocity)
+    })
+
+    const rafCallback = (time: number) => lenis.raf(time * 1000)
+    gsap.ticker.add(rafCallback)
+    gsap.ticker.lagSmoothing(0)
+
+    return () => {
+      gsap.ticker.remove(rafCallback)
+      lenis.destroy()
+      scrollProgressRef.current = 0
+      scrollVelocityRef.current = 0
+    }
+  }, [])
 }

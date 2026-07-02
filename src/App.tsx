@@ -1,3 +1,4 @@
+// src/App.tsx
 import { Suspense } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { LanguageProvider } from './contexts/LanguageContext'
@@ -6,11 +7,13 @@ import Cursor from './components/ui/Cursor'
 import Loader from './components/ui/Loader'
 import GlobalNav from './components/ui/GlobalNav'
 import RouteTransition from './components/ui/RouteTransition'
+import GlobalCanvas from './components/canvas/GlobalCanvas'
 
 export default function App() {
   return (
     <BrowserRouter>
       <LanguageProvider>
+        <GlobalCanvas />
         <Cursor />
         <Loader />
         <GlobalNav />
