@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { MathUtils } from 'three'
@@ -48,7 +48,12 @@ function Orb({ orb }: { orb: OrbData }) {
   )
 }
 
-export default function Crystal() {
+interface CrystalProps {
+  mode?: 'interactive' | 'journey'
+  journeySpeedRef?: React.RefObject<number>  // journey mode用（毎frameで読む）
+}
+
+export default function Crystal({ mode = 'interactive', journeySpeedRef }: CrystalProps) {
   const floatRef   = useRef<THREE.Group>(null)
   const shellRef   = useRef<THREE.Mesh>(null)
   const coreGrpRef = useRef<THREE.Group>(null)
@@ -88,6 +93,7 @@ export default function Crystal() {
 
   // ドラッグ回転 + クリック判定（windowレベルで捕捉）
   useEffect(() => {
+    if (mode === 'journey') return  // journey modeではポインターイベント無効
     const onMove = (e: PointerEvent) => {
       if (!isDragging.current) return
       const dx = e.clientX - lastPtr.current.x
@@ -117,7 +123,7 @@ export default function Crystal() {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [spawnOrbs])
+  }, [spawnOrbs, mode])
 
   useFrame((state, delta) => {
     clockRef.current = state.clock.elapsedTime
@@ -141,7 +147,10 @@ export default function Crystal() {
     // 外殻: ドラッグ中はuseFrameの回転を停止、リリース後は慣性で滑走
     if (shellRef.current) {
       if (!isDragging.current) {
-        shellRef.current.rotation.y += delta * 0.18 + angularVel.current.y
+        const speed = mode === 'journey'
+          ? (journeySpeedRef?.current ?? 1)
+          : 1
+        shellRef.current.rotation.y += delta * 0.18 * speed + angularVel.current.y
         shellRef.current.rotation.x = MathUtils.lerp(
           shellRef.current.rotation.x,
           state.pointer.y * -0.3,
@@ -175,12 +184,12 @@ export default function Crystal() {
       {/* 外殻 — flatShading=true でサッカーボール風の多角形面を復元 */}
       <mesh
         ref={shellRef}
-        onPointerDown={(e) => {
+        onPointerDown={mode === 'interactive' ? (e) => {
           isDragging.current = true
           lastPtr.current = { x: e.clientX, y: e.clientY }
           totalDrag.current = 0
           angularVel.current = { x: 0, y: 0 }
-        }}
+        } : undefined}
       >
         <icosahedronGeometry args={[1.5, 2]} />
         <meshPhysicalMaterial
