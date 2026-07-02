@@ -139,9 +139,11 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef }: Cryst
       }
     }
 
-    // 浮遊 + バウンス合成
+    // 浮遊 + バウンス合成（journey モードでは浮遊を無効化 → 床接地が安定する）
     if (floatRef.current) {
-      floatRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.65) * 0.14 + bounceY.current
+      if (mode !== 'journey') {
+        floatRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.65) * 0.14 + bounceY.current
+      }
     }
 
     // 外殻: ドラッグ中はuseFrameの回転を停止、リリース後は慣性で滑走
