@@ -8,7 +8,7 @@ import gsap from 'gsap'
 import Crystal from './Crystal'
 import HomeBg from './HomeBg'
 import Effects from './Effects'
-// import JourneyCameraRig from './JourneyCameraRig'  // Task 7で追加
+import JourneyCameraRig from './JourneyCameraRig'
 import { scrollProgressRef, scrollVelocityRef } from '../../hooks/useScrollProgress'
 import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
@@ -101,7 +101,7 @@ export default function GlobalCanvas() {
         {isHome && <HomeBg />}
         {/* Phase B以降: SoccerBg / BasketballBg / VolleyballBg をここに追加 */}
         <CrystalRoot isHome={isHome} pathname={pathname} />
-        {/* {!isHome && <JourneyCameraRig />} */}  {/* Task 7で追加 */}
+        {!isHome && <JourneyCameraRig />}
         <Effects />
       </Suspense>
     </Canvas>
