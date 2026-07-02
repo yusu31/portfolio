@@ -32,10 +32,12 @@ export const BASKETBALL_WAYPOINTS: Waypoint[] = [
 
   // ── Phase 2: シュートモーション（45度放物線） ──────────────────────────
   // カメラ: 横から弧全体を捉える（サイドライン高所視点）
-  // シュート準備・ジャンプ
-  { progress: 0.24, pos: [  0,  1.0,  0], camOffset: [ 3.0,  0.5, 6.0], rotSpeed: 0.3 },
+  // 溜め（ボールを腰まで引き下ろす — トリプルスレット→ジャンプシュート）
+  { progress: 0.22, pos: [  0, -1.2,  0], camOffset: [ 1.5,  0.3, 5.0], rotSpeed: 0.3 },
+  // ジャンプ開始・打ち出し体制
+  { progress: 0.28, pos: [  0,  1.5,  0], camOffset: [ 3.0,  0.4, 6.0], rotSpeed: 0.4 },
   // 上昇（45度で力強く打ち出す）
-  { progress: 0.33, pos: [  3, 10.0, -8], camOffset: [ 3.5, -0.2, 6.5], rotSpeed: 1.5 },
+  { progress: 0.37, pos: [  3, 10.0, -8], camOffset: [ 3.5, -0.2, 6.5], rotSpeed: 1.5 },
   // 頂点（リングより高い位置・バックスピンの浮力）─ hotspot 1
   { progress: 0.42, pos: [  5, 20.0,-14], camOffset: [ 3.5, -1.5, 7.0], rotSpeed: 0.2, hotspotIndex: 1 },
   // 下降（弧の後半・重力加速）
