@@ -92,13 +92,15 @@ export function interpolateWaypoints(
           lerp(a.camOffset[2], b.camOffset[2]),
         ),
         rotSpeed: lerp(a.rotSpeed, b.rotSpeed),
-        hotspotIndex:
-          Math.abs(progress - a.progress) < Math.abs(progress - b.progress)
-            ? a.hotspotIndex
-            : b.hotspotIndex,
+        hotspotIndex: a.hotspotIndex,
       }
     }
   }
 
-  return none
+  return {
+    pos: new Vector3(...last.pos),
+    camOffset: new Vector3(...last.camOffset),
+    rotSpeed: last.rotSpeed,
+    hotspotIndex: last.hotspotIndex,
+  }
 }
