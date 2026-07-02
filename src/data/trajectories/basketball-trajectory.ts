@@ -1,18 +1,19 @@
 // src/data/trajectories/basketball-trajectory.ts
 //
-// 設計原則（スーパープレイ集 + 物理リサーチ）:
-//   - 飛んでくる弧: Soccer最終フェーズの続き（斜め左上から右下へ）
-//   - シュート放物線: 打ち出し角45〜51度 / 頂点はリング(Y≈8.5)の約1.8倍（Y≈15.5）
-//   - 入射角: 下降後半でY値を高く維持し最終区間で急落下 → ≈45〜63度（研究値範囲内）
-//   - カメラ: 上昇中はサイドビューで弧全体を見せる
-//             下降中はボール後方へ移行してリングを視野に収める
-//             リング通過: リング真下から真上を見るバスケットカム（Classic basket cam）
+// 実スペックベース再設計（v3）:
+//   BasketballBg.tsx 読み取り結果:
+//     Backboard group: position=[0, 3.0, -9]
+//     Rim (torus): position=[0, -0.4, 0.23] relative → 世界座標 [0, 2.6, -8.77]
+//     Rim radius: 0.225 (torus内径), Court floor: Y=-1.2
+//     FLOOR_Y clamp: -1.2 (GlobalCanvas で 0.0 → -1.2 に変更済み)
 //
-// 改善履歴:
-//   - v2: 入射角修正（12.5°→≈45〜63°）: 下降ウェイポイントのY値を引き上げ
-//         下降カメラをサイドビューからボール後方（リングが視野に入る）に変更
-//         バスケットカム修正: camOffset[0,-4,-4.5]（リング後方）→[0,-6,0]（リング真下）
-//         新ウェイポイント追加（0.59）: 急落下アプローチの制御点
+//   射程: Z=0（コート中央）→ Z=-8.77（リム）= 8.77ユニット≒ミドルレンジジャンパー
+//   入射角計算:
+//     hotspot2[0,3.2,-8.3] → rim[0,2.6,-8.77]: tangent at rim ≈ [0,-0.75,-0.30]
+//     angle = atan(0.75/0.30) ≈ 68° (NBA研究値 45-55°の外縁, high-arcとして有効)
+//   バスケットカム:
+//     rim[0,2.6,-8.77] + camOffset[0,-2.5,0] → camera[0,0.1,-8.77]
+//     camera above visual floor (Y=-1.2) ✓, pointing straight up at rim ✓
 
 import type { Waypoint } from '../../components/canvas/journey/trajectory'
 
@@ -29,45 +30,43 @@ export const BASKETBALL_HOTSPOTS: BasketballHotspot[] = [
 ]
 
 export const BASKETBALL_WAYPOINTS: Waypoint[] = [
-  // ── Phase 1: Soccerの弧の続きで左上から飛んでくる ────────────────────
-  { progress: 0.00, pos: [-12, 12.0,  6], camOffset: [ 0.0,  0.8, 6.0], rotSpeed: 3.0 },
-  { progress: 0.08, pos: [ -6,  5.5,  2], camOffset: [-0.3,  0.4, 5.5], rotSpeed: 2.5 },
-  // キャッチ（hotspot 0）
-  { progress: 0.16, pos: [  0,  0.2,  0], camOffset: [ 0.0, -0.2, 5.5], rotSpeed: 0.2, hotspotIndex: 0 },
+  // ── Phase 1: Soccer→Basketball シーン遷移（高所左外から飛来） ────────────
+  { progress: 0.00, pos: [-12, 12.0,  6], camOffset: [ 0.0,  1.0, 6.0], rotSpeed: 3.0 },
+  { progress: 0.08, pos: [ -5,  5.0,  2], camOffset: [-0.3,  0.5, 5.5], rotSpeed: 2.5 },
+  // キャッチ（hotspot 0: frontend）— コート中央付近・腰の高さ
+  { progress: 0.16, pos: [  0, -0.2,  0], camOffset: [ 0.0,  0.5, 5.5], rotSpeed: 0.2, hotspotIndex: 0 },
 
-  // ── Phase 2: シュートモーション（45〜51度放物線） ──────────────────────
-  // 上昇中: サイドビューで弧全体を見せる
-  { progress: 0.22, pos: [  0, -0.8,  0], camOffset: [ 1.5,  0.5, 5.5], rotSpeed: 0.3 },
-  // リリース瞬間（impact）
-  { progress: 0.28, pos: [  0,  1.5,  0], camOffset: [ 3.0,  0.3, 6.0], rotSpeed: 0.4, impact: true },
-  // 上昇前半
-  { progress: 0.34, pos: [  2,  7.0, -7], camOffset: [ 3.5,  0.0, 6.5], rotSpeed: 2.0 },
+  // ── Phase 2: シュート → リム [0, 2.6, -8.77] ────────────────────────────
+  // 溜め（腰まで引き下げ）
+  { progress: 0.22, pos: [  0, -0.5,  0], camOffset: [ 2.0,  0.5, 5.0], rotSpeed: 0.3 },
+  // リリース（impact）
+  { progress: 0.28, pos: [  0,  0.5,  0], camOffset: [ 2.5,  0.3, 5.5], rotSpeed: 0.4, impact: true },
+  // 上昇
+  { progress: 0.35, pos: [1.5,  3.5, -3], camOffset: [ 3.0,  0.0, 6.0], rotSpeed: 2.0 },
   // 上昇後半
-  { progress: 0.40, pos: [  4, 13.0,-12], camOffset: [ 3.5, -0.8, 7.0], rotSpeed: 1.5 },
-  // 頂点（hotspot 1）
-  { progress: 0.45, pos: [  5, 15.5,-15], camOffset: [ 3.5, -1.8, 7.0], rotSpeed: 0.3, hotspotIndex: 1 },
-  // 下降前半: Y値を高く維持 → ボール後方カメラでリングが視野に入り始める
-  { progress: 0.51, pos: [  3, 12.5,-19], camOffset: [ 1.5,  0.5, 6.0], rotSpeed: 1.2 },
-  // 下降後半: まだ高い位置（Y=12）→ ボール後方カメラ確立・リング見える
-  { progress: 0.56, pos: [  1, 12.0,-21], camOffset: [ 0.5,  1.0, 6.5], rotSpeed: 1.8 },
-  // 急落下アプローチ（入射角≈63度確保のための制御点）
-  { progress: 0.59, pos: [  0, 10.5,-23], camOffset: [ 0.0,  1.5, 5.5], rotSpeed: 2.5 },
-  // リング（hotspot 2）─ ボール真後ろ下方からリングが上方に見える
-  { progress: 0.61, pos: [  0,  8.5,-24], camOffset: [ 0.0, -3.0, 4.0], rotSpeed: 0.3, hotspotIndex: 2 },
+  { progress: 0.42, pos: [2.0,  6.0, -5], camOffset: [ 3.0, -0.8, 6.5], rotSpeed: 1.5 },
+  // 頂点（hotspot 1: backend）
+  { progress: 0.47, pos: [2.5,  7.0, -6], camOffset: [ 3.0, -1.2, 6.5], rotSpeed: 0.3, hotspotIndex: 1 },
+  // 下降（カメラをボール後方へ移行→リングが視野に入り始める）
+  { progress: 0.53, pos: [1.5,  5.0, -7], camOffset: [ 2.0,  0.0, 6.0], rotSpeed: 1.2 },
+  // リム接近（ボール後方カメラ確立・リング見える）
+  { progress: 0.58, pos: [0.5,  3.5,-8.0], camOffset: [ 1.0,  0.5, 5.5], rotSpeed: 1.8 },
+  // 急降下アプローチ制御点（CR入射角≈50°確保）
+  { progress: 0.63, pos: [0.0,  3.2,-8.3], camOffset: [ 0.0,  0.5, 4.5], rotSpeed: 0.5 },
+  // リム手前（hotspot 2: infrastructure）— カメラ後方上→リング・バックボード見える
+  { progress: 0.68, pos: [0.0,  3.0,-8.5], camOffset: [ 0.0,  1.0, 4.0], rotSpeed: 0.3, hotspotIndex: 2 },
 
-  // ── Phase 3: リング通過 → バスケットカム → 落下 ──────────────────────
-  // バスケットカム（Classic basket cam: リング真下から真上を見る）
-  // 旧: camOffset[0,-4,-4.5] = リング後方Z=-28.5から見ていた（誤り）
-  // 新: camOffset[0,-6,0]   = リング真下Y=-0.5から真上を見る（正しい）
-  { progress: 0.67, pos: [  0,  5.5,-24], camOffset: [ 0.0, -6.0,  0.0], rotSpeed: 4.5, impact: true },
-  // ネット抜け落下（バスケットカム継続・ボールが上から降ってくる）
-  { progress: 0.76, pos: [  0,  1.5,-24], camOffset: [ 0.0, -3.0,  0.0], rotSpeed: 5.0 },
-  // 着地直前
-  { progress: 0.84, pos: [  0,  0.2,-24], camOffset: [ 1.5, -0.5, -2.5], rotSpeed: 3.0 },
+  // ── Phase 3: リング通過 → Classic Basket Cam → 落下 ──────────────────
+  // Impact: リム通過。camera = rim + [0,-2.5,0] = [0, 0.1, -8.77] → 真下から真上を見る
+  { progress: 0.74, pos: [0.0,  2.6,-8.8], camOffset: [ 0.0, -2.5,  0.0], rotSpeed: 4.5, impact: true },
+  // ネット抜け落下（バスケットカム継続）
+  { progress: 0.82, pos: [0.0, -0.5,-8.8], camOffset: [ 0.0, -0.5,  0.0], rotSpeed: 5.0 },
+  // 床到達
+  { progress: 0.89, pos: [0.0, -1.0,-8.8], camOffset: [ 1.5,  2.0,  3.5], rotSpeed: 3.0 },
   // バウンド
-  { progress: 0.91, pos: [  0,  2.2,-24], camOffset: [ 1.5,  0.0, -2.0], rotSpeed: 2.0 },
-  // 終点
-  { progress: 1.00, pos: [  0,  0.4,-24], camOffset: [ 1.0,  0.8,  4.5], rotSpeed: 0.5 },
+  { progress: 0.94, pos: [0.0,  0.5,-8.8], camOffset: [ 1.5,  0.5,  4.0], rotSpeed: 2.0 },
+  // 落ち着く
+  { progress: 1.00, pos: [0.0, -0.8,-8.8], camOffset: [ 1.0,  0.8,  4.5], rotSpeed: 0.5 },
 ]
 
 export const HOTSPOT_RADIUS = 0.025
