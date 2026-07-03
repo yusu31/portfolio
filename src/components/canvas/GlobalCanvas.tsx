@@ -156,17 +156,14 @@ function BgColor({ pathname }: { pathname: string }) {
 }
 
 function SceneAtmosphere({ pathname }: { pathname: string }) {
-  const fogColor  = BG_COLORS[pathname] ?? '#0a0a0f'
-  const density   = FOG_DENSITY[pathname]
-  const particles = PARTICLE_CONFIG[pathname]
+  const fogColor = BG_COLORS[pathname] ?? '#0a0a0f'
+  const density  = FOG_DENSITY[pathname]
   return (
     <>
       {density && (
         <fogExp2 attach="fog" args={[fogColor, density]} />
       )}
-      {particles && (
-        <FloatingParticles color={particles.color} count={particles.count} />
-      )}
+      {/* FloatingParticles は一時無効化（パフォーマンス優先・後で再検討） */}
     </>
   )
 }
@@ -188,10 +185,9 @@ export default function GlobalCanvas() {
         <BgColor pathname={pathname} />
         <SceneAtmosphere pathname={pathname} />
         {isHome && <HomeBg />}
-        {/* Single Canvas: 全Bgを常駐させ visible/intensity で切替 → 3D のカット感を根絶 */}
-        <SoccerBg visible={pathname === '/soccer'} />
-        <BasketballBg visible={pathname === '/basketball'} />
-        <VolleyballBg visible={pathname === '/volleyball'} />
+        {pathname === '/soccer' && <SoccerBg />}
+        {pathname === '/basketball' && <BasketballBg />}
+        {pathname === '/volleyball' && <VolleyballBg />}
         <CrystalRoot isHome={isHome} pathname={pathname} ballEntry={ballEntry} />
         {!isHome && <JourneyCameraRig />}
         {!isHome && <JourneyEffects />}
