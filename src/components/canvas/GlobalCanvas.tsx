@@ -41,9 +41,16 @@ const FLOOR_Y: Record<string, number> = {
   '/volleyball': -1.2,
 }
 
-function CrystalJourneyMover({ groupRef }: { groupRef: React.RefObject<THREE.Group | null> }) {
+function CrystalJourneyMover({
+  groupRef,
+  isEnteringRef,
+}: {
+  groupRef: React.RefObject<THREE.Group | null>
+  isEnteringRef: React.RefObject<boolean>
+}) {
   const { pathname } = useLocation()
   useFrame(() => {
+    if (isEnteringRef.current) return  // 入場アニメーション中は GSAP に制御を渡す
     const waypoints = SCENE_WAYPOINTS[pathname]
     if (!waypoints?.length || !groupRef.current) return
     const { pos } = interpolateWaypoints(scrollProgressRef.current, waypoints)
@@ -59,6 +66,7 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
   const grpRef = useRef<THREE.Group>(null)
   const journeySpeedRef = useRef(1)
   const journeyRotRef = useRef({ dirX: 0, dirZ: -1, rotSpeed: 1 })
+  const isEnteringRef = useRef(false)
 
   useEffect(() => {
     if (!isHome) return
@@ -81,11 +89,17 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
 
   useEffect(() => {
     if (!grpRef.current || !ballEntry || isHome) return
+    const waypoints = SCENE_WAYPOINTS[pathname]
+    const wp0 = waypoints?.[0]
+    if (!wp0) return
+    isEnteringRef.current = true
+    gsap.killTweensOf(grpRef.current.position)
     grpRef.current.position.set(ballEntry.x, ballEntry.y, ballEntry.z)
     gsap.to(grpRef.current.position, {
-      x: 0, y: 0, z: 0,
+      x: wp0.pos[0], y: wp0.pos[1], z: wp0.pos[2],
       duration: 0.8,
       ease: 'power2.out',
+      onComplete: () => { isEnteringRef.current = false },
     })
   }, [ballEntry, isHome])
 
@@ -116,7 +130,7 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
       <group ref={grpRef} position={[0, isHome ? -0.4 : 0, 0]} scale={isHome ? 1 : 0.45}>
         <Crystal mode={isHome ? 'interactive' : 'journey'} journeySpeedRef={journeySpeedRef} journeyRotRef={journeyRotRef} />
       </group>
-      {!isHome && <CrystalJourneyMover groupRef={grpRef} />}
+      {!isHome && <CrystalJourneyMover groupRef={grpRef} isEnteringRef={isEnteringRef} />}
     </>
   )
 }
