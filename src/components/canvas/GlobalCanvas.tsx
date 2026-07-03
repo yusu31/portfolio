@@ -30,9 +30,9 @@ const BG_COLORS: Record<string, string> = {
 
 // FogExp2: シーン別の密度（遠景の「果て」を背景色にフェードさせる）
 const FOG_DENSITY: Record<string, number> = {
-  '/soccer':     0.022,
+  '/soccer':     0.038,
   '/basketball': 0.028,
-  '/volleyball': 0.022,
+  '/volleyball': 0.035,
 }
 
 // パーティクル: シーン別のアクセントカラー

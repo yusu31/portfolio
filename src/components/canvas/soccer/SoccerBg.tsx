@@ -1,21 +1,37 @@
 // src/components/canvas/soccer/SoccerBg.tsx
-import { useRef, useMemo } from 'react'
-import { Environment } from '@react-three/drei'
+import { useMemo } from 'react'
+import { Environment, Grid } from '@react-three/drei'
 import * as THREE from 'three'
 
 // 芝のフロア
 function GrassFloor() {
   return (
     <>
+      {/* 芝ベース */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.2, -10]} receiveShadow>
         <planeGeometry args={[30, 40]} />
-        <meshStandardMaterial color="#0a1a06" roughness={0.95} />
+        <meshStandardMaterial color="#0a1a06" roughness={0.95} metalness={0.0} />
       </mesh>
+      {/* ピッチグリッド: スポットライトが当たった時に地面のディテールを見せる */}
+      <Grid
+        position={[0, -1.19, -10]}
+        args={[30, 40]}
+        cellSize={2}
+        cellThickness={0.4}
+        cellColor="#0f2a08"
+        sectionSize={10}
+        sectionThickness={0.8}
+        sectionColor="#1a4010"
+        fadeDistance={28}
+        fadeStrength={1.8}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={-1}
+      />
       {/* ラインマーキング（わずかに光る） */}
       {[-5, 0, 5].map((x) => (
-        <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, -1.19, -10]}>
+        <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, -1.18, -10]}>
           <planeGeometry args={[0.06, 40]} />
-          <meshStandardMaterial color="#1a3a10" emissive="#1a3a10" emissiveIntensity={0.3} />
+          <meshStandardMaterial color="#1a3a10" emissive="#1a3a10" emissiveIntensity={0.4} />
         </mesh>
       ))}
     </>
@@ -120,7 +136,6 @@ export default function SoccerBg() {
       <directionalLight position={[0, 30, 20]} intensity={0.5} color="#8ab4d0" />
       {/* スタジアムのスポットライト */}
       <StadiumLights />
-      <fog attach="fog" args={['#050b1a', 12, 40]} />
       <GrassFloor />
       <GoalFrame />
       <AudienceSilhouette />
