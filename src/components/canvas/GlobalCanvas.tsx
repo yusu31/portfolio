@@ -151,6 +151,7 @@ export default function GlobalCanvas() {
       camera={{ position: [0, 0, 5], fov: 60 }}
       gl={{ antialias: true, alpha: false }}
       dpr={[1, 2]}
+      shadows
     >
       <Suspense fallback={null}>
         <BgColor pathname={pathname} />

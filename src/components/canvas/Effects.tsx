@@ -16,8 +16,8 @@ export default function Effects({ sunMesh }: EffectsProps) {
   return (
     <EffectComposer>
       <Bloom
-        intensity={1.2}
-        luminanceThreshold={0.7}
+        intensity={1.8}
+        luminanceThreshold={0.3}
         luminanceSmoothing={0.9}
         mipmapBlur
       />
