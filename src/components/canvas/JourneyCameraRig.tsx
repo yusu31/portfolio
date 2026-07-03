@@ -1,8 +1,9 @@
 // src/components/canvas/JourneyCameraRig.tsx
 import { useFrame, useThree } from '@react-three/fiber'
 import { useLocation } from 'react-router-dom'
-import { Vector3, MathUtils } from 'three'
+import { Vector3, MathUtils, PerspectiveCamera } from 'three'
 import { scrollProgressRef } from '../../hooks/useScrollProgress'
+import { fovRef } from '../../hooks/useSceneTransition'
 import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
 import { SOCCER_WAYPOINTS } from '../../data/trajectories/soccer-trajectory'
@@ -32,6 +33,13 @@ export default function JourneyCameraRig() {
 
     _targetPos.copy(pos)
     _targetCamPos.copy(pos).add(camOffset)
+
+    // ── FOV ワープ適用（useSceneTransition が制御）──────────────────
+    const pcam = camera as PerspectiveCamera
+    if (Math.abs(pcam.fov - fovRef.current) > 0.05) {
+      pcam.fov = fovRef.current
+      pcam.updateProjectionMatrix()
+    }
 
     // ── マウスパララックス ──────────────────────────────────────────
     // state.pointer は正規化済み (-1 ~ 1)。係数は ohzi.io 目視計測値。

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
@@ -7,15 +7,19 @@ import { useScrollProgress, scrollProgressRef } from '../hooks/useScrollProgress
 import { SOCCER_HOTSPOTS, SOCCER_WAYPOINTS } from '../data/trajectories/soccer-trajectory'
 import { interpolateWaypoints } from '../components/canvas/journey/trajectory'
 import { PROJECT_CATEGORIES } from '../data/projects'
+import { warpNavigate, warpIn } from '../hooks/useSceneTransition'
 
 export default function SoccerScene() {
   const goScene = useNavigate()
   const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
   const [panelCategoryId, setPanelCategoryId] = useState<string | null>(null)
 
+  // 新シーン入場時: FOV 収束 + DOM ブラー解除
+  useEffect(() => { warpIn() }, [])
+
   const goNext = () => {
     const { pos } = interpolateWaypoints(scrollProgressRef.current, SOCCER_WAYPOINTS)
-    goScene('/basketball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } })
+    warpNavigate(() => goScene('/basketball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } }))
   }
 
   const onArrive = useCallback((wpIdx: number) => {
@@ -30,7 +34,7 @@ export default function SoccerScene() {
   const activeCategory = PROJECT_CATEGORIES.find(c => c.id === activeHotspot?.categoryId)
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
+    <div data-scene-ui style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
       <div style={{ position: 'absolute', bottom: '1.5rem', left: '2.5rem' }}>
         <p style={{ fontSize: '0.55rem', color: '#333', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>/soccer</p>
         <p style={{ fontSize: '0.7rem', color: '#4fc3f7', fontWeight: 700, margin: '0.15rem 0 0' }}>Projects — 作ったもの</p>

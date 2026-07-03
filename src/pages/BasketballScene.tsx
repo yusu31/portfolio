@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
@@ -7,15 +7,18 @@ import { useScrollProgress, scrollProgressRef } from '../hooks/useScrollProgress
 import { BASKETBALL_HOTSPOTS, BASKETBALL_WAYPOINTS } from '../data/trajectories/basketball-trajectory'
 import { interpolateWaypoints } from '../components/canvas/journey/trajectory'
 import { SKILL_CATEGORIES } from '../data/skills'
+import { warpNavigate, warpIn } from '../hooks/useSceneTransition'
 
 export default function BasketballScene() {
   const goScene = useNavigate()
   const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
   const [panelSkillId, setPanelSkillId] = useState<string | null>(null)
 
+  useEffect(() => { warpIn() }, [])
+
   const goNext = () => {
     const { pos } = interpolateWaypoints(scrollProgressRef.current, BASKETBALL_WAYPOINTS)
-    goScene('/volleyball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } })
+    warpNavigate(() => goScene('/volleyball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } }))
   }
 
   const onArrive = useCallback((wpIdx: number) => {
@@ -30,7 +33,7 @@ export default function BasketballScene() {
   const activeSkillCat = SKILL_CATEGORIES.find(c => c.id === activeHotspot?.skillCategory)
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
+    <div data-scene-ui style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
       <div style={{ position: 'absolute', bottom: '1.5rem', left: '2.5rem' }}>
         <p style={{ fontSize: '0.55rem', color: '#333', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>/basketball</p>
         <p style={{ fontSize: '0.7rem', color: '#ffb300', fontWeight: 700, margin: '0.15rem 0 0' }}>Skills — できること</p>
