@@ -59,21 +59,48 @@ export default function BasketballScene() {
           title={SKILL_CATEGORIES.find(c => c.id === panelSkillId)?.label ?? ''}
           color="#ffb300"
         >
-          <div>
-            {SKILL_CATEGORIES.find(c => c.id === panelSkillId)?.skills.map((s) => (
-              <div
-                key={s.name}
-                style={{
-                  padding: '0.5rem 0.6rem',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  fontSize: '0.75rem',
-                  color: '#ccc',
-                }}
-              >
-                {s.name}
+          {(() => {
+            const cat = SKILL_CATEGORIES.find(c => c.id === panelSkillId)
+            if (!cat) return null
+            const LEVEL_LABEL = ['', '学習中', '実務レベル', '得意'] as const
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                {cat.skills.map((s) => (
+                  <div
+                    key={s.name}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.55rem 0.7rem',
+                      background: 'rgba(255,255,255,0.04)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.78rem', color: '#ddd', fontWeight: 600 }}>{s.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '0.52rem', color: '#666', letterSpacing: '0.06em' }}>
+                        {LEVEL_LABEL[s.level]}
+                      </span>
+                      <div style={{ display: 'flex', gap: '3px' }}>
+                        {[1, 2, 3].map((d) => (
+                          <div
+                            key={d}
+                            style={{
+                              width: '7px', height: '7px', borderRadius: '50%',
+                              background: d <= s.level ? cat.color : 'rgba(255,255,255,0.12)',
+                              transition: 'background 0.2s',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )
+          })()}
         </GlassPanel>
       </div>
 
