@@ -2,7 +2,7 @@
 //
 // FOV ワープ遷移の状態管理（module-level ref = React 外から R3F が読める）
 // 使い方:
-//   遷移前: warpNavigate(() => navigate('/next'))
+//   遷移前: warpNavigate(() => navigate('/next'), '#ff8c00')
 //   新シーン mount 時: useEffect(() => warpIn(), [])
 
 import gsap from 'gsap'
@@ -36,12 +36,14 @@ function getFlashEl(): HTMLElement {
 /**
  * シーン遷移を開始。
  * FOV を広角に膨らませ DOM をブラー → navigate 実行。
+ * @param flashColor 行き先シーンのアクセントカラー（「次の世界の光」をイメージ）
  */
-export function warpNavigate(navigate: () => void) {
+export function warpNavigate(navigate: () => void, flashColor = '#ffffff') {
   const tl = gsap.timeline()
   const proxy = { blur: 0, opacity: 1 }
 
   const flash = getFlashEl()
+  flash.style.background = flashColor
 
   tl
     // 1. FOV 膨張 + DOM ブラー（0.38s / expo.in → クリック瞬間に鋭く引っ張られる）
@@ -57,7 +59,7 @@ export function warpNavigate(navigate: () => void) {
         }
       },
     }, '<')
-    // 2. フラッシュで画面を白く塗りつぶしてカット感を隠蔽
+    // 2. フラッシュで画面を塗りつぶしてカット感を隠蔽
     .to(flash, { opacity: 1, duration: 0.12, ease: 'power2.in' }, '-=0.06')
     // 3. フラッシュ全開の瞬間にルート切替（ここで 3D シーンが差し替わる）
     .add(navigate)
@@ -84,8 +86,8 @@ export function warpIn() {
   // FOV 収束（1.2s / expo.out → 氷の上を滑るような余韻）
   gsap.to(fovRef, { current: TARGET_FOV, duration: 1.2, ease: 'expo.out' })
 
-  // フラッシュをゆっくりフェードアウト（新空間への到着感）
-  gsap.to(flash, { opacity: 0, duration: 0.65, delay: 0.08, ease: 'expo.out' })
+  // フラッシュを素早くフェードアウト（0.3s — 「瞬き」の間に次の世界へ）
+  gsap.to(flash, { opacity: 0, duration: 0.3, delay: 0.06, ease: 'expo.out' })
 
   // DOM クリア（0.1s ディレイ）
   gsap.to(proxy, {

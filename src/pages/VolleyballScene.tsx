@@ -42,7 +42,7 @@ export default function VolleyballScene() {
           title={activeAbout?.title ?? ''}
           description={activeAbout ? activeAbout.body.slice(0, 60) + (activeAbout.body.length > 60 ? '...' : '') : ''}
           onExplore={activeHotspot ? () => setPanelAboutId(activeHotspot.aboutId) : undefined}
-          onNext={isLastHotspot ? () => warpNavigate(() => goScene('/contact')) : undefined}
+          onNext={isLastHotspot ? () => warpNavigate(() => goScene('/contact'), '#b0aaff') : undefined}
           nextLabel="CONTACT →"
         />
       </div>
@@ -61,7 +61,7 @@ export default function VolleyballScene() {
       </div>
 
       <button
-        onClick={() => warpNavigate(() => goScene('/contact'))}
+        onClick={() => warpNavigate(() => goScene('/contact'), '#b0aaff')}
         style={{
           position: 'absolute', bottom: '2rem', right: '2.5rem',
           fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',

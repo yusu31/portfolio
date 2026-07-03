@@ -86,22 +86,21 @@ function AmbientLines() {
   )
 }
 
-export default function VolleyballBg() {
+export default function VolleyballBg({ visible = true }: { visible?: boolean }) {
+  const li = visible ? 1 : 0
   return (
     <>
-      <Environment preset="night" resolution={64} />
-      <ambientLight intensity={0.03} />
-      {/* ネットを照らすメインライト */}
-      <pointLight position={[0, 6, 0]} intensity={25} color="#69f0ae" />
-      {/* 奥から差し込むリムライト（メタリック反射を際立てる） */}
-      <pointLight position={[-5, 3, -3]} intensity={15} color="#005533" />
-      {/* 近景の金属縦線にハイライトを入れる */}
-      <pointLight position={[0, 2, -1]} intensity={10} color="#a0ffd0" />
-      <fog attach="fog" args={['#021a12', 8, 30]} />
-      <GridFloor />
-      <Net />
-      <Antennas />
-      <AmbientLines />
+      {visible && <Environment preset="night" resolution={64} />}
+      <ambientLight intensity={0.03 * li} />
+      <pointLight position={[0, 6, 0]} intensity={25 * li} color="#69f0ae" />
+      <pointLight position={[-5, 3, -3]} intensity={15 * li} color="#005533" />
+      <pointLight position={[0, 2, -1]} intensity={10 * li} color="#a0ffd0" />
+      <group visible={visible}>
+        <GridFloor />
+        <Net />
+        <Antennas />
+        <AmbientLines />
+      </group>
     </>
   )
 }
