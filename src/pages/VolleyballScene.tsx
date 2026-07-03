@@ -54,9 +54,60 @@ export default function VolleyballScene() {
           title={panelAbout?.title ?? ''}
           color="#69f0ae"
         >
-          <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.9, margin: 0 }}>
-            {panelAbout?.body}
-          </p>
+          {panelAbout && (
+            <div>
+              <span style={{
+                display: 'inline-block',
+                fontSize: '0.6rem',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#69f0ae',
+                background: 'rgba(105,240,174,0.12)',
+                border: '1px solid rgba(105,240,174,0.3)',
+                borderRadius: '999px',
+                padding: '0.2rem 0.7rem',
+                marginBottom: '0.75rem',
+              }}>
+                {panelAbout.label}
+              </span>
+              <div style={{ borderLeft: '2px solid rgba(105,240,174,0.5)', paddingLeft: '0.85rem', marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.82)', lineHeight: 1.9, margin: 0 }}>
+                  {panelAbout.body}
+                </p>
+              </div>
+              {panelAbout.id === 'seeking' && (
+                <span style={{
+                  display: 'inline-block',
+                  fontSize: '0.62rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  color: '#fff',
+                  background: '#ff6b2b',
+                  borderRadius: '999px',
+                  padding: '0.25rem 0.8rem',
+                  marginBottom: '0.75rem',
+                }}>
+                  現在 求職中
+                </span>
+              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: panelAbout.id === 'seeking' ? '0.5rem' : 0 }}>
+                {panelAbout.tags.map(tag => (
+                  <span key={tag} style={{
+                    fontSize: '0.62rem',
+                    fontWeight: 500,
+                    color: '#69f0ae',
+                    background: 'rgba(105,240,174,0.1)',
+                    border: '1px solid rgba(105,240,174,0.25)',
+                    borderRadius: '999px',
+                    padding: '0.2rem 0.65rem',
+                  }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </GlassPanel>
       </div>
 
