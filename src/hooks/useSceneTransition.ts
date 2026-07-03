@@ -18,6 +18,21 @@ function getUIEl(): HTMLElement | null {
   return document.querySelector('[data-scene-ui]') as HTMLElement | null
 }
 
+// 画面全体を覆うフラッシュ Overlay（遷移のカット感を光で隠蔽）
+function getFlashEl(): HTMLElement {
+  let el = document.querySelector('[data-warp-flash]') as HTMLElement | null
+  if (!el) {
+    el = document.createElement('div')
+    el.setAttribute('data-warp-flash', '')
+    el.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:999',
+      'background:white', 'opacity:0', 'pointer-events:none',
+    ].join(';')
+    document.body.appendChild(el)
+  }
+  return el
+}
+
 /**
  * シーン遷移を開始。
  * FOV を広角に膨らませ DOM をブラー → navigate 実行。
@@ -25,6 +40,8 @@ function getUIEl(): HTMLElement | null {
 export function warpNavigate(navigate: () => void) {
   const tl = gsap.timeline()
   const proxy = { blur: 0, opacity: 1 }
+
+  const flash = getFlashEl()
 
   tl
     // 1. FOV 膨張 + DOM ブラー（0.38s / expo.in → クリック瞬間に鋭く引っ張られる）
@@ -40,7 +57,9 @@ export function warpNavigate(navigate: () => void) {
         }
       },
     }, '<')
-    // 2. ピーク時にルート切替
+    // 2. フラッシュで画面を白く塗りつぶしてカット感を隠蔽
+    .to(flash, { opacity: 1, duration: 0.12, ease: 'power2.in' }, '-=0.06')
+    // 3. フラッシュ全開の瞬間にルート切替（ここで 3D シーンが差し替わる）
     .add(navigate)
 }
 
@@ -50,6 +69,10 @@ export function warpNavigate(navigate: () => void) {
  */
 export function warpIn() {
   const proxy = { blur: 14, opacity: 0.1 }
+  const flash = getFlashEl()
+
+  // 新シーンが描画される前にフラッシュを全開にセット
+  flash.style.opacity = '1'
 
   // DOM を即ブラー状態に（フラッシュ防止）
   const el = getUIEl()
@@ -60,6 +83,9 @@ export function warpIn() {
 
   // FOV 収束（1.2s / expo.out → 氷の上を滑るような余韻）
   gsap.to(fovRef, { current: TARGET_FOV, duration: 1.2, ease: 'expo.out' })
+
+  // フラッシュをゆっくりフェードアウト（新空間への到着感）
+  gsap.to(flash, { opacity: 0, duration: 0.65, delay: 0.08, ease: 'expo.out' })
 
   // DOM クリア（0.1s ディレイ）
   gsap.to(proxy, {

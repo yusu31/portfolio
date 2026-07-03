@@ -34,8 +34,12 @@ export default function FloatingParticles({
   useFrame((state) => {
     if (!ref.current) return
     const t = state.clock.elapsedTime
+    // ゆっくり回転
     ref.current.rotation.y = t * 0.008
+    // サイン波で Y 方向に浮遊 + X/Z 軸に微小な揺らぎ（液体感・空気感）
     ref.current.position.y = Math.sin(t * 0.04) * 0.4
+    ref.current.position.x = Math.sin(t * 0.031) * 0.12
+    ref.current.position.z = Math.cos(t * 0.027) * 0.10
   })
 
   return (
