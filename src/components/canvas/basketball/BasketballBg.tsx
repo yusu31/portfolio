@@ -51,7 +51,7 @@ function Backboard() {
         <meshStandardMaterial color="#ff7700" emissive="#ff5500" emissiveIntensity={3.5} />
       </mesh>
       {/* バックボード枠 */}
-      {[[-0.915, 0], [0.915, 0]].map(([x], i) => (
+      {[[-0.915], [0.915]].map(([x], i) => (
         <mesh key={i} position={[x, 0, 0]}>
           <boxGeometry args={[0.05, 1.07, 0.05]} />
           <meshStandardMaterial color="#2a1800" emissive="#ff4400" emissiveIntensity={0.5} />
@@ -61,20 +61,20 @@ function Backboard() {
   )
 }
 
-export default function BasketballBg() {
+export default function BasketballBg({ visible = true }: { visible?: boolean }) {
+  const li = visible ? 1 : 0
   return (
     <>
-      <Environment preset="warehouse" resolution={64} />
-      <ambientLight intensity={0.04} />
-      {/* 上空のメインライト（床への反射に貢献）*/}
-      <pointLight position={[0, 8, 0]} intensity={40} color="#ffb300" />
-      <pointLight position={[-5, 4, 0]} intensity={20} color="#c87000" />
-      {/* リム周辺のスポット感を出す補助ライト */}
-      <pointLight position={[0, 3, -8.5]} intensity={25} color="#ff6600" />
-      <fog attach="fog" args={['#0d0a02', 10, 35]} />
-      <CourtFloor />
-      <CourtLines />
-      <Backboard />
+      {visible && <Environment preset="warehouse" resolution={64} />}
+      <ambientLight intensity={0.04 * li} />
+      <pointLight position={[0, 8, 0]} intensity={40 * li} color="#ffb300" />
+      <pointLight position={[-5, 4, 0]} intensity={20 * li} color="#c87000" />
+      <pointLight position={[0, 3, -8.5]} intensity={25 * li} color="#ff6600" />
+      <group visible={visible}>
+        <CourtFloor />
+        <CourtLines />
+        <Backboard />
+      </group>
     </>
   )
 }

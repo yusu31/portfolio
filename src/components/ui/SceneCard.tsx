@@ -47,12 +47,14 @@ export default function SceneCard({
         bottom: 'clamp(2rem, 6vh, 4rem)',
         ...posStyle,
         width: 'min(480px, 45vw)',
-        background: 'rgba(255, 255, 255, 0.04)',
+        background: 'rgba(255, 255, 255, 0.08)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.12)',
         borderRadius: '16px',
         padding: '1.4rem 1.6rem',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
+        fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
         opacity: 0,
         transform: 'translateY(20px)',
         pointerEvents: visible ? 'auto' : 'none',
@@ -75,6 +77,8 @@ export default function SceneCard({
         color: '#fff',
         margin: '0 0 0.7rem',
         lineHeight: 1.25,
+        textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+        letterSpacing: '-0.02em',
       }}>
         {title}
       </h2>

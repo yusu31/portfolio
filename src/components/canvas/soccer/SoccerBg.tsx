@@ -12,18 +12,18 @@ function GrassFloor() {
         <planeGeometry args={[30, 40]} />
         <meshStandardMaterial color="#0a1a06" roughness={0.95} metalness={0.0} />
       </mesh>
-      {/* ピッチグリッド: スポットライトが当たった時に地面のディテールを見せる */}
+      {/* ピッチグリッド: 極めて控えめな暗緑色のディテール */}
       <Grid
         position={[0, -1.19, -10]}
         args={[30, 40]}
         cellSize={2}
-        cellThickness={0.4}
-        cellColor="#0f2a08"
+        cellThickness={0.2}
+        cellColor="#0c1e08"
         sectionSize={10}
-        sectionThickness={0.8}
-        sectionColor="#1a4010"
-        fadeDistance={28}
-        fadeStrength={1.8}
+        sectionThickness={0.4}
+        sectionColor="#132808"
+        fadeDistance={18}
+        fadeStrength={2.5}
         rotation={[-Math.PI / 2, 0, 0]}
         renderOrder={-1}
       />
@@ -62,8 +62,7 @@ function GoalFrame() {
 }
 
 // スタジアム照明を模したサイドスポットライト（Shadowの主光源）
-function StadiumLights() {
-  // SpotLightのターゲット（ゴール付近を照らす）
+function StadiumLights({ li }: { li: number }) {
   const targetLeft = useMemo(() => {
     const obj = new THREE.Object3D()
     obj.position.set(0, 1, -20)
@@ -77,27 +76,25 @@ function StadiumLights() {
 
   return (
     <>
-      {/* 左斜め上からの主光源（影を作る） */}
       <primitive object={targetLeft} />
       <spotLight
         position={[-15, 22, 0]}
         target={targetLeft}
-        intensity={200}
+        intensity={200 * li}
         angle={0.35}
         penumbra={0.5}
         color="#c0d8f0"
-        castShadow
+        castShadow={li > 0}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
         shadow-camera-far={60}
         shadow-bias={-0.001}
       />
-      {/* 右後ろからのリムライト（輪郭を際立たせる） */}
       <primitive object={targetRight} />
       <spotLight
         position={[12, 18, -5]}
         target={targetRight}
-        intensity={80}
+        intensity={80 * li}
         angle={0.4}
         penumbra={0.7}
         color="#4488aa"
@@ -126,19 +123,19 @@ function AudienceSilhouette() {
   )
 }
 
-export default function SoccerBg() {
+export default function SoccerBg({ visible = true }: { visible?: boolean }) {
+  const li = visible ? 1 : 0
   return (
     <>
-      <Environment preset="night" resolution={64} />
-      {/* 夜のスタジアム: ambient はほぼ暗闇 */}
-      <ambientLight intensity={0.03} />
-      {/* フィールド全体への薄い青白い光（空の反射） */}
-      <directionalLight position={[0, 30, 20]} intensity={0.5} color="#8ab4d0" />
-      {/* スタジアムのスポットライト */}
-      <StadiumLights />
-      <GrassFloor />
-      <GoalFrame />
-      <AudienceSilhouette />
+      {visible && <Environment preset="night" resolution={64} />}
+      <ambientLight intensity={0.03 * li} />
+      <directionalLight position={[0, 30, 20]} intensity={0.5 * li} color="#8ab4d0" />
+      <StadiumLights li={li} />
+      <group visible={visible}>
+        <GrassFloor />
+        <GoalFrame />
+        <AudienceSilhouette />
+      </group>
     </>
   )
 }

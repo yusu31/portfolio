@@ -30,9 +30,9 @@ const BG_COLORS: Record<string, string> = {
 
 // FogExp2: シーン別の密度（遠景の「果て」を背景色にフェードさせる）
 const FOG_DENSITY: Record<string, number> = {
-  '/soccer':     0.038,
+  '/soccer':     0.028,
   '/basketball': 0.028,
-  '/volleyball': 0.035,
+  '/volleyball': 0.030,
 }
 
 // パーティクル: シーン別のアクセントカラー
@@ -188,9 +188,10 @@ export default function GlobalCanvas() {
         <BgColor pathname={pathname} />
         <SceneAtmosphere pathname={pathname} />
         {isHome && <HomeBg />}
-        {pathname === '/soccer' && <SoccerBg />}
-        {pathname === '/basketball' && <BasketballBg />}
-        {pathname === '/volleyball' && <VolleyballBg />}
+        {/* Single Canvas: 全Bgを常駐させ visible/intensity で切替 → 3D のカット感を根絶 */}
+        <SoccerBg visible={pathname === '/soccer'} />
+        <BasketballBg visible={pathname === '/basketball'} />
+        <VolleyballBg visible={pathname === '/volleyball'} />
         <CrystalRoot isHome={isHome} pathname={pathname} ballEntry={ballEntry} />
         {!isHome && <JourneyCameraRig />}
         {!isHome && <JourneyEffects />}

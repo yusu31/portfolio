@@ -18,7 +18,7 @@ export default function BasketballScene() {
 
   const goNext = () => {
     const { pos } = interpolateWaypoints(scrollProgressRef.current, BASKETBALL_WAYPOINTS)
-    warpNavigate(() => goScene('/volleyball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } }))
+    warpNavigate(() => goScene('/volleyball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } }), '#69f0ae')
   }
 
   const onArrive = useCallback((wpIdx: number) => {
