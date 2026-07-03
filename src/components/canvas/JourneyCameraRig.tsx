@@ -47,14 +47,14 @@ export default function JourneyCameraRig() {
     const my = state.pointer.y
 
     // カメラ位置: waypoint基準 + マウスオフセット を lerp で追従
-    // X/Y はぬるっと遅らせる（0.06）、Z はボール追跡を優先（0.10）
-    camera.position.x = MathUtils.lerp(camera.position.x, _targetCamPos.x + mx * 0.4, 0.06)
-    camera.position.y = MathUtils.lerp(camera.position.y, _targetCamPos.y + my * 0.25, 0.06)
+    // 移動幅を狭く（0.18/0.12）してもスピードをさらに遅く（0.04）→ ぬるっと小さく動く
+    camera.position.x = MathUtils.lerp(camera.position.x, _targetCamPos.x + mx * 0.18, 0.04)
+    camera.position.y = MathUtils.lerp(camera.position.y, _targetCamPos.y + my * 0.12, 0.04)
     camera.position.z = MathUtils.lerp(camera.position.z, _targetCamPos.z, 0.10)
 
-    // lookAt ターゲット: ボール位置 + マウス微ズレ → 視線が揺れる体験
-    _lookAt.x = MathUtils.lerp(_lookAt.x, _targetPos.x + mx * 0.12, 0.05)
-    _lookAt.y = MathUtils.lerp(_lookAt.y, _targetPos.y + my * 0.06, 0.05)
+    // lookAt: 移動量は控えめに、lerp はさらに遅く（0.035）で視線がゆっくり揺れる
+    _lookAt.x = MathUtils.lerp(_lookAt.x, _targetPos.x + mx * 0.08, 0.035)
+    _lookAt.y = MathUtils.lerp(_lookAt.y, _targetPos.y + my * 0.04, 0.035)
     _lookAt.z = MathUtils.lerp(_lookAt.z, _targetPos.z, 0.10)
     camera.lookAt(_lookAt)
   })

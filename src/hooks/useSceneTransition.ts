@@ -27,11 +27,11 @@ export function warpNavigate(navigate: () => void) {
   const proxy = { blur: 0, opacity: 1 }
 
   tl
-    // 1. FOV 膨張 + DOM ブラー（0.55s）
-    .to(fovRef, { current: WARP_FOV, duration: 0.55, ease: 'power2.in' })
+    // 1. FOV 膨張 + DOM ブラー（0.38s / expo.in → クリック瞬間に鋭く引っ張られる）
+    .to(fovRef, { current: WARP_FOV, duration: 0.38, ease: 'expo.in' })
     .to(proxy, {
       blur: 14, opacity: 0.1,
-      duration: 0.40, ease: 'power2.in',
+      duration: 0.30, ease: 'expo.in',
       onUpdate() {
         const el = getUIEl()
         if (el) {
@@ -58,13 +58,13 @@ export function warpIn() {
     el.style.opacity = '0.1'
   }
 
-  // FOV 収束（0.9s）
-  gsap.to(fovRef, { current: TARGET_FOV, duration: 0.9, ease: 'power3.out' })
+  // FOV 収束（1.2s / expo.out → 氷の上を滑るような余韻）
+  gsap.to(fovRef, { current: TARGET_FOV, duration: 1.2, ease: 'expo.out' })
 
-  // DOM クリア（0.1s ディレイで FOV 収束に合わせる）
+  // DOM クリア（0.1s ディレイ）
   gsap.to(proxy, {
     blur: 0, opacity: 1,
-    duration: 0.75, delay: 0.1, ease: 'power2.out',
+    duration: 0.95, delay: 0.1, ease: 'expo.out',
     onUpdate() {
       const el2 = getUIEl()
       if (el2) {

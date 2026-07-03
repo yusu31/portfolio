@@ -12,6 +12,7 @@ import JourneyEffects from './JourneyEffects'
 import SoccerBg from './soccer/SoccerBg'
 import BasketballBg from './basketball/BasketballBg'
 import VolleyballBg from './volleyball/VolleyballBg'
+import FloatingParticles from './FloatingParticles'
 import { scrollProgressRef, scrollIsAnimatingRef } from '../../hooks/useScrollProgress'
 import { interpolateWaypoints } from './journey/trajectory'
 import type { Waypoint } from './journey/trajectory'
@@ -25,6 +26,20 @@ const BG_COLORS: Record<string, string> = {
   '/basketball': '#0d0a02',
   '/volleyball': '#021a12',
   '/contact': '#0a0a0f',
+}
+
+// FogExp2: シーン別の密度（遠景の「果て」を背景色にフェードさせる）
+const FOG_DENSITY: Record<string, number> = {
+  '/soccer':     0.022,
+  '/basketball': 0.028,
+  '/volleyball': 0.022,
+}
+
+// パーティクル: シーン別のアクセントカラー
+const PARTICLE_CONFIG: Record<string, { color: string; count: number }> = {
+  '/soccer':     { color: '#4fc3f7', count: 180 },
+  '/basketball': { color: '#ff8c00', count: 160 },
+  '/volleyball': { color: '#69f0ae', count: 180 },
 }
 
 const SCENE_WAYPOINTS: Record<string, Waypoint[]> = {
@@ -140,6 +155,22 @@ function BgColor({ pathname }: { pathname: string }) {
   return <color attach="background" args={[color as THREE.ColorRepresentation]} />
 }
 
+function SceneAtmosphere({ pathname }: { pathname: string }) {
+  const fogColor  = BG_COLORS[pathname] ?? '#0a0a0f'
+  const density   = FOG_DENSITY[pathname]
+  const particles = PARTICLE_CONFIG[pathname]
+  return (
+    <>
+      {density && (
+        <fogExp2 attach="fog" args={[fogColor, density]} />
+      )}
+      {particles && (
+        <FloatingParticles color={particles.color} count={particles.count} />
+      )}
+    </>
+  )
+}
+
 export default function GlobalCanvas() {
   const { pathname, state } = useLocation()
   const isHome = pathname === '/'
@@ -155,6 +186,7 @@ export default function GlobalCanvas() {
     >
       <Suspense fallback={null}>
         <BgColor pathname={pathname} />
+        <SceneAtmosphere pathname={pathname} />
         {isHome && <HomeBg />}
         {pathname === '/soccer' && <SoccerBg />}
         {pathname === '/basketball' && <BasketballBg />}
