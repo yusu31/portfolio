@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
@@ -10,6 +10,8 @@ const NAV_GRID = [
   { path: '/contact',    icon: '✉',  label: 'Contact',  desc: '連絡先',       color: '#ce93d8' },
 ] as const
 
+type NavPath = typeof NAV_GRID[number]['path']
+
 export default function HomeScene() {
   const navigate = useNavigate()
   const heyRef  = useRef<HTMLSpanElement>(null)
@@ -17,6 +19,8 @@ export default function HomeScene() {
   const subRef  = useRef<HTMLParagraphElement>(null)
   const ctaRef  = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
+  const [hoveredCard, setHoveredCard] = useState<NavPath | null>(null)
+  const [hoveredIcon, setHoveredIcon] = useState<NavPath | null>(null)
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -60,7 +64,6 @@ export default function HomeScene() {
           pointerEvents: 'none',
         }}
       >
-        {/* 左上テキストブロック */}
         <div
           style={{
             paddingTop: 'clamp(5rem, 13vh, 8.5rem)',
@@ -121,10 +124,13 @@ export default function HomeScene() {
             }}
           >
             スポーツが育てた思考で、プロダクトを作る。
+            <br />
+            <span style={{ color: 'rgba(255,255,255,.35)', fontSize: '0.78rem' }}>
+              — RaiseTech 卒業生 / 2024年からコードを書き始めた
+            </span>
           </p>
         </div>
 
-        {/* 下部 — EXPLORE + 4グリッドナビ */}
         <div
           style={{
             paddingBottom: 'clamp(2rem, 5vh, 4rem)',
@@ -133,6 +139,20 @@ export default function HomeScene() {
             pointerEvents: 'auto',
           }}
         >
+          <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                color: 'rgba(255,255,255,.35)',
+                fontSize: '1.25rem',
+                animation: 'scrollBounce 1.6s ease-in-out infinite',
+                lineHeight: 1,
+              }}
+            >
+              ↓
+            </span>
+          </div>
+
           <div ref={ctaRef} style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <button
               onClick={handleExplore}
@@ -175,9 +195,11 @@ export default function HomeScene() {
               <button
                 key={path}
                 onClick={() => navigate(path)}
+                onMouseEnter={() => { setHoveredCard(path); setHoveredIcon(path) }}
+                onMouseLeave={() => { setHoveredCard(null); setHoveredIcon(null) }}
                 style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: hoveredCard === path ? `${color}18` : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${hoveredCard === path ? `${color}44` : 'rgba(255,255,255,0.08)'}`,
                   borderRadius: '10px',
                   padding: '0.9rem 0.5rem',
                   cursor: 'pointer',
@@ -187,28 +209,63 @@ export default function HomeScene() {
                   gap: '0.35rem',
                   transition: 'background 0.2s, border-color 0.2s',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = `${color}18`
-                  e.currentTarget.style.borderColor = `${color}44`
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                }}
               >
-                <span style={{ fontSize: '1.2rem' }}>{icon}</span>
+                <span
+                  style={{
+                    fontSize: '1.2rem',
+                    display: 'inline-block',
+                    transform: hoveredIcon === path ? 'scale(1.2)' : 'scale(1)',
+                    transition: 'transform 0.2s ease',
+                  }}
+                >
+                  {icon}
+                </span>
                 <span style={{ fontSize: '0.65rem', fontWeight: 700, color, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
-                <span style={{ fontSize: '0.55rem', color: '#555' }}>{desc}</span>
+                <span
+                  style={{
+                    fontSize: '0.55rem',
+                    color: hoveredCard === path ? `${color}cc` : '#555',
+                    transition: 'color 0.2s',
+                  }}
+                >
+                  {desc}
+                </span>
               </button>
             ))}
           </div>
         </div>
       </div>
 
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 'clamp(1rem, 3vh, 2rem)',
+          left: 'clamp(1.5rem, 4vw, 3rem)',
+          zIndex: 20,
+          pointerEvents: 'none',
+        }}
+      >
+        <span
+          style={{
+            fontSize: '0.65rem',
+            fontWeight: 700,
+            letterSpacing: '0.14em',
+            color: 'rgba(255,255,255,.22)',
+            textTransform: 'uppercase',
+          }}
+        >
+          /home
+        </span>
+      </div>
+
       <style>{`
         @keyframes blink {
           0%, 100% { opacity: 1; }
           50%       { opacity: 0.1; }
+        }
+        @keyframes scrollBounce {
+          0%, 100% { transform: translateY(0); }
+          50%       { transform: translateY(6px); }
         }
       `}</style>
     </>
