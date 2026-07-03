@@ -60,29 +60,79 @@ export default function SoccerScene() {
           title={PROJECT_CATEGORIES.find(c => c.id === panelCategoryId)?.label ?? ''}
           color="#4fc3f7"
         >
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
             {PROJECT_CATEGORIES.find(c => c.id === panelCategoryId)?.projects.map((p) => (
               <div
                 key={p.id}
                 style={{
-                  padding: '0.7rem 0.8rem',
+                  padding: '0.8rem',
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: '6px',
-                  marginBottom: '0.5rem',
+                  borderRadius: '8px',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ddd' }}>{p.name}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.3rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#e8e8e8' }}>{p.name}</span>
                   <span style={{
-                    fontSize: '0.52rem', padding: '0.1rem 0.4rem', borderRadius: '3px',
-                    background: p.status === 'live' ? '#1a2a10' : '#1a1a2a',
-                    color: p.status === 'live' ? '#6dbf40' : '#7986cb', fontWeight: 700,
+                    fontSize: '0.5rem', padding: '0.15rem 0.45rem', borderRadius: '4px',
+                    background: p.status === 'live' ? 'rgba(109,191,64,0.15)' : 'rgba(121,134,203,0.15)',
+                    color: p.status === 'live' ? '#6dbf40' : '#7986cb',
+                    fontWeight: 700, letterSpacing: '0.06em', flexShrink: 0, marginLeft: '0.5rem',
                   }}>
                     {p.status === 'live' ? 'LIVE' : 'PLANNED'}
                   </span>
                 </div>
-                <p style={{ fontSize: '0.65rem', color: '#555', margin: 0 }}>{p.description}</p>
+                <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', margin: '0 0 0.55rem' }}>{p.description}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: p.githubUrl || p.liveUrl ? '0.6rem' : 0 }}>
+                  {p.tech.map((t) => (
+                    <span
+                      key={t}
+                      style={{
+                        fontSize: '0.55rem', padding: '0.15rem 0.5rem', borderRadius: '3px',
+                        background: 'rgba(79,195,247,0.1)', color: '#4fc3f7',
+                        border: '1px solid rgba(79,195,247,0.2)', fontWeight: 600,
+                      }}
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+                {(p.githubUrl || p.liveUrl) && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {p.githubUrl && (
+                      <a
+                        href={p.githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '0.6rem', color: '#ccc', textDecoration: 'none',
+                          padding: '0.25rem 0.6rem', borderRadius: '4px',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          display: 'flex', alignItems: 'center', gap: '0.3rem',
+                          background: 'rgba(255,255,255,0.04)',
+                        }}
+                      >
+                        ↗ GitHub
+                      </a>
+                    )}
+                    {p.liveUrl && (
+                      <a
+                        href={p.liveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '0.6rem', color: '#4fc3f7', textDecoration: 'none',
+                          padding: '0.25rem 0.6rem', borderRadius: '4px',
+                          border: '1px solid rgba(79,195,247,0.25)',
+                          display: 'flex', alignItems: 'center', gap: '0.3rem',
+                          background: 'rgba(79,195,247,0.06)',
+                        }}
+                      >
+                        ↗ LIVE
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
