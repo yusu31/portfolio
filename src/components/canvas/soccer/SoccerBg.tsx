@@ -1,5 +1,6 @@
 // src/components/canvas/soccer/SoccerBg.tsx
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Environment, Grid } from '@react-three/drei'
 import * as THREE from 'three'
 
@@ -125,13 +126,22 @@ function AudienceSilhouette() {
 
 export default function SoccerBg({ visible = true }: { visible?: boolean }) {
   const li = visible ? 1 : 0
+  const bgRef = useRef<THREE.Group>(null)
+
+  useFrame((state) => {
+    if (!bgRef.current) return
+    const p = bgRef.current.position
+    p.x += (state.pointer.x * 0.3 - p.x) * 0.03
+    p.y += (state.pointer.y * 0.15 - p.y) * 0.03
+  })
+
   return (
     <>
       {visible && <Environment preset="night" resolution={64} />}
       <ambientLight intensity={0.03 * li} />
       <directionalLight position={[0, 30, 20]} intensity={0.5 * li} color="#8ab4d0" />
       <StadiumLights li={li} />
-      <group visible={visible}>
+      <group ref={bgRef} visible={visible}>
         <GrassFloor />
         <GoalFrame />
         <AudienceSilhouette />

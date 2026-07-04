@@ -1,5 +1,8 @@
 // src/components/canvas/basketball/BasketballBg.tsx
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Environment, MeshReflectorMaterial } from '@react-three/drei'
+import * as THREE from 'three'
 
 // ワックス仕上げ体育館床（反射マテリアル）
 function CourtFloor() {
@@ -63,6 +66,15 @@ function Backboard() {
 
 export default function BasketballBg({ visible = true }: { visible?: boolean }) {
   const li = visible ? 1 : 0
+  const bgRef = useRef<THREE.Group>(null)
+
+  useFrame((state) => {
+    if (!bgRef.current) return
+    const p = bgRef.current.position
+    p.x += (state.pointer.x * 0.3 - p.x) * 0.03
+    p.y += (state.pointer.y * 0.15 - p.y) * 0.03
+  })
+
   return (
     <>
       {visible && <Environment preset="warehouse" resolution={64} />}
@@ -70,7 +82,7 @@ export default function BasketballBg({ visible = true }: { visible?: boolean }) 
       <pointLight position={[0, 8, 0]} intensity={40 * li} color="#ffb300" />
       <pointLight position={[-5, 4, 0]} intensity={20 * li} color="#c87000" />
       <pointLight position={[0, 3, -8.5]} intensity={25 * li} color="#ff6600" />
-      <group visible={visible}>
+      <group ref={bgRef} visible={visible}>
         <CourtFloor />
         <CourtLines />
         <Backboard />
