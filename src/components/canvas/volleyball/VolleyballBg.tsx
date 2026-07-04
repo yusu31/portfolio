@@ -1,5 +1,8 @@
 // src/components/canvas/volleyball/VolleyballBg.tsx
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
+import * as THREE from 'three'
 
 function Net() {
   return (
@@ -88,6 +91,15 @@ function AmbientLines() {
 
 export default function VolleyballBg({ visible = true }: { visible?: boolean }) {
   const li = visible ? 1 : 0
+  const bgRef = useRef<THREE.Group>(null)
+
+  useFrame((state) => {
+    if (!bgRef.current) return
+    const p = bgRef.current.position
+    p.x += (state.pointer.x * 0.3 - p.x) * 0.03
+    p.y += (state.pointer.y * 0.15 - p.y) * 0.03
+  })
+
   return (
     <>
       {visible && <Environment preset="night" resolution={64} />}
@@ -95,7 +107,7 @@ export default function VolleyballBg({ visible = true }: { visible?: boolean }) 
       <pointLight position={[0, 6, 0]} intensity={25 * li} color="#69f0ae" />
       <pointLight position={[-5, 3, -3]} intensity={15 * li} color="#005533" />
       <pointLight position={[0, 2, -1]} intensity={10 * li} color="#a0ffd0" />
-      <group visible={visible}>
+      <group ref={bgRef} visible={visible}>
         <GridFloor />
         <Net />
         <Antennas />
