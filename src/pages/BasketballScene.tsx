@@ -1,36 +1,37 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
-import JourneyNav from '../components/ui/JourneyNav'
-import { useScrollProgress, scrollProgressRef } from '../hooks/useScrollProgress'
-import { BASKETBALL_HOTSPOTS, BASKETBALL_WAYPOINTS } from '../data/trajectories/basketball-trajectory'
-import { interpolateWaypoints } from '../components/canvas/journey/trajectory'
 import { SKILL_CATEGORIES } from '../data/skills'
-import { warpNavigate, warpIn } from '../hooks/useSceneTransition'
+import { BASKETBALL_HOTSPOTS_3D } from '../data/hotspots/basketball-hotspots'
+import { useSceneContext } from '../contexts/SceneContext'
+import { warpIn, warpNavigate } from '../hooks/useSceneTransition'
 
 export default function BasketballScene() {
   const goScene = useNavigate()
-  const [activeHotspotIdx, setActiveHotspotIdx] = useState<number | null>(null)
+  const { activeHotspotId, visitedHotspotIds, showFinale, setFinaleHotspotCount, setForceTarget, resetScene } = useSceneContext()
   const [panelSkillId, setPanelSkillId] = useState<string | null>(null)
 
-  useEffect(() => { warpIn() }, [])
+  useEffect(() => {
+    warpIn()
+    setFinaleHotspotCount(BASKETBALL_HOTSPOTS_3D.length)
+    return () => resetScene()
+  }, [setFinaleHotspotCount, resetScene])
 
-  const goNext = () => {
-    const { pos } = interpolateWaypoints(scrollProgressRef.current, BASKETBALL_WAYPOINTS)
-    warpNavigate(() => goScene('/volleyball', { state: { ballEntry: { x: pos.x, y: pos.y, z: pos.z } } }), '#69f0ae')
-  }
+  // finale に近接したらシュート演出 → 次シーンへ
+  useEffect(() => {
+    if (showFinale && activeHotspotId === 'finale') {
+      setForceTarget([0, 5, -9])
+      const timer = setTimeout(() => {
+        warpNavigate(() => goScene('/volleyball'), '#69f0ae')
+      }, 1600)
+      return () => clearTimeout(timer)
+    }
+  }, [showFinale, activeHotspotId, setForceTarget, goScene])
 
-  const onArrive = useCallback((wpIdx: number) => {
-    const wp = BASKETBALL_WAYPOINTS[wpIdx]
-    setActiveHotspotIdx(wp.hotspotIndex !== undefined ? wp.hotspotIndex : null)
-  }, [])
-
-  const { navigate } = useScrollProgress(BASKETBALL_WAYPOINTS, onArrive)
-
-  const activeHotspot = activeHotspotIdx !== null ? BASKETBALL_HOTSPOTS[activeHotspotIdx] : null
-  const isLastHotspot = activeHotspotIdx === BASKETBALL_HOTSPOTS.length - 1
-  const activeSkillCat = SKILL_CATEGORIES.find(c => c.id === activeHotspot?.skillCategory)
+  const activeHotspot = BASKETBALL_HOTSPOTS_3D.find(h => h.id === activeHotspotId) ?? null
+  const activeSkillCat = SKILL_CATEGORIES.find(c => c.id === activeHotspot?.categoryId)
+  const allVisited = BASKETBALL_HOTSPOTS_3D.every(h => visitedHotspotIds.has(h.id))
 
   return (
     <div data-scene-ui style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
@@ -39,16 +40,26 @@ export default function BasketballScene() {
         <p style={{ fontSize: '0.7rem', color: '#ffb300', fontWeight: 700, margin: '0.15rem 0 0' }}>Skills — できること</p>
       </div>
 
+      {allVisited && !showFinale && (
+        <div style={{
+          position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)',
+          fontSize: '0.65rem', color: '#ffb300', letterSpacing: '0.12em',
+          padding: '0.5rem 1.2rem', borderRadius: '999px',
+          border: '1px solid rgba(255,179,0,0.3)', background: 'rgba(255,179,0,0.08)',
+          pointerEvents: 'none',
+        }}>
+          ↓ 光の点へ転がせ — SHOOT!
+        </div>
+      )}
+
       <div style={{ pointerEvents: 'auto' }}>
         <SceneCard
           visible={!!activeHotspot}
           side={activeHotspot?.cardSide ?? 'right'}
           category="SKILLS"
-          title={activeSkillCat?.label ?? ''}
+          title={activeSkillCat?.label ?? activeHotspot?.label ?? ''}
           description={activeSkillCat?.description ?? ''}
-          onExplore={activeHotspot ? () => setPanelSkillId(activeHotspot.skillCategory) : undefined}
-          onNext={isLastHotspot ? goNext : undefined}
-          nextLabel="NEXT →"
+          onExplore={activeHotspot ? () => setPanelSkillId(activeHotspot.categoryId) : undefined}
         />
       </div>
 
@@ -66,18 +77,12 @@ export default function BasketballScene() {
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                 {cat.skills.map((s) => (
-                  <div
-                    key={s.name}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.55rem 0.7rem',
-                      background: 'rgba(255,255,255,0.04)',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
+                  <div key={s.name} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0.55rem 0.7rem',
+                    background: 'rgba(255,255,255,0.04)', borderRadius: '6px',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}>
                     <span style={{ fontSize: '0.78rem', color: '#ddd', fontWeight: 600 }}>{s.name}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <span style={{ fontSize: '0.52rem', color: '#666', letterSpacing: '0.06em' }}>
@@ -85,14 +90,10 @@ export default function BasketballScene() {
                       </span>
                       <div style={{ display: 'flex', gap: '3px' }}>
                         {[1, 2, 3].map((d) => (
-                          <div
-                            key={d}
-                            style={{
-                              width: '7px', height: '7px', borderRadius: '50%',
-                              background: d <= s.level ? cat.color : 'rgba(255,255,255,0.12)',
-                              transition: 'background 0.2s',
-                            }}
-                          />
+                          <div key={d} style={{
+                            width: '7px', height: '7px', borderRadius: '50%',
+                            background: d <= s.level ? cat.color : 'rgba(255,255,255,0.12)',
+                          }} />
                         ))}
                       </div>
                     </div>
@@ -103,21 +104,6 @@ export default function BasketballScene() {
           })()}
         </GlassPanel>
       </div>
-
-      <button
-        onClick={goNext}
-        style={{
-          position: 'absolute', bottom: '2rem', right: '2.5rem',
-          fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em',
-          padding: '0.6rem 1.5rem', borderRadius: '999px',
-          border: '1px solid rgba(255,255,255,0.25)', color: '#fff',
-          background: 'transparent', cursor: 'pointer', pointerEvents: 'auto',
-        }}
-      >
-        NEXT: ABOUT →
-      </button>
-
-      <JourneyNav navigate={navigate} accentColor="#ffb300" />
     </div>
   )
 }
