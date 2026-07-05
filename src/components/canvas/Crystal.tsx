@@ -49,7 +49,7 @@ function Orb({ orb }: { orb: OrbData }) {
 }
 
 interface CrystalProps {
-  mode?: 'interactive' | 'journey'
+  mode?: 'interactive' | 'journey' | 'click-drive'
   journeySpeedRef?: React.RefObject<number>
   journeyRotRef?: React.RefObject<{ dirX: number; dirZ: number; rotSpeed: number }>
 }
@@ -94,7 +94,7 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef, journey
 
   // ドラッグ回転 + クリック判定（windowレベルで捕捉）
   useEffect(() => {
-    if (mode === 'journey') return  // journey modeではポインターイベント無効
+    if (mode === 'journey' || mode === 'click-drive') return  // journey/click-drive modeではポインターイベント無効
     const onMove = (e: PointerEvent) => {
       if (!isDragging.current) return
       const dx = e.clientX - lastPtr.current.x
@@ -140,9 +140,9 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef, journey
       }
     }
 
-    // 浮遊 + バウンス合成（journey モードでは浮遊を無効化 → 床接地が安定する）
+    // 浮遊 + バウンス合成（journey / click-drive では浮遊を無効化 → 床接地が安定する）
     if (floatRef.current) {
-      if (mode !== 'journey') {
+      if (mode === 'interactive') {
         floatRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.65) * 0.14 + bounceY.current
       }
     }
@@ -150,11 +150,8 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef, journey
     // 外殻: ドラッグ中はuseFrameの回転を停止、リリース後は慣性で滑走
     if (shellRef.current) {
       if (!isDragging.current) {
-        if (mode === 'journey') {
+        if (mode === 'journey' || mode === 'click-drive') {
           // 移動方向ベースのローリング回転
-          // rotation.x: Z方向移動 → 前転（soccer/basketball放物線）
-          // rotation.z: X方向移動 → 横転（soccer ジグザグ）
-          // rotSpeed が負 → バックスピン（basketball シュート）
           const rot = journeyRotRef?.current ?? { dirX: 0, dirZ: -1, rotSpeed: 1 }
           const animSpeed = journeySpeedRef?.current ?? 1
           const base = delta * animSpeed * 0.35
@@ -196,7 +193,7 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef, journey
       {/* 外殻 — flatShading=true でサッカーボール風の多角形面を復元 */}
       <mesh
         ref={shellRef}
-        onPointerDown={mode === 'interactive' ? (e) => {
+        onPointerDown={mode === 'interactive' ? (e: React.PointerEvent) => {
           isDragging.current = true
           lastPtr.current = { x: e.clientX, y: e.clientY }
           totalDrag.current = 0
@@ -210,10 +207,12 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef, journey
           metalness={0.0}
           clearcoat={1.0}
           clearcoatRoughness={0.01}
-          transmission={0.70}
+          transmission={mode === 'click-drive' ? 0.92 : 0.70}
           ior={1.5}
           thickness={1.5}
           flatShading={true}
+          transparent
+          opacity={mode === 'click-drive' ? 0.55 : 1.0}
         />
       </mesh>
 

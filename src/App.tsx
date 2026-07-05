@@ -2,6 +2,7 @@
 import { Suspense } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { LanguageProvider } from './contexts/LanguageContext'
+import { SceneContextProvider } from './contexts/SceneContext'
 import AppRoutes from './router'
 import Cursor from './components/ui/Cursor'
 import Loader from './components/ui/Loader'
@@ -13,14 +14,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <LanguageProvider>
-        <GlobalCanvas />
-        <Cursor />
-        <Loader />
-        <GlobalNav />
-        <RouteTransition />
-        <Suspense fallback={null}>
-          <AppRoutes />
-        </Suspense>
+        <SceneContextProvider>
+          <GlobalCanvas />
+          <Cursor />
+          <Loader />
+          <GlobalNav />
+          <RouteTransition />
+          <Suspense fallback={null}>
+            <AppRoutes />
+          </Suspense>
+        </SceneContextProvider>
       </LanguageProvider>
     </BrowserRouter>
   )
