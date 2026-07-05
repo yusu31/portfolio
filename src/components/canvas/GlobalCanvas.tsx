@@ -35,7 +35,7 @@ const FOG_DENSITY: Record<string, number> = {
 const SCENE_CAMERAS: Record<string, { position: [number, number, number]; fov: number; lookAt: [number, number, number] }> = {
   '/':           { position: [0, 0, 5],    fov: 60, lookAt: [0, 0, 0]     },
   '/soccer':     { position: [0, 2.0, 6],  fov: 52, lookAt: [0, -0.2, -20] },
-  '/basketball': { position: [0, 2.5, 5],  fov: 50, lookAt: [0, 2.6, -9]  },
+  '/basketball': { position: [0, 3.2, 8],  fov: 55, lookAt: [0, 0.6, -7.5] },
   '/volleyball': { position: [0, 1.8, 3.5],fov: 58, lookAt: [0, 0.5, -3]  },
   '/contact':    { position: [0, 0, 5],    fov: 60, lookAt: [0, 0, 0]     },
 }
@@ -43,7 +43,7 @@ const SCENE_CAMERAS: Record<string, { position: [number, number, number]; fov: n
 // クリック移動のフィールド境界
 const BOUNDS: Record<string, { xMin: number; xMax: number; zMin: number; zMax: number }> = {
   '/soccer':     { xMin: -6, xMax: 6, zMin: -16, zMax: 4  },
-  '/basketball': { xMin: -5, xMax: 5, zMin: -7,  zMax: 3  },
+  '/basketball': { xMin: -5, xMax: 5, zMin: -7,  zMax: 2  },
   '/volleyball': { xMin: -4, xMax: 4, zMin: -2,  zMax: 3  },
 }
 
@@ -242,6 +242,8 @@ function ClickBallMover({
 
   const handleFieldClick = (e: ThreeEvent<PointerEvent>) => {
     if (isEnteringRef.current) return
+    // カメラ移動中のレイは視覚上のクリック位置とズレるため無視
+    if (gsap.isTweening(e.camera.position)) return
     const bounds = BOUNDS[pathname]
     if (!bounds) return
     e.stopPropagation()
