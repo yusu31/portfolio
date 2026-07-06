@@ -12,6 +12,7 @@ import SoccerBg from './soccer/SoccerBg'
 import BasketballBg from './basketball/BasketballBg'
 import VolleyballBg from './volleyball/VolleyballBg'
 import { useSceneContext } from '../../contexts/SceneContext'
+import { fovRef } from '../../hooks/useSceneTransition'
 import { SOCCER_HOTSPOTS_3D, SOCCER_FINALE } from '../../data/hotspots/soccer-hotspots'
 import { BASKETBALL_HOTSPOTS_3D, BASKETBALL_FINALE } from '../../data/hotspots/basketball-hotspots'
 import { VOLLEYBALL_HOTSPOTS_3D, VOLLEYBALL_FINALE } from '../../data/hotspots/volleyball-hotspots'
@@ -60,27 +61,42 @@ const FINALE_MAP: Record<string, SceneHotspot> = {
   '/volleyball': VOLLEYBALL_FINALE,
 }
 
+// 縦画面では水平視野の欠けを垂直FOV拡大で部分補償する（上限78°）
+const BASE_ASPECT = 16 / 9
+function responsiveFov(baseFov: number, aspect: number): number {
+  if (aspect >= BASE_ASPECT) return baseFov
+  const t = Math.tan((baseFov * Math.PI) / 360) * Math.sqrt(BASE_ASPECT / aspect)
+  return Math.min((Math.atan(t) * 360) / Math.PI, 78)
+}
+
 // カメラを固定位置に設定する（JourneyCameraRig の代替）
 function FixedCameraRig() {
-  const { camera } = useThree()
+  const { camera, size } = useThree()
   const { pathname } = useLocation()
   const lookAtRef = useRef(new THREE.Vector3(0, 0, 0))
+  const baseFovRef = useRef(60)
 
   useEffect(() => {
     const cfg = SCENE_CAMERAS[pathname] ?? SCENE_CAMERAS['/']
-    const pcam = camera as THREE.PerspectiveCamera
     lookAtRef.current.set(...cfg.lookAt)
     gsap.to(camera.position, {
       x: cfg.position[0], y: cfg.position[1], z: cfg.position[2],
       duration: 0.9, ease: 'power2.out',
     })
-    gsap.to(pcam, {
-      fov: cfg.fov, duration: 0.9, ease: 'power2.out',
-      onUpdate: () => pcam.updateProjectionMatrix(),
+    gsap.to(baseFovRef, {
+      current: responsiveFov(cfg.fov, size.width / size.height),
+      duration: 0.9, ease: 'power2.out',
     })
-  }, [pathname, camera])
+  }, [pathname, camera, size])
 
   useFrame(() => {
+    // シーン基準fov + ワープオフセット（fovRef は warpNavigate/warpIn が 60↔92 で駆動）
+    const pcam = camera as THREE.PerspectiveCamera
+    const fov = baseFovRef.current + (fovRef.current - 60)
+    if (Math.abs(pcam.fov - fov) > 0.01) {
+      pcam.fov = fov
+      pcam.updateProjectionMatrix()
+    }
     camera.lookAt(lookAtRef.current)
   })
 
