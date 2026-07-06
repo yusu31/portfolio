@@ -1,10 +1,13 @@
 // src/components/canvas/soccer/SoccerBg.tsx
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Environment, Grid } from '@react-three/drei'
+import { Environment } from '@react-three/drei'
 import * as THREE from 'three'
 
-// 芝のフロア
+// チョークライン共通材質の設定（淡い白・控えめ発光。ネオンにしない）
+const CHALK = { color: '#c8d8c8', emissive: '#c8d8c8', emissiveIntensity: 0.18, transparent: true, opacity: 0.75 } as const
+
+// 芝のフロア — 実スタジアムの文法（刈り込みストライプ＋実ピッチのマーキング）
 function GrassFloor() {
   return (
     <>
@@ -13,28 +16,51 @@ function GrassFloor() {
         <planeGeometry args={[30, 40]} />
         <meshStandardMaterial color="#0a1a06" roughness={0.95} metalness={0.0} />
       </mesh>
-      {/* ピッチグリッド: 極めて控えめな暗緑色のディテール */}
-      <Grid
-        position={[0, -1.19, -10]}
-        args={[30, 40]}
-        cellSize={2}
-        cellThickness={0.2}
-        cellColor="#0c1e08"
-        sectionSize={10}
-        sectionThickness={0.4}
-        sectionColor="#132808"
-        fadeDistance={18}
-        fadeStrength={2.5}
-        rotation={[-Math.PI / 2, 0, 0]}
-        renderOrder={-1}
-      />
-      {/* ラインマーキング（わずかに光る） */}
-      {[-5, 0, 5].map((x) => (
-        <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, -1.18, -10]}>
-          <planeGeometry args={[0.06, 40]} />
-          <meshStandardMaterial color="#1a3a10" emissive="#1a3a10" emissiveIntensity={0.4} />
+      {/* 刈り込みストライプ: 明るい帯を1本おきに重ねる（横方向・幅4） */}
+      {[-28, -20, -12, -4, 4].map((z) => (
+        <mesh key={z} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.195, z]} receiveShadow>
+          <planeGeometry args={[30, 4]} />
+          <meshStandardMaterial color="#16300c" roughness={0.95} metalness={0.0} />
         </mesh>
       ))}
+      {/* タッチライン（左右） */}
+      {[-12, 12].map((x) => (
+        <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, -1.185, -5]}>
+          <planeGeometry args={[0.08, 30]} />
+          <meshStandardMaterial {...CHALK} />
+        </mesh>
+      ))}
+      {/* ゴールライン */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.185, -20]}>
+        <planeGeometry args={[24, 0.08]} />
+        <meshStandardMaterial {...CHALK} />
+      </mesh>
+      {/* ハーフウェーライン（ボール定位置＝キックオフスポットを通る） */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.185, 0]}>
+        <planeGeometry args={[24, 0.08]} />
+        <meshStandardMaterial {...CHALK} />
+      </mesh>
+      {/* センターサークル */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.185, 0]}>
+        <ringGeometry args={[1.7, 1.78, 48]} />
+        <meshStandardMaterial {...CHALK} side={THREE.DoubleSide} />
+      </mesh>
+      {/* ペナルティボックス（正面ライン＋左右サイド） */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.185, -15]}>
+        <planeGeometry args={[12, 0.08]} />
+        <meshStandardMaterial {...CHALK} />
+      </mesh>
+      {[-6, 6].map((x) => (
+        <mesh key={x} rotation={[-Math.PI / 2, 0, 0]} position={[x, -1.185, -17.5]}>
+          <planeGeometry args={[0.08, 5]} />
+          <meshStandardMaterial {...CHALK} />
+        </mesh>
+      ))}
+      {/* ペナルティスポット */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.185, -16]}>
+        <circleGeometry args={[0.09, 16]} />
+        <meshStandardMaterial {...CHALK} />
+      </mesh>
     </>
   )
 }
