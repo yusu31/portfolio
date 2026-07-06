@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import CameraRig from './CameraRig'
 import Effects from './Effects'
+import HomeAurora from './HomeAurora'
 
 const rippleVert = `
 varying vec2 vUv;
@@ -72,6 +73,7 @@ export default function HomeBg() {
       <pointLight position={[2, -5, -3]} intensity={20} color="#ffd090" />
 
       <CameraRig />
+      <HomeAurora />
       <GroundRipple />
       <Effects />
     </>
