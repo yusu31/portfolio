@@ -10,7 +10,7 @@
 | スタック・ライブラリ確認 | `docs/02_tech-stack.md` |
 | 要件・スコープ確認 | `docs/01_requirements.md` |
 | 非機能（パフォーマンス等）| `docs/03_non-functional.md` |
-| 引き継ぎ確認 | `docs/HANDOFF_PHASE3-13.md` |
+| 引き継ぎ確認 | `docs/HANDOFF_PHASE3-14.md` |
 | 不明なときのみ | 上記から最大2ファイル |
 
 SecondBrain の読み込みはユーザーが明示的に指示した場合のみ行う。
