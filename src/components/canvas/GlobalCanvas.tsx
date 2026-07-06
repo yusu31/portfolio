@@ -1,5 +1,5 @@
 // src/components/canvas/GlobalCanvas.tsx
-import { Suspense, useRef, useEffect, useContext } from 'react'
+import { Suspense, useRef, useEffect, useCallback, useContext } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useLocation } from 'react-router-dom'
 import type { ThreeEvent } from '@react-three/fiber'
@@ -188,20 +188,48 @@ function ClickBallMover({
 }) {
   const { pathname } = useLocation()
   const { setActiveHotspotId, markVisited, showFinale, forceTarget } = useSceneContext()
-  const ballTargetRef = useRef(new THREE.Vector3(0, -1.2, 0))
+  const curveRef = useRef<THREE.QuadraticBezierCurve3 | null>(null)
+  const progressRef = useRef({ t: 0 })
   const prevPosRef = useRef(new THREE.Vector3(0, -1.2, 0))
   const prevActiveRef = useRef<string | null>(null)
 
-  // forceTarget（finale 演出）が設定されたら ballTarget を上書き
+  // 現在位置→目標のベジェ曲線を生成して GSAP で進行させる（ohzi.io 的な曲線移動）
+  const startMove = useCallback((x: number, z: number) => {
+    if (!groupRef.current) return
+    const from = groupRef.current.position.clone()
+    const to = new THREE.Vector3(x, -1.2, z)
+    const dist = from.distanceTo(to)
+    if (dist < 0.05) return
+    // 制御点: 中点を進行方向の寄りの側へ横オフセット → 現在の勢いを引き継いで膨らむ
+    const dir = to.clone().sub(from).normalize()
+    const perp = new THREE.Vector3(-dir.z, 0, dir.x)
+    const heading = new THREE.Vector3(journeyRotRef.current.dirX, 0, journeyRotRef.current.dirZ)
+    const side = Math.sign(perp.dot(heading)) || 1
+    const mid = from.clone().add(to).multiplyScalar(0.5)
+      .add(perp.multiplyScalar(side * dist * 0.25))
+    mid.y = -1.2
+    curveRef.current = new THREE.QuadraticBezierCurve3(from, mid, to)
+    progressRef.current.t = 0
+    gsap.killTweensOf(progressRef.current)
+    gsap.to(progressRef.current, {
+      t: 1,
+      duration: THREE.MathUtils.clamp(dist * 0.22, 0.7, 1.8),
+      ease: 'power2.out',
+    })
+  }, [groupRef, journeyRotRef])
+
+  // forceTarget（finale 演出）も同じ曲線移動を使う
   useEffect(() => {
     if (forceTarget) {
-      ballTargetRef.current.set(...forceTarget)
+      startMove(forceTarget[0], forceTarget[2])
     }
-  }, [forceTarget])
+  }, [forceTarget, startMove])
 
   // シーン切替時にボール位置をリセット
   useEffect(() => {
-    ballTargetRef.current.set(0, -1.2, 0)
+    gsap.killTweensOf(progressRef.current)
+    curveRef.current = null
+    progressRef.current.t = 0
     prevPosRef.current.set(0, -1.2, 0)
     if (groupRef.current) {
       groupRef.current.position.set(0, -1.2, 0)
@@ -214,10 +242,10 @@ function ClickBallMover({
     if (!bounds) return
 
     const current = groupRef.current.position
-    const alpha = 1 - Math.pow(1 - 0.055, delta * 60)
-    current.x = THREE.MathUtils.lerp(current.x, ballTargetRef.current.x, alpha)
-    current.z = THREE.MathUtils.lerp(current.z, ballTargetRef.current.z, alpha)
-    current.y = -1.2
+    if (curveRef.current) {
+      curveRef.current.getPoint(progressRef.current.t, current)
+      current.y = -1.2
+    }
 
     // 移動ベクトル → journeyRotRef に書き込みでボールが転がる
     const dx = current.x - prevPosRef.current.x
@@ -265,7 +293,7 @@ function ClickBallMover({
     e.stopPropagation()
     const x = THREE.MathUtils.clamp(e.point.x, bounds.xMin, bounds.xMax)
     const z = THREE.MathUtils.clamp(e.point.z, bounds.zMin, bounds.zMax)
-    ballTargetRef.current.set(x, -1.2, z)
+    startMove(x, z)
   }
 
   return (
