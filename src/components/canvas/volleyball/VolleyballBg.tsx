@@ -7,15 +7,15 @@ import * as THREE from 'three'
 function Net() {
   return (
     <group position={[0, 0, -3]}>
-      {/* 上部白帯（Bloomの主役）*/}
+      {/* 上部白帯 */}
       <mesh position={[0, 1.0, 0]}>
         <boxGeometry args={[8, 0.04, 0.02]} />
-        <meshStandardMaterial color="white" emissive="white" emissiveIntensity={4.0} />
+        <meshStandardMaterial color="#c8d8c8" emissive="#ffffff" emissiveIntensity={0.18} />
       </mesh>
       {/* 下部白帯 */}
       <mesh position={[0, -0.4, 0]}>
         <boxGeometry args={[8, 0.03, 0.02]} />
-        <meshStandardMaterial color="white" emissive="white" emissiveIntensity={2.0} />
+        <meshStandardMaterial color="#c8d8c8" emissive="#ffffff" emissiveIntensity={0.15} />
       </mesh>
       {/* 縦線: クロームメタリック → 光を反射してシャープに見える */}
       {Array.from({ length: 9 }, (_, i) => (
@@ -76,18 +76,6 @@ function GridFloor() {
   )
 }
 
-function AmbientLines() {
-  return (
-    <>
-      {[-8, 8].map((x) => (
-        <mesh key={x} position={[x, 2, -8]}>
-          <boxGeometry args={[0.05, 0.05, 12]} />
-          <meshStandardMaterial color="#69f0ae" emissive="#69f0ae" emissiveIntensity={0.6} />
-        </mesh>
-      ))}
-    </>
-  )
-}
 
 export default function VolleyballBg({ visible = true }: { visible?: boolean }) {
   const li = visible ? 1 : 0
@@ -111,7 +99,6 @@ export default function VolleyballBg({ visible = true }: { visible?: boolean }) 
         <GridFloor />
         <Net />
         <Antennas />
-        <AmbientLines />
       </group>
     </>
   )

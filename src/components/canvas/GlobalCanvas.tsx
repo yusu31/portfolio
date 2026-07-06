@@ -37,7 +37,7 @@ const SCENE_CAMERAS: Record<string, { position: [number, number, number]; fov: n
   '/':           { position: [0, 0, 5],    fov: 60, lookAt: [0, 0, 0]     },
   '/soccer':     { position: [0, 2.0, 6],  fov: 52, lookAt: [0, -0.2, -20] },
   '/basketball': { position: [0, 3.2, 8],  fov: 55, lookAt: [0, 0.6, -7.5] },
-  '/volleyball': { position: [0, 1.8, 3.5],fov: 58, lookAt: [0, 0.5, -3]  },
+  '/volleyball': { position: [0, 2.0, 4.4],fov: 58, lookAt: [0, 0.3, -3]  },
   '/contact':    { position: [0, 0, 5],    fov: 60, lookAt: [0, 0, 0]     },
 }
 
