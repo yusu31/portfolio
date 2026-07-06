@@ -71,27 +71,80 @@ function CourtLines() {
   )
 }
 
-// バックボード + リング
+// バックボード + リング + ネット + 支柱
 function Backboard() {
+  // ネット: リング下に垂れる逆円錐（10本の縦ライン + 3段の横リング）
+  const NET_STRANDS = 10
+  const netStrands = Array.from({ length: NET_STRANDS }, (_, i) => {
+    const angle = (i / NET_STRANDS) * Math.PI * 2
+    const rx = Math.cos(angle) * 0.23
+    const rz = Math.sin(angle) * 0.23
+    // 上端: リング半径、下端: 約半分に絞り込む
+    const bx = Math.cos(angle) * 0.1
+    const bz = Math.sin(angle) * 0.1
+    const midX = (rx + bx) / 2
+    const midZ = (rz + bz) / 2
+    return { key: i, x: midX, z: midZ, angle }
+  })
+
   return (
     <group position={[0, 3.0, -9]}>
-      {/* バックボード */}
+      {/* バックボード本体: 暗い半透明 */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[1.83, 1.07, 0.05]} />
-        <meshStandardMaterial color="#0d0a02" emissive="#ff6600" emissiveIntensity={0.8} transparent opacity={0.7} />
+        <meshStandardMaterial color="#1a1a1f" transparent opacity={0.85} roughness={0.6} />
       </mesh>
-      {/* リム（暗闇で光るオレンジリング）*/}
-      <mesh position={[0, -0.4, 0.23]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.225, 0.02, 8, 24]} />
-        <meshStandardMaterial color="#ff7700" emissive="#ff5500" emissiveIntensity={3.5} />
+      {/* シューターズスクエア枠線（上辺・下辺・左辺・右辺）*/}
+      {/* 上辺 */}
+      <mesh position={[0, 0.155, 0.03]}>
+        <boxGeometry args={[0.59, 0.025, 0.01]} />
+        <meshStandardMaterial color="#e8e8e8" emissive="#ffffff" emissiveIntensity={0.16} />
       </mesh>
-      {/* バックボード枠 */}
-      {[[-0.915], [0.915]].map(([x], i) => (
-        <mesh key={i} position={[x, 0, 0]}>
-          <boxGeometry args={[0.05, 1.07, 0.05]} />
-          <meshStandardMaterial color="#2a1800" emissive="#ff4400" emissiveIntensity={0.5} />
+      {/* 下辺 */}
+      <mesh position={[0, -0.155, 0.03]}>
+        <boxGeometry args={[0.59, 0.025, 0.01]} />
+        <meshStandardMaterial color="#e8e8e8" emissive="#ffffff" emissiveIntensity={0.16} />
+      </mesh>
+      {/* 左辺 */}
+      <mesh position={[-0.295, 0, 0.03]}>
+        <boxGeometry args={[0.025, 0.31, 0.01]} />
+        <meshStandardMaterial color="#e8e8e8" emissive="#ffffff" emissiveIntensity={0.16} />
+      </mesh>
+      {/* 右辺 */}
+      <mesh position={[0.295, 0, 0.03]}>
+        <boxGeometry args={[0.025, 0.31, 0.01]} />
+        <meshStandardMaterial color="#e8e8e8" emissive="#ffffff" emissiveIntensity={0.16} />
+      </mesh>
+
+      {/* リング: バックボード前面下端 */}
+      <mesh position={[0, -0.4, 0.26]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.23, 0.02, 8, 32]} />
+        <meshStandardMaterial color="#ff6d00" emissive="#ff6d00" emissiveIntensity={0.2} roughness={0.5} />
+      </mesh>
+
+      {/* ネット: 縦ストランド（逆円錐形） */}
+      {netStrands.map(({ key, x, z }) => (
+        <mesh key={key} position={[x, -0.59, z + 0.26]}>
+          <cylinderGeometry args={[0.005, 0.003, 0.38, 4, 1, true]} />
+          <meshStandardMaterial color="#dddddd" transparent opacity={0.5} side={2} />
         </mesh>
       ))}
+      {/* ネット: 横リング3段 */}
+      {[0.1, 0.22, 0.34].map((drop, i) => (
+        <mesh key={i} position={[0, -0.4 - drop, 0.26]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.23 - drop * 0.3, 0.005, 4, 20]} />
+          <meshStandardMaterial color="#cccccc" transparent opacity={0.4} />
+        </mesh>
+      ))}
+
+      {/* 支柱: バックボード背後→床まで */}
+      <mesh position={[0, -2.8, -0.15]}>
+        <cylinderGeometry args={[0.06, 0.08, 3.6, 8]} />
+        <meshStandardMaterial color="#222222" roughness={0.8} metalness={0.3} />
+      </mesh>
+
+      {/* リング直下の光だまり */}
+      <pointLight position={[0, -0.6, 0.26]} color="#ff6d00" intensity={4} distance={3} decay={2} />
     </group>
   )
 }
