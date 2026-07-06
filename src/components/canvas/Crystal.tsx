@@ -189,7 +189,8 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef, journey
   })
 
   return (
-    <group ref={floatRef}>
+    // click-drive ではシェル半径ぶんリフトして接地（y=-1.2 のままだと半埋まりの岩に見える）
+    <group ref={floatRef} position={[0, mode === 'click-drive' ? 1.5 : 0, 0]}>
       {/* 外殻 — flatShading=true でサッカーボール風の多角形面を復元 */}
       <mesh
         ref={shellRef}
@@ -207,14 +208,21 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef, journey
           metalness={0.0}
           clearcoat={1.0}
           clearcoatRoughness={0.01}
-          transmission={mode === 'click-drive' ? 0.92 : 0.70}
+          transmission={mode === 'click-drive' ? 0.85 : 0.70}
           ior={1.5}
           thickness={1.5}
           flatShading={true}
           transparent
-          opacity={mode === 'click-drive' ? 0.55 : 1.0}
+          opacity={mode === 'click-drive' ? 0.9 : 1.0}
+          emissive={mode === 'click-drive' ? '#f97316' : '#000000'}
+          emissiveIntensity={mode === 'click-drive' ? 0.12 : 0}
         />
       </mesh>
+
+      {/* 内部光源 — 転がる場所の床をオレンジに照らす（発光体としての存在感） */}
+      {mode === 'click-drive' && (
+        <pointLight color="#ff8c42" intensity={2.4} distance={6} decay={2} />
+      )}
 
       {/* 内部コア — オレンジ発光（ガラス面越しに見える）*/}
       <group ref={coreGrpRef}>
