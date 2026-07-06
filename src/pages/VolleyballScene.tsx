@@ -93,6 +93,38 @@ export default function VolleyballScene() {
                   {panelAbout.body}
                 </p>
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', marginBottom: '1rem' }}>
+                {panelAbout.details.map((d) => (
+                  <div key={d.heading} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '0.7rem',
+                    padding: '0.7rem 0.8rem',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: '8px',
+                  }}>
+                    <span style={{
+                      flexShrink: 0,
+                      minWidth: '2.6rem',
+                      textAlign: 'center',
+                      fontSize: '0.58rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.08em',
+                      color: '#69f0ae',
+                      background: 'rgba(105,240,174,0.1)',
+                      border: '1px solid rgba(105,240,174,0.25)',
+                      borderRadius: '5px',
+                      padding: '0.25rem 0.4rem',
+                      marginTop: '0.1rem',
+                    }}>
+                      {d.marker}
+                    </span>
+                    <div>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#e8e8e8', margin: '0 0 0.25rem' }}>{d.heading}</p>
+                      <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.7, margin: 0 }}>{d.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
               {panelAbout.id === 'seeking' && (
                 <span style={{
                   display: 'inline-block',
