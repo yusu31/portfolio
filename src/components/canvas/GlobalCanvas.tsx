@@ -1,5 +1,5 @@
 // src/components/canvas/GlobalCanvas.tsx
-import { Suspense, useRef, useEffect, useCallback, useContext } from 'react'
+import { Suspense, useRef, useEffect, useCallback, useContext, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useLocation } from 'react-router-dom'
 import type { ThreeEvent } from '@react-three/fiber'
@@ -59,6 +59,56 @@ const FINALE_MAP: Record<string, SceneHotspot> = {
   '/soccer':     SOCCER_FINALE,
   '/basketball': BASKETBALL_FINALE,
   '/volleyball': VOLLEYBALL_FINALE,
+}
+
+// クリック波紋の色（シーンのアクセント色）
+const RIPPLE_COLORS: Record<string, string> = {
+  '/soccer':     '#4fc3f7',
+  '/basketball': '#ffb300',
+  '/volleyball': '#69f0ae',
+}
+
+// クリック受理地点に広がる発光リング（メイン＋遅れて追うエコー）
+const RIPPLE_LIFE = 0.9
+function ClickRipple({ x, z, color, onDone }: { x: number; z: number; color: string; onDone: () => void }) {
+  const mainRef = useRef<THREE.Mesh>(null)
+  const echoRef = useRef<THREE.Mesh>(null)
+  const age = useRef(0)
+  const done = useRef(false)
+
+  useFrame((_, delta) => {
+    age.current += delta
+    const p = Math.min(age.current / RIPPLE_LIFE, 1)
+    if (p >= 1) {
+      if (!done.current) { done.current = true; onDone() }
+      return
+    }
+    const easeOut = 1 - Math.pow(1 - p, 3)
+    if (mainRef.current) {
+      mainRef.current.scale.setScalar(0.25 + easeOut * 2.4)
+      ;(mainRef.current.material as THREE.MeshBasicMaterial).opacity = (1 - p) * 0.9
+    }
+    // エコーは 0.18秒 遅れて同じ軌跡を小さく追う
+    const p2 = Math.max((age.current - 0.18) / RIPPLE_LIFE, 0)
+    const ease2 = 1 - Math.pow(1 - Math.min(p2, 1), 3)
+    if (echoRef.current) {
+      echoRef.current.scale.setScalar(0.15 + ease2 * 1.6)
+      ;(echoRef.current.material as THREE.MeshBasicMaterial).opacity = p2 > 0 ? (1 - p2) * 0.5 : 0
+    }
+  })
+
+  return (
+    <group position={[x, -1.17, z]}>
+      <mesh ref={mainRef} rotation={[-Math.PI / 2, 0, 0]} scale={0.25}>
+        <ringGeometry args={[0.82, 0.92, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={0.9} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh ref={echoRef} rotation={[-Math.PI / 2, 0, 0]} scale={0.15}>
+        <ringGeometry args={[0.84, 0.9, 48]} />
+        <meshBasicMaterial color={color} transparent opacity={0} toneMapped={false} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  )
 }
 
 // 縦画面では水平視野の欠けを垂直FOV拡大で部分補償する（上限78°）
@@ -192,6 +242,8 @@ function ClickBallMover({
   const progressRef = useRef({ t: 0 })
   const prevPosRef = useRef(new THREE.Vector3(0, -1.2, 0))
   const prevActiveRef = useRef<string | null>(null)
+  const [ripples, setRipples] = useState<{ id: number; x: number; z: number }[]>([])
+  const rippleId = useRef(0)
 
   // 現在位置→目標のベジェ曲線を生成して GSAP で進行させる（ohzi.io 的な曲線移動）
   const startMove = useCallback((x: number, z: number) => {
@@ -293,19 +345,32 @@ function ClickBallMover({
     e.stopPropagation()
     const x = THREE.MathUtils.clamp(e.point.x, bounds.xMin, bounds.xMax)
     const z = THREE.MathUtils.clamp(e.point.z, bounds.zMin, bounds.zMax)
+    // 受理されたクリックだけに波紋を出す（ガードで無視した操作に偽の手応えを与えない）
+    setRipples(prev => [...prev.slice(-5), { id: rippleId.current++, x, z }])
     startMove(x, z)
   }
 
   return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, -1.19, -6]}
-      onPointerDown={handleFieldClick}
-      renderOrder={-1}
-    >
-      <planeGeometry args={[24, 44]} />
-      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-    </mesh>
+    <>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -1.19, -6]}
+        onPointerDown={handleFieldClick}
+        renderOrder={-1}
+      >
+        <planeGeometry args={[24, 44]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      {ripples.map(r => (
+        <ClickRipple
+          key={r.id}
+          x={r.x}
+          z={r.z}
+          color={RIPPLE_COLORS[pathname] ?? '#ffffff'}
+          onDone={() => setRipples(prev => prev.filter(p => p.id !== r.id))}
+        />
+      ))}
+    </>
   )
 }
 
