@@ -1,5 +1,6 @@
 // src/components/canvas/GlobalCanvas.tsx
 import { Suspense, useRef, useEffect, useCallback, useContext, useState } from 'react'
+import type { RefObject } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useLocation } from 'react-router-dom'
 import type { ThreeEvent } from '@react-three/fiber'
@@ -17,6 +18,8 @@ import { SOCCER_HOTSPOTS_3D, SOCCER_FINALE } from '../../data/hotspots/soccer-ho
 import { BASKETBALL_HOTSPOTS_3D, BASKETBALL_FINALE } from '../../data/hotspots/basketball-hotspots'
 import { VOLLEYBALL_HOTSPOTS_3D, VOLLEYBALL_FINALE } from '../../data/hotspots/volleyball-hotspots'
 import type { SceneHotspot } from '../../data/hotspots/types'
+import { useSceneStateMachine } from '../../hooks/useSceneStateMachine'
+import type { JourneyState } from '../../hooks/useSceneStateMachine'
 
 const BG_COLORS: Record<string, string> = {
   '/': '#0a0a0f',
@@ -66,6 +69,24 @@ const RIPPLE_COLORS: Record<string, string> = {
   '/soccer':     '#4fc3f7',
   '/basketball': '#ffb300',
   '/volleyball': '#69f0ae',
+}
+
+// 状態別カメラオフセット（ball.position に加算）
+const CAMERA_OFFSETS: Record<JourneyState, [number, number, number]> = {
+  idle:         [0,   2.5,  5.0],
+  dribble_1:    [0,   2.5,  5.0],
+  cut_1:        [0,   2.5,  4.5],
+  cut_2:        [0,   2.5,  4.5],
+  long_pass:    [0,   4.0,  8.0],
+  catch_wait:   [0,   3.0,  6.0],
+  shoot_rise:   [-2,  3.0,  6.0],
+  apex:         [0,   2.0,  5.0],
+  drop:         [0,   1.5,  4.0],
+  through:      [0,   0.5,  2.0],
+  receive_wait: [0,   2.5,  5.0],
+  receive:      [0,   2.0,  4.0],
+  toss:         [0,   4.0,  4.0],
+  spike:        [2,   5.0,  3.0],
 }
 
 // クリック受理地点に広がる発光リング（メイン＋遅れて追うエコー）
@@ -155,6 +176,47 @@ function FixedCameraRig() {
   return null
 }
 
+// Journey シーン専用: ボールを追従するカメラ
+function BallFollowCameraRig({
+  ballPosRef,
+  currentState,
+  pathname,
+}: {
+  ballPosRef: RefObject<THREE.Vector3>
+  currentState: JourneyState
+  pathname: string
+}) {
+  const { camera, size } = useThree()
+  const baseFovRef = useRef(55)
+  const targetCamPos = useRef(new THREE.Vector3())
+
+  useEffect(() => {
+    const cfg = SCENE_CAMERAS[pathname]
+    if (cfg) baseFovRef.current = responsiveFov(cfg.fov, size.width / size.height)
+  }, [pathname, size])
+
+  useFrame(() => {
+    const ballPos = ballPosRef.current
+    const off = CAMERA_OFFSETS[currentState]
+    targetCamPos.current.set(
+      ballPos.x + off[0],
+      ballPos.y + off[1],
+      ballPos.z + off[2],
+    )
+    camera.position.lerp(targetCamPos.current, 0.06)
+    camera.lookAt(ballPos)
+
+    const pcam = camera as THREE.PerspectiveCamera
+    const fov = baseFovRef.current + (fovRef.current - 60)
+    if (Math.abs(pcam.fov - fov) > 0.01) {
+      pcam.fov = fov
+      pcam.updateProjectionMatrix()
+    }
+  })
+
+  return null
+}
+
 // ホットスポット発光球（フィールド上に配置）
 function HotspotMarker({ hotspot, isActive, isVisited }: {
   hotspot: SceneHotspot
@@ -232,11 +294,15 @@ function ClickBallMover({
   isEnteringRef,
   journeyRotRef,
   journeySpeedRef,
+  ballPosRef,
+  onAdvanceState,
 }: {
   groupRef: React.RefObject<THREE.Group | null>
   isEnteringRef: React.RefObject<boolean>
   journeyRotRef: React.RefObject<{ dirX: number; dirZ: number; rotSpeed: number }>
   journeySpeedRef: React.RefObject<number>
+  ballPosRef?: RefObject<THREE.Vector3>
+  onAdvanceState?: () => void
 }) {
   const { pathname } = useLocation()
   const { setActiveHotspotId, markVisited, showFinale, forceTarget } = useSceneContext()
@@ -301,6 +367,9 @@ function ClickBallMover({
       current.y = -1.2
     }
 
+    // カメラ追従用にボール位置を共有 ref へ書き込む
+    if (ballPosRef) ballPosRef.current.copy(current)
+
     // 移動ベクトル → journeyRotRef に書き込みでボールが転がる
     const dx = current.x - prevPosRef.current.x
     const dz = current.z - prevPosRef.current.z
@@ -349,6 +418,7 @@ function ClickBallMover({
     const z = THREE.MathUtils.clamp(e.point.z, bounds.zMin, bounds.zMax)
     // 受理されたクリックだけに波紋を出す（ガードで無視した操作に偽の手応えを与えない）
     if (!REDUCED_MOTION) setRipples(prev => [...prev.slice(-5), { id: rippleId.current++, x, z }])
+    onAdvanceState?.()
     startMove(x, z)
   }
 
@@ -378,7 +448,19 @@ function ClickBallMover({
 
 interface BallEntry { x: number; y: number; z: number }
 
-function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathname: string; ballEntry?: BallEntry }) {
+function CrystalRoot({
+  isHome,
+  pathname,
+  ballEntry,
+  ballPosRef,
+  onAdvanceState,
+}: {
+  isHome: boolean
+  pathname: string
+  ballEntry?: BallEntry
+  ballPosRef?: RefObject<THREE.Vector3>
+  onAdvanceState?: () => void
+}) {
   const grpRef = useRef<THREE.Group>(null)
   const journeySpeedRef = useRef(1)
   const journeyRotRef = useRef({ dirX: 0, dirZ: -1, rotSpeed: 1 })
@@ -441,6 +523,8 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
           isEnteringRef={isEnteringRef}
           journeyRotRef={journeyRotRef}
           journeySpeedRef={journeySpeedRef}
+          ballPosRef={ballPosRef}
+          onAdvanceState={onAdvanceState}
         />
       )}
     </>
@@ -462,10 +546,16 @@ function SceneAtmosphere({ pathname }: { pathname: string }) {
   )
 }
 
+const JOURNEY_SCENES = new Set(['/soccer', '/basketball', '/volleyball'])
+
 export default function GlobalCanvas() {
   const { pathname, state } = useLocation()
   const isHome = pathname === '/'
+  const isJourney = JOURNEY_SCENES.has(pathname)
   const ballEntry = (state as { ballEntry?: BallEntry } | null)?.ballEntry
+
+  const ballPosRef = useRef(new THREE.Vector3(0, -1.2, 0))
+  const { currentState, advance } = useSceneStateMachine()
 
   return (
     <Canvas
@@ -482,8 +572,17 @@ export default function GlobalCanvas() {
         {pathname === '/soccer' && <SoccerBg />}
         {pathname === '/basketball' && <BasketballBg />}
         {pathname === '/volleyball' && <VolleyballBg />}
-        <CrystalRoot isHome={isHome} pathname={pathname} ballEntry={ballEntry} />
-        <FixedCameraRig />
+        <CrystalRoot
+          isHome={isHome}
+          pathname={pathname}
+          ballEntry={ballEntry}
+          ballPosRef={isJourney ? ballPosRef : undefined}
+          onAdvanceState={isJourney ? advance : undefined}
+        />
+        {isJourney
+          ? <BallFollowCameraRig ballPosRef={ballPosRef} currentState={currentState} pathname={pathname} />
+          : <FixedCameraRig />
+        }
         {!isHome && pathname !== '/contact' && <HotspotMarkers pathname={pathname} />}
         <Effects />
       </Suspense>
