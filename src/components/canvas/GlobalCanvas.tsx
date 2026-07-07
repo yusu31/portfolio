@@ -454,12 +454,14 @@ function CrystalRoot({
   ballEntry,
   ballPosRef,
   onAdvanceState,
+  currentState,
 }: {
   isHome: boolean
   pathname: string
   ballEntry?: BallEntry
   ballPosRef?: RefObject<THREE.Vector3>
   onAdvanceState?: () => void
+  currentState?: JourneyState
 }) {
   const grpRef = useRef<THREE.Group>(null)
   const journeySpeedRef = useRef(1)
@@ -515,6 +517,7 @@ function CrystalRoot({
           mode={isHome ? 'interactive' : 'click-drive'}
           journeySpeedRef={journeySpeedRef}
           journeyRotRef={journeyRotRef}
+          currentState={currentState}
         />
       </group>
       {!isHome && (
@@ -578,6 +581,7 @@ export default function GlobalCanvas() {
           ballEntry={ballEntry}
           ballPosRef={isJourney ? ballPosRef : undefined}
           onAdvanceState={isJourney ? advance : undefined}
+          currentState={isJourney ? currentState : undefined}
         />
         {isJourney
           ? <BallFollowCameraRig ballPosRef={ballPosRef} currentState={currentState} pathname={pathname} />
