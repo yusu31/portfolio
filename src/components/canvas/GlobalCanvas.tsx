@@ -64,6 +64,24 @@ const FINALE_MAP: Record<string, SceneHotspot> = {
   '/volleyball': VOLLEYBALL_FINALE,
 }
 
+// 状態別ボール Y 座標（接地 = -1.2）
+const STATE_Y: Record<JourneyState, number> = {
+  idle:         -1.2,
+  dribble_1:    -1.2,
+  cut_1:        -1.2,
+  cut_2:        -1.2,
+  long_pass:     0.6,
+  catch_wait:   -1.2,
+  shoot_rise:    1.2,
+  apex:          2.8,
+  drop:          0.5,
+  through:      -1.2,
+  receive_wait: -1.2,
+  receive:      -0.3,
+  toss:          1.0,
+  spike:        -1.2,
+}
+
 // クリック波紋の色（シーンのアクセント色）
 const RIPPLE_COLORS: Record<string, string> = {
   '/soccer':     '#4fc3f7',
@@ -296,6 +314,7 @@ function ClickBallMover({
   journeySpeedRef,
   ballPosRef,
   onAdvanceState,
+  currentState,
 }: {
   groupRef: React.RefObject<THREE.Group | null>
   isEnteringRef: React.RefObject<boolean>
@@ -303,12 +322,14 @@ function ClickBallMover({
   journeySpeedRef: React.RefObject<number>
   ballPosRef?: RefObject<THREE.Vector3>
   onAdvanceState?: () => void
+  currentState?: JourneyState
 }) {
   const { pathname } = useLocation()
   const { setActiveHotspotId, markVisited, showFinale, forceTarget } = useSceneContext()
   const curveRef = useRef<THREE.QuadraticBezierCurve3 | null>(null)
   const progressRef = useRef({ t: 0 })
   const prevPosRef = useRef(new THREE.Vector3(0, -1.2, 0))
+  const currentYRef = useRef(-1.2)
   const prevActiveRef = useRef<string | null>(null)
   const [ripples, setRipples] = useState<{ id: number; x: number; z: number }[]>([])
   const rippleId = useRef(0)
@@ -351,6 +372,7 @@ function ClickBallMover({
     curveRef.current = null
     progressRef.current.t = 0
     prevPosRef.current.set(0, -1.2, 0)
+    currentYRef.current = -1.2
     if (groupRef.current) {
       groupRef.current.position.set(0, -1.2, 0)
     }
@@ -364,8 +386,10 @@ function ClickBallMover({
     const current = groupRef.current.position
     if (curveRef.current) {
       curveRef.current.getPoint(progressRef.current.t, current)
-      current.y = -1.2
     }
+    const targetY = currentState ? (STATE_Y[currentState] ?? -1.2) : -1.2
+    currentYRef.current = THREE.MathUtils.lerp(currentYRef.current, targetY, 0.04)
+    current.y = currentYRef.current
 
     // カメラ追従用にボール位置を共有 ref へ書き込む
     if (ballPosRef) ballPosRef.current.copy(current)
@@ -528,6 +552,7 @@ function CrystalRoot({
           journeySpeedRef={journeySpeedRef}
           ballPosRef={ballPosRef}
           onAdvanceState={onAdvanceState}
+          currentState={currentState}
         />
       )}
     </>
