@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { MathUtils } from 'three'
+import type { JourneyState } from '../../hooks/useSceneStateMachine'
 
 interface OrbData {
   id: number
@@ -15,6 +16,16 @@ interface OrbData {
 }
 
 const ORB_COLORS = ['#f97316', '#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#fbbf24', '#ffffff']
+
+const STATE_ROTATION: Partial<Record<JourneyState, { axisX: number; axisZ: number; speed: number }>> = {
+  dribble_1:  { axisX: -1, axisZ:  0, speed: 2.0 },
+  cut_1:      { axisX: -1, axisZ:  1, speed: 1.8 },
+  cut_2:      { axisX: -1, axisZ: -1, speed: 1.8 },
+  long_pass:  { axisX: -1, axisZ:  0, speed: 3.0 },
+  shoot_rise: { axisX:  1, axisZ:  0, speed: 1.5 },
+  through:    { axisX:  1, axisZ:  0, speed: 2.5 },
+  spike:      { axisX: -1, axisZ:  0, speed: 4.0 },
+}
 const ORB_BIRTH_DURATION = 1.4  // 中心から軌道半径まで展開する秒数
 const DRAG_DAMPING = 0.93       // ohzi.io 調査値（指数減衰係数）
 
@@ -52,9 +63,10 @@ interface CrystalProps {
   mode?: 'interactive' | 'journey' | 'click-drive'
   journeySpeedRef?: React.RefObject<number>
   journeyRotRef?: React.RefObject<{ dirX: number; dirZ: number; rotSpeed: number }>
+  currentState?: JourneyState
 }
 
-export default function Crystal({ mode = 'interactive', journeySpeedRef, journeyRotRef }: CrystalProps) {
+export default function Crystal({ mode = 'interactive', journeySpeedRef, journeyRotRef, currentState }: CrystalProps) {
   const floatRef   = useRef<THREE.Group>(null)
   const shellRef   = useRef<THREE.Mesh>(null)
   const coreGrpRef = useRef<THREE.Group>(null)
@@ -151,12 +163,20 @@ export default function Crystal({ mode = 'interactive', journeySpeedRef, journey
     if (shellRef.current) {
       if (!isDragging.current) {
         if (mode === 'journey' || mode === 'click-drive') {
-          // 移動方向ベースのローリング回転
-          const rot = journeyRotRef?.current ?? { dirX: 0, dirZ: -1, rotSpeed: 1 }
-          const animSpeed = journeySpeedRef?.current ?? 1
-          const base = delta * animSpeed * 0.35
-          shellRef.current.rotation.x -= rot.dirZ * rot.rotSpeed * base
-          shellRef.current.rotation.z -= rot.dirX * rot.rotSpeed * base
+          const stateRot = mode === 'click-drive' && currentState ? STATE_ROTATION[currentState] : undefined
+          if (stateRot) {
+            // 状態別回転（axisX/axisZ/speed で指定）
+            const base = delta * stateRot.speed
+            shellRef.current.rotation.x += stateRot.axisX * base
+            shellRef.current.rotation.z += stateRot.axisZ * base
+          } else {
+            // 移動方向ベースのローリング回転（idle/未定義状態）
+            const rot = journeyRotRef?.current ?? { dirX: 0, dirZ: -1, rotSpeed: 1 }
+            const animSpeed = journeySpeedRef?.current ?? 1
+            const base = delta * animSpeed * 0.35
+            shellRef.current.rotation.x -= rot.dirZ * rot.rotSpeed * base
+            shellRef.current.rotation.z -= rot.dirX * rot.rotSpeed * base
+          }
         } else {
           shellRef.current.rotation.y += delta * 0.18 + angularVel.current.y
           shellRef.current.rotation.x = MathUtils.lerp(
