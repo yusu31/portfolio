@@ -8,20 +8,23 @@ const CONTACTS = [
     value: '3.fortschritt@gmail.com',
     href: 'mailto:3.fortschritt@gmail.com',
     color: '#ff6b2b',
+    hoverColor: '#ff6b2b',
     icon: '✉',
   },
   {
     label: 'GitHub',
     value: 'github.com/yusu31',
     href: 'https://github.com/yusu31',
-    color: '#ce93d8',
+    color: 'rgba(255,255,255,0.9)',
+    hoverColor: '#ce93d8',
     icon: '⌥',
   },
   {
     label: 'Resume',
     value: 'PDF をダウンロード',
     href: '#',
-    color: '#69f0ae',
+    color: 'rgba(255,255,255,0.9)',
+    hoverColor: '#69f0ae',
     icon: '↓',
   },
 ] as const
@@ -132,7 +135,7 @@ export default function ContactScene() {
           maxWidth: '420px',
         }}
       >
-        {CONTACTS.map(({ label, value, href, color, icon }) => (
+        {CONTACTS.map(({ label, value, href, color, hoverColor, icon }) => (
           <a
             key={label}
             href={href}
@@ -150,14 +153,18 @@ export default function ContactScene() {
               transition: 'background 0.2s, border-color 0.2s, transform 0.2s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = `${color}10`
-              e.currentTarget.style.borderColor = `${color}35`
+              e.currentTarget.style.background = `${hoverColor}10`
+              e.currentTarget.style.borderColor = `${hoverColor}35`
               e.currentTarget.style.transform = 'translateX(4px)'
+              const valueEl = e.currentTarget.querySelector('[data-value]') as HTMLElement | null
+              if (valueEl) valueEl.style.color = hoverColor
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
               e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
               e.currentTarget.style.transform = 'translateX(0)'
+              const valueEl = e.currentTarget.querySelector('[data-value]') as HTMLElement | null
+              if (valueEl) valueEl.style.color = color
             }}
           >
             {/* アイコン枠 */}
@@ -179,7 +186,7 @@ export default function ContactScene() {
               <p style={{ margin: 0, fontSize: '0.58rem', color: '#444', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
                 {label}
               </p>
-              <p style={{ margin: 0, fontSize: '0.82rem', color, fontWeight: 600 }}>
+              <p data-value style={{ margin: 0, fontSize: '0.82rem', color, fontWeight: 600, transition: 'color 0.2s' }}>
                 {value}
               </p>
             </div>

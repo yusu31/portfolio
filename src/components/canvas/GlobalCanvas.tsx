@@ -405,13 +405,16 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
     if (!grpRef.current || isHome) return
     isEnteringRef.current = true
     gsap.killTweensOf(grpRef.current.position)
+    const isContact = pathname === '/contact'
+    const targetX = isContact ? 2.5 : 0
+    const targetY = isContact ? 0.3 : -1.2
     if (ballEntry) {
       grpRef.current.position.set(ballEntry.x, ballEntry.y, ballEntry.z)
     } else {
-      grpRef.current.position.set(0, -1.2, 0)
+      grpRef.current.position.set(isContact ? 4 : 0, targetY, 0)
     }
     gsap.to(grpRef.current.position, {
-      x: 0, y: -1.2, z: 0,
+      x: targetX, y: targetY, z: 0,
       duration: 0.8, ease: 'power2.out',
       onComplete: () => { isEnteringRef.current = false },
     })
@@ -422,7 +425,7 @@ function CrystalRoot({ isHome, pathname, ballEntry }: { isHome: boolean; pathnam
       <group
         ref={grpRef}
         position={[0, isHome ? -0.4 : -1.0, 0]}
-        scale={isHome ? 1 : 0.45}
+        scale={isHome ? 1 : pathname === '/contact' ? 0.6 : 0.45}
       >
         <Crystal
           mode={isHome ? 'interactive' : 'click-drive'}
