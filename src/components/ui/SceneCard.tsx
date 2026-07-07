@@ -57,7 +57,7 @@ export default function SceneCard({
         fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
         opacity: 0,
         transform: 'translateY(20px)',
-        pointerEvents: visible ? 'auto' : 'none',
+        pointerEvents: 'none',
         zIndex: 20,
       }}
     >
@@ -104,6 +104,7 @@ export default function SceneCard({
               color: '#fff',
               background: 'transparent',
               cursor: 'pointer',
+              pointerEvents: 'auto',
             }}
           >
             {exploreLabel}
@@ -120,6 +121,7 @@ export default function SceneCard({
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
+              pointerEvents: 'auto',
             }}
           >
             {nextLabel}
