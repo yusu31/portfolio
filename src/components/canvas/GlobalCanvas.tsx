@@ -111,6 +111,8 @@ function ClickRipple({ x, z, color, onDone }: { x: number; z: number; color: str
   )
 }
 
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 // 縦画面では水平視野の欠けを垂直FOV拡大で部分補償する（上限78°）
 const BASE_ASPECT = 16 / 9
 function responsiveFov(baseFov: number, aspect: number): number {
@@ -164,7 +166,7 @@ function HotspotMarker({ hotspot, isActive, isVisited }: {
 
   useFrame((state) => {
     if (!meshRef.current) return
-    const pulse = 1 + Math.sin(state.clock.elapsedTime * 2.5) * 0.15
+    const pulse = REDUCED_MOTION ? 1 : 1 + Math.sin(state.clock.elapsedTime * 2.5) * 0.15
     meshRef.current.scale.setScalar(isActive ? pulse * 1.4 : pulse)
     const mat = meshRef.current.material as THREE.MeshStandardMaterial
     mat.emissiveIntensity = isActive ? 6 : (isVisited ? 0.8 : 3)
@@ -346,7 +348,7 @@ function ClickBallMover({
     const x = THREE.MathUtils.clamp(e.point.x, bounds.xMin, bounds.xMax)
     const z = THREE.MathUtils.clamp(e.point.z, bounds.zMin, bounds.zMax)
     // 受理されたクリックだけに波紋を出す（ガードで無視した操作に偽の手応えを与えない）
-    setRipples(prev => [...prev.slice(-5), { id: rippleId.current++, x, z }])
+    if (!REDUCED_MOTION) setRipples(prev => [...prev.slice(-5), { id: rippleId.current++, x, z }])
     startMove(x, z)
   }
 
