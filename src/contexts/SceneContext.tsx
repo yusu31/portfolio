@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 
 interface SceneContextValue {
   activeHotspotId: string | null
@@ -51,6 +51,18 @@ export function SceneContextProvider({ children }: { children: ReactNode }) {
     setFinaleHotspotCount(0)
     setForceTarget(null)
   }, [])
+
+  // DEV 環境のみ: E2E テスト用ヘルパーを window に公開
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    ;(window as Record<string, unknown>).__e2eSetHotspot = (id: string) => {
+      setActiveHotspotId(id)
+      markVisited(id)
+    }
+    return () => {
+      delete (window as Record<string, unknown>).__e2eSetHotspot
+    }
+  }, [setActiveHotspotId, markVisited])
 
   return (
     <SceneContext.Provider value={{

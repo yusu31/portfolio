@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
@@ -11,6 +11,8 @@ export default function SoccerScene() {
   const goScene = useNavigate()
   const { activeHotspotId, visitedHotspotIds, showFinale, setFinaleHotspotCount, setForceTarget, resetScene } = useSceneContext()
   const [panelCategoryId, setPanelCategoryId] = useState<string | null>(null)
+  const finaleFiredRef = useRef(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     warpIn()
@@ -19,15 +21,24 @@ export default function SoccerScene() {
   }, [setFinaleHotspotCount, resetScene])
 
   // finale に近接したらロングパス演出 → 次シーンへ
+  // finaleFiredRef で一度だけ発火させる（ボールが zone を外れて activeHotspotId がリセットされても
+  // clearTimeout されないようにするため、タイマーは timerRef で管理しアンマウント時のみ解除）
   useEffect(() => {
-    if (showFinale && activeHotspotId === 'finale') {
+    if (showFinale && activeHotspotId === 'finale' && !finaleFiredRef.current) {
+      finaleFiredRef.current = true
       setForceTarget([0, 8, -22])
-      const timer = setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         warpNavigate(() => goScene('/basketball'), '#ff8c00')
       }, 1600)
-      return () => clearTimeout(timer)
     }
   }, [showFinale, activeHotspotId, setForceTarget, goScene])
+
+  // アンマウント時のみタイマー解除（シーン遷移前に中断された場合の cleanup）
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   const activeHotspot = SOCCER_HOTSPOTS_3D.find(h => h.id === activeHotspotId) ?? null
   const activeCategory = PROJECT_CATEGORIES.find(c => c.id === activeHotspot?.categoryId)

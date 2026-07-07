@@ -42,6 +42,8 @@ export default function SceneCard({
   return (
     <div
       ref={ref}
+      data-testid="scene-card"
+      data-visible={visible ? 'true' : 'false'}
       style={{
         position: 'fixed',
         bottom: 'clamp(2rem, 6vh, 4rem)',
