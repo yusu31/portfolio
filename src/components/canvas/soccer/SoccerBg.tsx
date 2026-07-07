@@ -1,5 +1,5 @@
 // src/components/canvas/soccer/SoccerBg.tsx
-import { useMemo, useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
 import * as THREE from 'three'
@@ -65,25 +65,69 @@ function GrassFloor() {
   )
 }
 
-// ゴールフレーム（Bloomの主役 — emissiveを大幅強化）
+// ゴールフレーム（チョーク化 — 実フレームの文法）
+const GOAL_MAT = { color: '#e8f0e8', emissive: '#e8f0e8', emissiveIntensity: 0.18 } as const
+
+function GoalNet() {
+  const cols = 8
+  const rows = 5
+  const w = 7.32
+  const h = 2.44
+  const d = 1.5
+  const lines: React.ReactElement[] = []
+  // 縦ライン（幅方向）
+  for (let i = 0; i <= cols; i++) {
+    const x = -w / 2 + (i / cols) * w
+    lines.push(
+      <mesh key={`v${i}`} position={[x, h / 2, -d / 2]}>
+        <boxGeometry args={[0.01, h, 0.01]} />
+        <meshStandardMaterial color="#cccccc" transparent opacity={0.35} />
+      </mesh>
+    )
+  }
+  // 横ライン（高さ方向）
+  for (let i = 0; i <= rows; i++) {
+    const y = (i / rows) * h
+    lines.push(
+      <mesh key={`h${i}`} position={[0, y, -d / 2]}>
+        <boxGeometry args={[w, 0.01, 0.01]} />
+        <meshStandardMaterial color="#cccccc" transparent opacity={0.35} />
+      </mesh>
+    )
+  }
+  // 奥ライン（奥行き方向・縦）
+  for (let i = 0; i <= cols; i++) {
+    const x = -w / 2 + (i / cols) * w
+    lines.push(
+      <mesh key={`dv${i}`} position={[x, h / 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <boxGeometry args={[0.01, d, 0.01]} />
+        <meshStandardMaterial color="#cccccc" transparent opacity={0.25} />
+      </mesh>
+    )
+  }
+  return <group>{lines}</group>
+}
+
 function GoalFrame() {
   return (
     <group position={[0, -0.2, -20]}>
       {/* 左ポスト */}
       <mesh position={[-3.66, 1.22, 0]} castShadow>
         <cylinderGeometry args={[0.06, 0.06, 2.44, 8]} />
-        <meshStandardMaterial color="white" emissive="white" emissiveIntensity={3.5} />
+        <meshStandardMaterial {...GOAL_MAT} />
       </mesh>
       {/* 右ポスト */}
       <mesh position={[3.66, 1.22, 0]} castShadow>
         <cylinderGeometry args={[0.06, 0.06, 2.44, 8]} />
-        <meshStandardMaterial color="white" emissive="white" emissiveIntensity={3.5} />
+        <meshStandardMaterial {...GOAL_MAT} />
       </mesh>
       {/* クロスバー */}
       <mesh position={[0, 2.44, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.06, 0.06, 7.32, 8]} />
-        <meshStandardMaterial color="white" emissive="white" emissiveIntensity={3.5} />
+        <meshStandardMaterial {...GOAL_MAT} />
       </mesh>
+      {/* 簡易ネット */}
+      <GoalNet />
     </group>
   )
 }
