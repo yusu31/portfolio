@@ -39,6 +39,11 @@ function getFlashEl(): HTMLElement {
  * @param flashColor 行き先シーンのアクセントカラー（「次の世界の光」をイメージ）
  */
 export function warpNavigate(navigate: () => void, flashColor = '#ffffff') {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    navigate()
+    return
+  }
+
   const tl = gsap.timeline()
   const proxy = { blur: 0, opacity: 1 }
 
@@ -70,6 +75,13 @@ export function warpNavigate(navigate: () => void, flashColor = '#ffffff') {
  * DOM を即座にブラー状態にセットし、FOV と共に収束させる。
  */
 export function warpIn() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const el = getUIEl()
+    if (el) { el.style.filter = ''; el.style.opacity = '1' }
+    getFlashEl().style.opacity = '0'
+    return
+  }
+
   const proxy = { blur: 14, opacity: 0.1 }
   const flash = getFlashEl()
 
