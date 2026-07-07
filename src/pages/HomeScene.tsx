@@ -3,11 +3,41 @@ import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { SplitText } from 'gsap/SplitText'
 
+// inline SVG アイコン（OS依存絵文字の代替・線画スタイル）
+const IconSoccer = ({ color }: { color: string }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+  </svg>
+)
+
+const IconBasketball = ({ color }: { color: string }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M4.93 4.93 19.07 19.07M19.07 4.93 4.93 19.07" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+)
+
+const IconVolleyball = ({ color }: { color: string }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2C6.5 7 6.5 17 12 22M12 2c5.5 5 5.5 15 0 20M2 12h20" />
+  </svg>
+)
+
+const IconMail = ({ color }: { color: string }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+  </svg>
+)
+
 const NAV_GRID = [
-  { path: '/soccer',     icon: '⚽', label: 'Projects', desc: '作ったもの',    color: '#4fc3f7' },
-  { path: '/basketball', icon: '🏀', label: 'Skills',   desc: 'できること',   color: '#ffb300' },
-  { path: '/volleyball', icon: '🏐', label: 'About',    desc: '自分について',  color: '#69f0ae' },
-  { path: '/contact',    icon: '✉',  label: 'Contact',  desc: '連絡先',       color: '#ce93d8' },
+  { path: '/soccer',     Icon: IconSoccer,     label: 'Projects', desc: '作ったもの',    color: '#4fc3f7' },
+  { path: '/basketball', Icon: IconBasketball, label: 'Skills',   desc: 'できること',   color: '#ffb300' },
+  { path: '/volleyball', Icon: IconVolleyball, label: 'About',    desc: '自分について',  color: '#69f0ae' },
+  { path: '/contact',    Icon: IconMail,       label: 'Contact',  desc: '連絡先',       color: '#ce93d8' },
 ] as const
 
 type NavPath = typeof NAV_GRID[number]['path']
@@ -191,7 +221,7 @@ export default function HomeScene() {
               margin: '0 auto',
             }}
           >
-            {NAV_GRID.map(({ path, icon, label, desc, color }) => (
+            {NAV_GRID.map(({ path, Icon, label, desc, color }) => (
               <button
                 key={path}
                 onClick={() => navigate(path)}
@@ -212,13 +242,13 @@ export default function HomeScene() {
               >
                 <span
                   style={{
-                    fontSize: '1.2rem',
-                    display: 'inline-block',
-                    transform: hoveredIcon === path ? 'scale(1.2)' : 'scale(1)',
+                    display: 'inline-flex',
+                    transform: hoveredIcon === path ? 'scale(1.15)' : 'scale(1)',
                     transition: 'transform 0.2s ease',
+                    opacity: hoveredIcon === path ? 1 : 0.6,
                   }}
                 >
-                  {icon}
+                  <Icon color={color} />
                 </span>
                 <span style={{ fontSize: '0.65rem', fontWeight: 700, color, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{label}</span>
                 <span
