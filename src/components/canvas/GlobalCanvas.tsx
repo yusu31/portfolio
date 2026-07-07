@@ -1,8 +1,9 @@
 // src/components/canvas/GlobalCanvas.tsx
-import { Suspense, useRef, useEffect, useCallback, useContext, useState } from 'react'
+import { Suspense, useRef, useEffect, useCallback, useState } from 'react'
 import type { RefObject } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useLocation } from 'react-router-dom'
+import { Html } from '@react-three/drei'
+import { useLocation, useNavigate } from 'react-router-dom'
 import type { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import gsap from 'gsap'
@@ -12,14 +13,12 @@ import Effects from './Effects'
 import SoccerBg from './soccer/SoccerBg'
 import BasketballBg from './basketball/BasketballBg'
 import VolleyballBg from './volleyball/VolleyballBg'
-import { useSceneContext } from '../../contexts/SceneContext'
-import { fovRef } from '../../hooks/useSceneTransition'
-import { SOCCER_HOTSPOTS_3D, SOCCER_FINALE } from '../../data/hotspots/soccer-hotspots'
-import { BASKETBALL_HOTSPOTS_3D, BASKETBALL_FINALE } from '../../data/hotspots/basketball-hotspots'
-import { VOLLEYBALL_HOTSPOTS_3D, VOLLEYBALL_FINALE } from '../../data/hotspots/volleyball-hotspots'
-import type { SceneHotspot } from '../../data/hotspots/types'
+import { fovRef, warpNavigate } from '../../hooks/useSceneTransition'
 import { useSceneStateMachine } from '../../hooks/useSceneStateMachine'
 import type { JourneyState } from '../../hooks/useSceneStateMachine'
+import { PROJECT_CATEGORIES } from '../../data/projects'
+import { SKILL_CATEGORIES } from '../../data/skills'
+import { ABOUT_POINTS } from '../../data/about'
 
 const BG_COLORS: Record<string, string> = {
   '/': '#0a0a0f',
@@ -51,17 +50,26 @@ const BOUNDS: Record<string, { xMin: number; xMax: number; zMin: number; zMax: n
   '/volleyball': { xMin: -4, xMax: 4, zMin: -2,  zMax: 3  },
 }
 
-// シーン別のホットスポットリスト
-const HOTSPOT_MAP: Record<string, SceneHotspot[]> = {
-  '/soccer':     SOCCER_HOTSPOTS_3D,
-  '/basketball': BASKETBALL_HOTSPOTS_3D,
-  '/volleyball': VOLLEYBALL_HOTSPOTS_3D,
+// 状態→カードデータ対応
+type CardDef = { type: 'project' | 'skill' | 'about'; categoryId: string; label: string; color: string }
+const STATE_CARD_DATA: Partial<Record<JourneyState, CardDef>> = {
+  dribble_1:  { type: 'project', categoryId: 'webapp',         label: 'Webアプリ',       color: '#4fc3f7' },
+  cut_1:      { type: 'project', categoryId: 'game',           label: 'ゲーム',           color: '#ffb300' },
+  cut_2:      { type: 'project', categoryId: 'website',        label: 'Webサイト / LP',  color: '#69f0ae' },
+  long_pass:  { type: 'project', categoryId: 'tool',           label: 'ツール / 自動化',  color: '#ce93d8' },
+  shoot_rise: { type: 'skill',   categoryId: 'frontend',       label: 'Frontend',        color: '#4fc3f7' },
+  apex:       { type: 'skill',   categoryId: 'backend',        label: 'Backend',         color: '#ffb300' },
+  drop:       { type: 'skill',   categoryId: 'infrastructure', label: 'Infrastructure',  color: '#69f0ae' },
+  receive:    { type: 'about',   categoryId: 'background',     label: 'バックグラウンド', color: '#69f0ae' },
+  toss:       { type: 'about',   categoryId: 'style',          label: '仕事スタイル',     color: '#a0ffd0' },
+  spike:      { type: 'about',   categoryId: 'seeking',        label: '求める環境',       color: '#69f0ae' },
 }
 
-const FINALE_MAP: Record<string, SceneHotspot> = {
-  '/soccer':     SOCCER_FINALE,
-  '/basketball': BASKETBALL_FINALE,
-  '/volleyball': VOLLEYBALL_FINALE,
+// 終端状態 → 遷移先
+const NEXT_SCENE: Partial<Record<JourneyState, string>> = {
+  long_pass: '/basketball',
+  through:   '/volleyball',
+  spike:     '/contact',
 }
 
 // 状態別ボール Y 座標（接地 = -1.2）
@@ -235,74 +243,89 @@ function BallFollowCameraRig({
   return null
 }
 
-// ホットスポット発光球（フィールド上に配置）
-function HotspotMarker({ hotspot, isActive, isVisited }: {
-  hotspot: SceneHotspot
-  isActive: boolean
-  isVisited: boolean
-}) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const ringRef = useRef<THREE.Mesh>(null)
+// クリックごとにボールの奥・上に浮かぶ 3D カード
+function JourneyCardBillboard({ currentState }: { currentState?: JourneyState }) {
+  const [visible, setVisible] = useState(false)
+  const prevStateRef = useRef<JourneyState | undefined>(undefined)
 
-  useFrame((state) => {
-    if (!meshRef.current) return
-    const pulse = REDUCED_MOTION ? 1 : 1 + Math.sin(state.clock.elapsedTime * 2.5) * 0.15
-    meshRef.current.scale.setScalar(isActive ? pulse * 1.4 : pulse)
-    const mat = meshRef.current.material as THREE.MeshStandardMaterial
-    mat.emissiveIntensity = isActive ? 6 : (isVisited ? 0.8 : 3)
-    mat.opacity = isVisited ? 0.35 : 0.9
-  })
+  useEffect(() => {
+    if (currentState === prevStateRef.current) return
+    prevStateRef.current = currentState
+    setVisible(false)
+    if (!currentState || !STATE_CARD_DATA[currentState]) return
+    const t = setTimeout(() => setVisible(true), 350)
+    return () => clearTimeout(t)
+  }, [currentState])
 
-  return (
-    <group position={hotspot.pos}>
-      <mesh ref={meshRef}>
-        <sphereGeometry args={[0.18, 16, 16]} />
-        <meshStandardMaterial
-          color={hotspot.color}
-          emissive={hotspot.color}
-          emissiveIntensity={3}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
-      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.28, 0.36, 32]} />
-        <meshStandardMaterial
-          color={hotspot.color}
-          emissive={hotspot.color}
-          emissiveIntensity={1.5}
-          transparent
-          opacity={isVisited ? 0.15 : 0.3}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-    </group>
-  )
-}
+  if (!currentState) return null
+  const cardDef = STATE_CARD_DATA[currentState]
+  if (!cardDef) return null
 
-function HotspotMarkers({ pathname }: { pathname: string }) {
-  const { activeHotspotId, visitedHotspotIds, showFinale } = useSceneContext()
-  const hotspots = HOTSPOT_MAP[pathname] ?? []
-  const finale = FINALE_MAP[pathname]
+  const projCat = cardDef.type === 'project' ? PROJECT_CATEGORIES.find(c => c.id === cardDef.categoryId) : null
+  const skillCat = cardDef.type === 'skill'   ? SKILL_CATEGORIES.find(c => c.id === cardDef.categoryId)   : null
+  const aboutPt  = cardDef.type === 'about'   ? ABOUT_POINTS.find(p => p.id === cardDef.categoryId)       : null
+
+  const description = projCat
+    ? projCat.projects.map(p => p.name).join(' / ')
+    : skillCat
+    ? skillCat.skills.slice(0, 3).map(s => s.name).join(' · ')
+    : aboutPt
+    ? aboutPt.body.slice(0, 55) + '…'
+    : ''
+
+  const onExplore = () => {
+    window.dispatchEvent(new CustomEvent('journey-explore', {
+      detail: { type: cardDef.type, categoryId: cardDef.categoryId },
+    }))
+  }
 
   return (
-    <>
-      {hotspots.map(hs => (
-        <HotspotMarker
-          key={hs.id}
-          hotspot={hs}
-          isActive={activeHotspotId === hs.id}
-          isVisited={visitedHotspotIds.has(hs.id)}
-        />
-      ))}
-      {finale && showFinale && (
-        <HotspotMarker
-          hotspot={finale}
-          isActive={activeHotspotId === 'finale'}
-          isVisited={false}
-        />
-      )}
-    </>
+    <Html position={[0, 2.2, -2.5]} center transform>
+      <div style={{
+        width: '240px',
+        background: 'rgba(8,8,18,0.88)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        border: `1px solid ${cardDef.color}55`,
+        borderRadius: '14px',
+        padding: '1rem 1.1rem',
+        fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
+        boxShadow: `0 0 28px ${cardDef.color}20, 0 8px 24px rgba(0,0,0,0.5)`,
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(-6px)',
+        transition: 'opacity 0.35s ease, transform 0.35s ease',
+        pointerEvents: visible ? 'auto' : 'none',
+        userSelect: 'none',
+      }}>
+        <p style={{
+          fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.18em',
+          textTransform: 'uppercase', color: cardDef.color, margin: '0 0 0.4rem',
+        }}>
+          {cardDef.type === 'project' ? 'PROJECTS' : cardDef.type === 'skill' ? 'SKILLS' : 'ABOUT'}
+        </p>
+        <h3 style={{
+          fontSize: '0.95rem', fontWeight: 800, color: '#fff',
+          margin: '0 0 0.45rem', letterSpacing: '-0.02em', lineHeight: 1.2,
+        }}>
+          {cardDef.label}
+        </h3>
+        <p style={{
+          fontSize: '0.62rem', color: 'rgba(255,255,255,0.48)',
+          lineHeight: 1.6, margin: '0 0 0.8rem',
+        }}>
+          {description}
+        </p>
+        <button onClick={onExplore} style={{
+          fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.12em',
+          padding: '0.35rem 0.85rem', borderRadius: '999px',
+          border: `1px solid ${cardDef.color}88`,
+          color: cardDef.color, background: `${cardDef.color}12`,
+          cursor: 'pointer',
+        }}>
+          EXPLORE →
+        </button>
+      </div>
+    </Html>
   )
 }
 
@@ -325,12 +348,10 @@ function ClickBallMover({
   currentState?: JourneyState
 }) {
   const { pathname } = useLocation()
-  const { setActiveHotspotId, markVisited, showFinale, forceTarget } = useSceneContext()
   const curveRef = useRef<THREE.QuadraticBezierCurve3 | null>(null)
   const progressRef = useRef({ t: 0 })
   const prevPosRef = useRef(new THREE.Vector3(0, -1.2, 0))
   const currentYRef = useRef(-1.2)
-  const prevActiveRef = useRef<string | null>(null)
   const [ripples, setRipples] = useState<{ id: number; x: number; z: number }[]>([])
   const rippleId = useRef(0)
 
@@ -358,13 +379,6 @@ function ClickBallMover({
       ease: 'power2.out',
     })
   }, [groupRef, journeyRotRef])
-
-  // forceTarget（finale 演出）も同じ曲線移動を使う
-  useEffect(() => {
-    if (forceTarget) {
-      startMove(forceTarget[0], forceTarget[2])
-    }
-  }, [forceTarget, startMove])
 
   // シーン切替時にボール位置をリセット
   useEffect(() => {
@@ -406,29 +420,6 @@ function ClickBallMover({
       journeySpeedRef.current = 0
     }
     prevPosRef.current.copy(current)
-
-    // ホットスポット近接検知
-    const hotspots = HOTSPOT_MAP[pathname] ?? []
-    const finale = FINALE_MAP[pathname]
-    const allHotspots = showFinale && finale ? [...hotspots, finale] : hotspots
-
-    let nearest: string | null = null
-    let nearestDist = Infinity
-    for (const hs of allHotspots) {
-      const d = Math.sqrt(
-        Math.pow(current.x - hs.pos[0], 2) + Math.pow(current.z - hs.pos[2], 2)
-      )
-      if (d < hs.radius && d < nearestDist) {
-        nearest = hs.id
-        nearestDist = d
-      }
-    }
-
-    if (nearest !== prevActiveRef.current) {
-      prevActiveRef.current = nearest
-      setActiveHotspotId(nearest)
-      if (nearest && nearest !== 'finale') markVisited(nearest)
-    }
   })
 
   const handleFieldClick = (e: ThreeEvent<PointerEvent>) => {
@@ -543,6 +534,9 @@ function CrystalRoot({
           journeyRotRef={journeyRotRef}
           currentState={currentState}
         />
+        {!isHome && pathname !== '/contact' && (
+          <JourneyCardBillboard currentState={currentState} />
+        )}
       </group>
       {!isHome && (
         <ClickBallMover
@@ -578,12 +572,32 @@ const JOURNEY_SCENES = new Set(['/soccer', '/basketball', '/volleyball'])
 
 export default function GlobalCanvas() {
   const { pathname, state } = useLocation()
+  const navigate = useNavigate()
   const isHome = pathname === '/'
   const isJourney = JOURNEY_SCENES.has(pathname)
   const ballEntry = (state as { ballEntry?: BallEntry } | null)?.ballEntry
 
   const ballPosRef = useRef(new THREE.Vector3(0, -1.2, 0))
   const { currentState, advance } = useSceneStateMachine()
+  const terminalFiredRef = useRef<JourneyState | null>(null)
+
+  // pathname 変更時に終端ガードをリセット
+  useEffect(() => { terminalFiredRef.current = null }, [pathname])
+
+  // 終端状態で自動シーン遷移
+  useEffect(() => {
+    if (!isJourney) return
+    const next = NEXT_SCENE[currentState]
+    if (!next || terminalFiredRef.current === currentState) return
+    terminalFiredRef.current = currentState
+    const hasCard = !!STATE_CARD_DATA[currentState]
+    const delay = hasCard ? 3000 : 1500
+    const color = currentState === 'long_pass' ? '#ff8c00'
+                : currentState === 'through'   ? '#00e5ff'
+                : '#b0aaff'
+    const t = setTimeout(() => warpNavigate(() => navigate(next), color), delay)
+    return () => clearTimeout(t)
+  }, [currentState, isJourney, navigate])
 
   return (
     <Canvas
@@ -612,7 +626,6 @@ export default function GlobalCanvas() {
           ? <BallFollowCameraRig ballPosRef={ballPosRef} currentState={currentState} pathname={pathname} />
           : <FixedCameraRig />
         }
-        {!isHome && pathname !== '/contact' && <HotspotMarkers pathname={pathname} />}
         <Effects />
       </Suspense>
     </Canvas>

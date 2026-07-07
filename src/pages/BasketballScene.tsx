@@ -1,37 +1,23 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import SceneCard from '../components/ui/SceneCard'
 import GlassPanel from '../components/ui/GlassPanel'
 import { SKILL_CATEGORIES } from '../data/skills'
-import { BASKETBALL_HOTSPOTS_3D } from '../data/hotspots/basketball-hotspots'
-import { useSceneContext } from '../contexts/SceneContext'
-import { warpIn, warpNavigate } from '../hooks/useSceneTransition'
+import { warpIn } from '../hooks/useSceneTransition'
 
 export default function BasketballScene() {
-  const goScene = useNavigate()
-  const { activeHotspotId, visitedHotspotIds, showFinale, setFinaleHotspotCount, setForceTarget, resetScene } = useSceneContext()
   const [panelSkillId, setPanelSkillId] = useState<string | null>(null)
 
   useEffect(() => {
     warpIn()
-    setFinaleHotspotCount(BASKETBALL_HOTSPOTS_3D.length)
-    return () => resetScene()
-  }, [setFinaleHotspotCount, resetScene])
-
-  // finale に近接したらシュート演出 → 次シーンへ
-  useEffect(() => {
-    if (showFinale && activeHotspotId === 'finale') {
-      setForceTarget([0, 5, -9])
-      const timer = setTimeout(() => {
-        warpNavigate(() => goScene('/volleyball'), '#69f0ae')
-      }, 1600)
-      return () => clearTimeout(timer)
+    const onExplore = (e: Event) => {
+      const { type, categoryId } = (e as CustomEvent<{ type: string; categoryId: string }>).detail
+      if (type === 'skill') setPanelSkillId(categoryId)
     }
-  }, [showFinale, activeHotspotId, setForceTarget, goScene])
+    window.addEventListener('journey-explore', onExplore)
+    return () => window.removeEventListener('journey-explore', onExplore)
+  }, [])
 
-  const activeHotspot = BASKETBALL_HOTSPOTS_3D.find(h => h.id === activeHotspotId) ?? null
-  const activeSkillCat = SKILL_CATEGORIES.find(c => c.id === activeHotspot?.categoryId)
-  const allVisited = BASKETBALL_HOTSPOTS_3D.every(h => visitedHotspotIds.has(h.id))
+  const cat = SKILL_CATEGORIES.find(c => c.id === panelSkillId)
+  const LEVEL_LABEL = ['', '学習中', '実務レベル', '得意'] as const
 
   return (
     <div data-scene-ui style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
@@ -40,68 +26,38 @@ export default function BasketballScene() {
         <p style={{ fontSize: '0.7rem', color: '#ffb300', fontWeight: 700, margin: '0.15rem 0 0' }}>Skills — できること</p>
       </div>
 
-      {allVisited && !showFinale && (
-        <div style={{
-          position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)',
-          fontSize: '0.65rem', color: '#ffb300', letterSpacing: '0.12em',
-          padding: '0.5rem 1.2rem', borderRadius: '999px',
-          border: '1px solid rgba(255,179,0,0.3)', background: 'rgba(255,179,0,0.08)',
-          pointerEvents: 'none',
-        }}>
-          ↓ 光の点へ転がせ — SHOOT!
-        </div>
-      )}
-
-      <div style={{ pointerEvents: 'auto' }}>
-        <SceneCard
-          visible={!!activeHotspot}
-          side={activeHotspot?.cardSide ?? 'right'}
-          category="SKILLS"
-          title={activeSkillCat?.label ?? activeHotspot?.label ?? ''}
-          description={activeSkillCat?.description ?? ''}
-          onExplore={activeHotspot ? () => setPanelSkillId(activeHotspot.categoryId) : undefined}
-        />
-      </div>
-
       <div style={{ pointerEvents: 'auto' }}>
         <GlassPanel
           open={!!panelSkillId}
           onClose={() => setPanelSkillId(null)}
-          title={SKILL_CATEGORIES.find(c => c.id === panelSkillId)?.label ?? ''}
+          title={cat?.label ?? ''}
           color="#ffb300"
         >
-          {(() => {
-            const cat = SKILL_CATEGORIES.find(c => c.id === panelSkillId)
-            if (!cat) return null
-            const LEVEL_LABEL = ['', '学習中', '実務レベル', '得意'] as const
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                {cat.skills.map((s) => (
-                  <div key={s.name} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0.55rem 0.7rem',
-                    background: 'rgba(255,255,255,0.04)', borderRadius: '6px',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                  }}>
-                    <span style={{ fontSize: '0.78rem', color: '#ddd', fontWeight: 600 }}>{s.name}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <span style={{ fontSize: '0.52rem', color: '#666', letterSpacing: '0.06em' }}>
-                        {LEVEL_LABEL[s.level]}
-                      </span>
-                      <div style={{ display: 'flex', gap: '3px' }}>
-                        {[1, 2, 3].map((d) => (
-                          <div key={d} style={{
-                            width: '7px', height: '7px', borderRadius: '50%',
-                            background: d <= s.level ? cat.color : 'rgba(255,255,255,0.12)',
-                          }} />
-                        ))}
-                      </div>
-                    </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+            {cat?.skills.map((s) => (
+              <div key={s.name} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0.55rem 0.7rem',
+                background: 'rgba(255,255,255,0.04)', borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}>
+                <span style={{ fontSize: '0.78rem', color: '#ddd', fontWeight: 600 }}>{s.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.52rem', color: '#666', letterSpacing: '0.06em' }}>
+                    {LEVEL_LABEL[s.level]}
+                  </span>
+                  <div style={{ display: 'flex', gap: '3px' }}>
+                    {[1, 2, 3].map((d) => (
+                      <div key={d} style={{
+                        width: '7px', height: '7px', borderRadius: '50%',
+                        background: d <= s.level ? (cat?.color ?? '#ffb300') : 'rgba(255,255,255,0.12)',
+                      }} />
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            )
-          })()}
+            ))}
+          </div>
         </GlassPanel>
       </div>
     </div>
