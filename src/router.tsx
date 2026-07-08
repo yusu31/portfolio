@@ -6,6 +6,7 @@ const SoccerScene = lazy(() => import('./pages/SoccerScene'))
 const BasketballScene = lazy(() => import('./pages/BasketballScene'))
 const VolleyballScene = lazy(() => import('./pages/VolleyballScene'))
 const ContactScene = lazy(() => import('./pages/ContactScene'))
+const ScrollJourneyPoc = lazy(() => import('./pages/ScrollJourneyPoc'))
 
 export default function AppRoutes() {
   return (
@@ -16,6 +17,7 @@ export default function AppRoutes() {
         <Route path="/basketball" element={<BasketballScene />} />
         <Route path="/volleyball" element={<VolleyballScene />} />
         <Route path="/contact" element={<ContactScene />} />
+        <Route path="/scroll-poc" element={<ScrollJourneyPoc />} />
       </Routes>
     </Suspense>
   )
