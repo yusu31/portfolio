@@ -211,6 +211,116 @@ function AboutCard({ visible }: { visible: boolean }) {
   )
 }
 
+// Contact: ジャーニーの終着点なので他と違い画面中央の「静止したまとめ画面」にする(設計書§8)。
+// 内容は既存ContactSceneのトーン(バッジ→見出し→リンク一覧→フッター)を暖色パネルに翻訳
+const CONTACT_LINKS = [
+  { label: 'Email', value: '3.fortschritt@gmail.com', href: 'mailto:3.fortschritt@gmail.com', icon: '✉' },
+  { label: 'GitHub', value: 'github.com/yusu31', href: 'https://github.com/yusu31', icon: '⌥' },
+  // Resume: 履歴書PDF未提供のためリンク無効(public/resume.pdf 配置後に href を通す)
+  { label: 'Resume', value: 'PDF 準備中', href: null, icon: '↓' },
+] as const
+
+function ContactCard({ visible }: { visible: boolean }) {
+  const style: CSSProperties = {
+    ...panelBase,
+    top: '50%',
+    right: 'auto',
+    left: '50%',
+    transform: visible ? 'translate(-50%, -50%)' : 'translate(-50%, calc(-50% + 24px))',
+    width: 'min(440px, 88vw)',
+    padding: '30px 32px',
+    textAlign: 'center',
+    ...(visible ? { opacity: 1, pointerEvents: 'auto' } : null),
+  }
+  return (
+    <div style={style}>
+      <div
+        style={{
+          display: 'inline-block',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.1em',
+          padding: '4px 12px',
+          borderRadius: 999,
+          background: 'rgba(255, 107, 43, 0.16)',
+          border: '1px solid rgba(255, 107, 43, 0.45)',
+          color: '#ffb08a',
+          marginBottom: 14,
+        }}
+      >
+        求職中 — 2026年度 入社希望
+      </div>
+      <div style={{ fontSize: 'clamp(24px, 3vw, 34px)', fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+        Let&apos;s work together<span style={{ color: '#ff6b2b' }}>.</span>
+      </div>
+      <p style={{ fontSize: 12.5, opacity: 0.8, margin: '10px 0 22px' }}>自社開発・スタートアップ・副業など、お気軽にどうぞ。</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, textAlign: 'left' }}>
+        {CONTACT_LINKS.map(({ label, value, href, icon }) => {
+          const rowStyle: CSSProperties = {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '10px 14px',
+            borderRadius: 10,
+            background: 'rgba(255, 240, 230, 0.06)',
+            border: '1px solid rgba(255, 240, 230, 0.14)',
+            textDecoration: 'none',
+            color: '#fff7f0',
+            opacity: href ? 1 : 0.45,
+            cursor: href ? 'pointer' : 'default',
+          }
+          const inner = (
+            <>
+              <span
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: 'rgba(255, 107, 43, 0.14)',
+                  border: '1px solid rgba(255, 107, 43, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 14,
+                  color: '#ffab7d',
+                  flexShrink: 0,
+                }}
+              >
+                {icon}
+              </span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: 'block', fontSize: 9.5, letterSpacing: '0.14em', opacity: 0.6, textTransform: 'uppercase' }}>
+                  {label}
+                </span>
+                <span style={{ display: 'block', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{value}</span>
+              </span>
+              <span style={{ opacity: 0.45, fontSize: 13 }}>{href ? '→' : ''}</span>
+            </>
+          )
+          return href ? (
+            <a
+              key={label}
+              href={href}
+              target={href.startsWith('http') ? '_blank' : undefined}
+              rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+              style={rowStyle}
+            >
+              {inner}
+            </a>
+          ) : (
+            <div key={label} style={rowStyle}>
+              {inner}
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ marginTop: 22, fontSize: 10, letterSpacing: '0.08em', opacity: 0.5 }}>
+        Made with React + Three.js · 2026 · yusu31
+      </div>
+    </div>
+  )
+}
+
 export default function SectionCards({ active }: { active: SectionId | null }) {
   return (
     <>
@@ -218,6 +328,7 @@ export default function SectionCards({ active }: { active: SectionId | null }) {
       <ProjectsCard visible={active === 'projects'} />
       <SkillsCard visible={active === 'skills'} />
       <AboutCard visible={active === 'about'} />
+      <ContactCard visible={active === 'contact'} />
     </>
   )
 }

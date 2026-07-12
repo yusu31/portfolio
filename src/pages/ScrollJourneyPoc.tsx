@@ -1,6 +1,6 @@
-// Phase 3: 3Dスクロールジャーニー本体。
-// Home(クリスタル球) → Projects(サッカー) → Skills(バスケ) → About(バレー) を
-// 1本のスクロール空間として実装(設計書§4〜§8)。Contactセクション統合はPhase 4。
+// Phase 4: 3Dスクロールジャーニー本体。
+// Home(クリスタル球) → Projects(サッカー) → Skills(バスケ) → About(バレー) → Contact(プラザ) を
+// 1本のスクロール空間として実装(設計書§4〜§8)。
 // シーンの色支配: Lempens風の明るいパステル夕景(Phase 2で確立・ユーザー承認済み)。
 import { Suspense, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import CameraRig from '../journey/CameraRig'
 import CrystalBall from '../journey/CrystalBall'
 import SectionCards from '../journey/SectionCards'
-import { SoccerVenue, BasketVenue, VolleyVenue } from '../journey/venues'
+import { SoccerVenue, BasketVenue, VolleyVenue, ContactVenue } from '../journey/venues'
 import { PAGES, type SectionId } from '../journey/sections'
 
 // 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)
@@ -34,11 +34,12 @@ function WarmOrbs() {
   )
 }
 
-// 地面: 全セクションを貫く1枚(乾いたグレージュ・低彩度)
+// 地面: 全セクションを貫く1枚(乾いたグレージュ・低彩度)。
+// 終端カメラ(z≈-55)の正面で切れ目が見えないよう、Contactプラザの奥まで伸ばしてフォグに溶かす
 function Ground() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -22]}>
-      <planeGeometry args={[60, 100]} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -30]}>
+      <planeGeometry args={[60, 130]} />
       <meshStandardMaterial color="#c8a9a3" roughness={0.9} metalness={0} envMapIntensity={0.28} />
     </mesh>
   )
@@ -92,6 +93,18 @@ export default function ScrollJourneyPoc() {
               speed={0.06}
               growth={3}
             />
+            {/* Contactプラザの背景: 終着点の空が寂しくならないよう奥に雲を敷く */}
+            <Cloud
+              seed={4}
+              segments={20}
+              bounds={[16, 3, 6]}
+              volume={10}
+              position={[0, 9, -74]}
+              color="#ffd2be"
+              opacity={0.5}
+              speed={0.05}
+              growth={4}
+            />
           </Clouds>
           <Environment preset="sunset" environmentIntensity={0.7} />
           <ScrollControls pages={PAGES} damping={0.25}>
@@ -102,6 +115,7 @@ export default function ScrollJourneyPoc() {
             <SoccerVenue />
             <BasketVenue />
             <VolleyVenue />
+            <ContactVenue />
           </ScrollControls>
           {/* 明るいシーン用: 閾値0.9で空の暴発を防ぎつつ、太陽と白熱コアの縁を柔らかく滲ませる */}
           <EffectComposer>
