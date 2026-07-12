@@ -7,10 +7,20 @@ import { VENUES } from './sections'
 const TITLE_COLOR = '#fffaf5'
 const CHALK = '#f7f0ea'
 
-function SectionTitle({ text, accent, position }: { text: string; accent: string; position: [number, number, number] }) {
+function SectionTitle({
+  text,
+  accent,
+  position,
+  fontSize = 0.85,
+}: {
+  text: string
+  accent: string
+  position: [number, number, number]
+  fontSize?: number
+}) {
   return (
     <group position={position}>
-      <Text fontSize={0.85} color={TITLE_COLOR} anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor={accent}>
+      <Text fontSize={fontSize} color={TITLE_COLOR} anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor={accent}>
         {text}
       </Text>
     </group>
@@ -70,15 +80,19 @@ export function BasketVenue() {
   const c = VENUES.skills.center
   return (
     <group position={[c.x, c.y, c.z]}>
-      {/* コート(乾いたアンバー) */}
+      {/* コート(乾いたアンバー) + センターサークル(無地の床だとコートに見えないQA指摘対応) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0]}>
         <planeGeometry args={[7, 5]} />
         <meshStandardMaterial color="#cfa477" roughness={0.95} />
       </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.365, 0]}>
+        <ringGeometry args={[0.55, 0.63, 32]} />
+        <meshStandardMaterial color={CHALK} roughness={0.9} />
+      </mesh>
       {/* ゴール: 支柱 + バックボード + リング。
-          コート横(+x)だと通過カメラのフレーム外になるため、コート奥端センターに置き
-          進行方向(+z)へ向ける(Phase 3 QAフォローアップ) */}
-      <group position={[0, 0, -2.05]}>
+          コート横(+x)だと通過カメラのフレーム外、奥端センターだとSKILLSタイトルと同軸で埋没する。
+          奥端の左寄りに置いてタイトルと視覚的に分離する(Phase 3 QAフォローアップ) */}
+      <group position={[-1.7, 0, -1.9]}>
         <mesh position={[0, 1.1, -0.6]}>
           <cylinderGeometry args={[0.07, 0.07, 3, 8]} />
           <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
@@ -162,7 +176,8 @@ export function ContactVenue() {
         <ringGeometry args={[3.85, 3.98, 56]} />
         <meshStandardMaterial color={CHALK} roughness={0.9} />
       </mesh>
-      {/* フィニッシュゲート(プラザ入口・カメラがくぐり抜ける): 白ポール2本 + クロスバー */}
+      {/* フィニッシュゲート(プラザ入口・カメラがくぐり抜ける): 白ポール2本 + クロスバー + CONTACTバナー。
+          タイトルをプラザ中央に浮かせると終端カメラで上端見切れするため、ゲートのバナーとして掲げる */}
       <group position={[0, 0, 3.6]}>
         <mesh position={[-2.6, 0.92, 0]}>
           <cylinderGeometry args={[0.06, 0.06, 2.6, 8]} />
@@ -176,32 +191,34 @@ export function ContactVenue() {
           <cylinderGeometry args={[0.05, 0.05, 5.3, 8]} />
           <meshStandardMaterial color={CHALK} roughness={0.6} />
         </mesh>
+        <SectionTitle text="CONTACT" accent="#ff6b2b" position={[0, 2.85, 0]} fontSize={0.62} />
       </group>
-      {/* 表彰台: 中央1位・左2位・右3位(チョーク白の低ポリ) */}
-      <mesh position={[0, -0.105, -0.8]}>
-        <boxGeometry args={[1.1, 0.55, 1.0]} />
-        <meshStandardMaterial color="#f3ebe2" roughness={0.7} />
-      </mesh>
-      <mesh position={[-1.15, -0.19, -0.8]}>
-        <boxGeometry args={[1.1, 0.38, 1.0]} />
-        <meshStandardMaterial color="#ece2d6" roughness={0.7} />
-      </mesh>
-      <mesh position={[1.15, -0.245, -0.8]}>
-        <boxGeometry args={[1.1, 0.27, 1.0]} />
+      {/* 表彰台: 終端カメラの正面は中央固定のContactカードが占めるため、
+          カードに隠れない右サイドに奥行き方向の階段として置く(手前3位→中央1位→奥2位) */}
+      <mesh position={[1.6, -0.245, -0.55]}>
+        <boxGeometry args={[1.0, 0.27, 1.0]} />
         <meshStandardMaterial color="#e6dbcd" roughness={0.7} />
       </mesh>
+      <mesh position={[1.6, -0.105, -1.6]}>
+        <boxGeometry args={[1.0, 0.55, 1.0]} />
+        <meshStandardMaterial color="#f3ebe2" roughness={0.7} />
+      </mesh>
+      <mesh position={[1.6, -0.19, -2.65]}>
+        <boxGeometry args={[1.0, 0.38, 1.0]} />
+        <meshStandardMaterial color="#ece2d6" roughness={0.7} />
+      </mesh>
       {/* 3ヴェニューのボールが表彰台に集合(各コートのボールと同じレシピ) */}
-      <mesh position={[0, 0.48, -0.8]}>
+      <mesh position={[1.6, 0.17, -0.55]}>
+        <icosahedronGeometry args={[0.28, 1]} />
+        <meshStandardMaterial color="#f0e6c8" roughness={0.5} flatShading />
+      </mesh>
+      <mesh position={[1.6, 0.49, -1.6]}>
         <icosahedronGeometry args={[0.32, 1]} />
         <meshStandardMaterial color="#fdfdfb" roughness={0.35} flatShading />
       </mesh>
-      <mesh position={[-1.15, 0.31, -0.8]}>
+      <mesh position={[1.6, 0.3, -2.65]}>
         <icosahedronGeometry args={[0.3, 1]} />
         <meshStandardMaterial color="#d97e42" roughness={0.6} flatShading />
-      </mesh>
-      <mesh position={[1.15, 0.18, -0.8]}>
-        <icosahedronGeometry args={[0.28, 1]} />
-        <meshStandardMaterial color="#f0e6c8" roughness={0.5} flatShading />
       </mesh>
       {/* 祝祭の暖色オーブ(道中のWarmOrbsと同レシピ・プラザ上空に散らす) */}
       {[
@@ -214,7 +231,6 @@ export function ContactVenue() {
           <meshStandardMaterial color="#ff9a5c" emissive="#ff8c42" emissiveIntensity={2.2} toneMapped={false} />
         </mesh>
       ))}
-      <SectionTitle text="CONTACT" accent="#ff6b2b" position={[0, 2.5, -0.5]} />
     </group>
   )
 }

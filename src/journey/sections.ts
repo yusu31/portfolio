@@ -68,9 +68,9 @@ export const LOOKAT_PATH = new THREE.CatmullRomCurve3(
     new THREE.Vector3(-4.0, 1.0, -17), // Projectsヴェニュー
     new THREE.Vector3(0, 1.2, -25),
     new THREE.Vector3(4.0, 1.4, -31), // Skillsヴェニュー
-    new THREE.Vector3(0, 1.2, -39),
+    new THREE.Vector3(-2.6, 1.1, -40.5), // 早めに左へ振ってバレーコートのネットをフレームに入れる
     new THREE.Vector3(-4.0, 1.0, -44), // Aboutヴェニュー
-    new THREE.Vector3(-1.5, 1.1, -50), // 視線をAboutから道の正面へ戻す
+    new THREE.Vector3(-0.5, 1.1, -51), // 視線を早めに正面へ戻す(太陽側の空を長く見ない=グレア対策)
     new THREE.Vector3(0, 1.0, -58), // Contactプラザ(表彰台)
     new THREE.Vector3(0, 0.98, -58.3), // 終端でも視線は表彰台に固定
   ],
