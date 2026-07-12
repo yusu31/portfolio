@@ -75,8 +75,10 @@ export function BasketVenue() {
         <planeGeometry args={[7, 5]} />
         <meshStandardMaterial color="#cfa477" roughness={0.95} />
       </mesh>
-      {/* ゴール: 支柱 + バックボード + リング */}
-      <group position={[2.8, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+      {/* ゴール: 支柱 + バックボード + リング。
+          コート横(+x)だと通過カメラのフレーム外になるため、コート奥端センターに置き
+          進行方向(+z)へ向ける(Phase 3 QAフォローアップ) */}
+      <group position={[0, 0, -2.05]}>
         <mesh position={[0, 1.1, -0.6]}>
           <cylinderGeometry args={[0.07, 0.07, 3, 8]} />
           <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
@@ -140,6 +142,79 @@ export function VolleyVenue() {
         <meshStandardMaterial color="#f0e6c8" roughness={0.5} flatShading />
       </mesh>
       <SectionTitle text="ABOUT" accent="#69f0ae" position={[0, 2.2, 0]} />
+    </group>
+  )
+}
+
+// Contact: ジャーニーの終着点(設計書§8「静止したまとめ画面」)。
+// フィニッシュゲートをくぐると円形プラザに着地し、3ヴェニューのボールが集う表彰台を正面に見る。
+// 「体育教師→エンジニアの旅がゴールテープを切る」メタファー
+export function ContactVenue() {
+  const c = VENUES.contact.center
+  return (
+    <group position={[c.x, c.y, c.z]}>
+      {/* 円形プラザ(乾いたサンド色) + 外周チョークリング */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0]}>
+        <circleGeometry args={[4.2, 48]} />
+        <meshStandardMaterial color="#d9b9a4" roughness={0.95} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.365, 0]}>
+        <ringGeometry args={[3.85, 3.98, 56]} />
+        <meshStandardMaterial color={CHALK} roughness={0.9} />
+      </mesh>
+      {/* フィニッシュゲート(プラザ入口・カメラがくぐり抜ける): 白ポール2本 + クロスバー */}
+      <group position={[0, 0, 3.6]}>
+        <mesh position={[-2.6, 0.92, 0]}>
+          <cylinderGeometry args={[0.06, 0.06, 2.6, 8]} />
+          <meshStandardMaterial color={CHALK} roughness={0.6} />
+        </mesh>
+        <mesh position={[2.6, 0.92, 0]}>
+          <cylinderGeometry args={[0.06, 0.06, 2.6, 8]} />
+          <meshStandardMaterial color={CHALK} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 2.28, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.05, 0.05, 5.3, 8]} />
+          <meshStandardMaterial color={CHALK} roughness={0.6} />
+        </mesh>
+      </group>
+      {/* 表彰台: 中央1位・左2位・右3位(チョーク白の低ポリ) */}
+      <mesh position={[0, -0.105, -0.8]}>
+        <boxGeometry args={[1.1, 0.55, 1.0]} />
+        <meshStandardMaterial color="#f3ebe2" roughness={0.7} />
+      </mesh>
+      <mesh position={[-1.15, -0.19, -0.8]}>
+        <boxGeometry args={[1.1, 0.38, 1.0]} />
+        <meshStandardMaterial color="#ece2d6" roughness={0.7} />
+      </mesh>
+      <mesh position={[1.15, -0.245, -0.8]}>
+        <boxGeometry args={[1.1, 0.27, 1.0]} />
+        <meshStandardMaterial color="#e6dbcd" roughness={0.7} />
+      </mesh>
+      {/* 3ヴェニューのボールが表彰台に集合(各コートのボールと同じレシピ) */}
+      <mesh position={[0, 0.48, -0.8]}>
+        <icosahedronGeometry args={[0.32, 1]} />
+        <meshStandardMaterial color="#fdfdfb" roughness={0.35} flatShading />
+      </mesh>
+      <mesh position={[-1.15, 0.31, -0.8]}>
+        <icosahedronGeometry args={[0.3, 1]} />
+        <meshStandardMaterial color="#d97e42" roughness={0.6} flatShading />
+      </mesh>
+      <mesh position={[1.15, 0.18, -0.8]}>
+        <icosahedronGeometry args={[0.28, 1]} />
+        <meshStandardMaterial color="#f0e6c8" roughness={0.5} flatShading />
+      </mesh>
+      {/* 祝祭の暖色オーブ(道中のWarmOrbsと同レシピ・プラザ上空に散らす) */}
+      {[
+        { pos: [-2.2, 2.6, -1.2] as const, scale: 0.12 },
+        { pos: [2.4, 2.9, -0.6] as const, scale: 0.1 },
+        { pos: [0.6, 3.3, -2.2] as const, scale: 0.13 },
+      ].map((orb, i) => (
+        <mesh key={i} position={[orb.pos[0], orb.pos[1], orb.pos[2]]} scale={orb.scale}>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshStandardMaterial color="#ff9a5c" emissive="#ff8c42" emissiveIntensity={2.2} toneMapped={false} />
+        </mesh>
+      ))}
+      <SectionTitle text="CONTACT" accent="#ff6b2b" position={[0, 2.5, -0.5]} />
     </group>
   )
 }
