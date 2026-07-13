@@ -48,13 +48,34 @@
 
 ## Phase 5でやること(据え置きから昇格)
 
+**注意: Phase 5ではデプロイまで行わない。公開はPhase 6(公開前チェック)の通過後。**
+
 | 項目 | 内容 |
 |---|---|
 | ルーティング統合 | `/scroll-poc` を `/` に昇格、`App.tsx` の `LegacyChrome` 分岐・旧ルート・旧コンポーネント削除 |
 | レスポンシブ | 375px確認(Homeカードとクリスタル球の重なり、中央Contactカードの収まり) |
 | アクセシビリティ | prefers-reduced-motion 対応 |
 | パフォーマンス | Lighthouse、バンドルサイズ(three-coreが732KB — manualChunks調整) |
-| 公開 | 本番デプロイ |
+
+## Phase 6でやること(公開前チェック → 公開)
+
+Phase 5完了後、以下のチェックをすべて通してから本番デプロイする。
+
+### 公開前チェックリスト
+
+- [ ] **最終デザインQA**: design-reviewスキルで全セクション通しレビュー(taste準拠・Sonnetサブエージェント委任可)
+- [ ] **クロスブラウザ/実機**: Chrome・Edge・Firefox + モバイル実機(375px)で通しスクロール
+- [ ] **Lighthouse最終計測**: Performance / Accessibility / Best Practices / SEO の4カテゴリ
+- [ ] **メタ情報**: title・description・OGP画像・favicon・twitterカード
+- [ ] **リンク・コンテンツ校正**: Email/GitHubリンクの動作、英語表記・誤字の校正
+- [ ] **resume.pdfの最終判断**: 配置して有効化するか、Resume行を非表示にするかを決める
+- [ ] **コンソールエラーゼロ**: 通しスクロール中にエラー・警告が出ないこと
+- [ ] **ユーザー本人の通し確認**: taste最終承認をもらってからデプロイに進む
+
+### 公開
+
+- [ ] 本番デプロイ
+- [ ] デプロイ後の本番URLでスモークチェック(通しスクロール・リンク動作・モバイル表示)
 
 ## 次セッション用キックオフプロンプト(コピペ用)
 
@@ -72,6 +93,8 @@ C:\Users\3fort\dev\portfolio の3Dスクロール体験・Phase 5実装セッシ
 - 375pxレスポンシブ(Homeカード重なり・中央Contactカードの収まり)・prefers-reduced-motion
 - Lighthouse・バンドルサイズ(manualChunksでthree-core分割)
 - 検証はoffset直指定パターン、goto は wait_until="load"+12秒待ち
+- **デプロイはしない**。公開はPhase 6(公開前チェック→公開)で行う。
+  チェックリストはHANDOFF本文のPhase 6セクション参照
 
 【変更禁止事項】クリスタル球の見た目(memory feedback-crystal-original-recipe)、
 明るいパステル夕景の色支配、カメラ経路とSECTION_RANGES(Phase 4でQA済み。
