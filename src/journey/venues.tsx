@@ -2,7 +2,7 @@
 // Lempens分析の学び: 造形はローポリで良く、シーンの色支配(夕景1トーン)に従属させる。
 // 各コートは彩度を落とした色にし、白(チョーク/ネット/ゴール)を共通言語にする。
 import { Text } from '@react-three/drei'
-import { VENUES } from './sections'
+import { VENUES } from './path'
 
 const TITLE_COLOR = '#fffaf5'
 const CHALK = '#f7f0ea'

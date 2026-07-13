@@ -6,7 +6,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { PROJECT_CATEGORIES } from '../data/projects'
 import { SKILL_CATEGORIES } from '../data/skills'
 import { ABOUT_POINTS } from '../data/about'
-import type { SectionId } from './sections'
+import type { SectionId } from './path'
 
 const panelBase: CSSProperties = {
   position: 'fixed',
