@@ -10,27 +10,30 @@ const ARC_LENGTH_DIVISIONS = 400
 /**
  * カメラが経路上で停止するoffset上限(終端静止)。
  * 旧実装の「制御点をほぼ重ねて置く」力技は弧長パラメータ化と相性が悪い(ゼロ長セグメント)ためやめ、
- * 経路を静止分だけ先(z=-56.5)まで延長した上でoffsetをここでクランプする。
- * この値で旧終点ポーズ camera(0,1.5,-55.3)/視線(0,0.98,-58.3) とほぼ同じ構図に静止する
+ * 経路を静止分だけ先(z=-189)まで延長した上でoffsetをここでクランプする。
+ * Phase 5-2延長後もこの値でゲート通過直後の構図(camera z≈-187.3)に静止する
  */
-export const PATH_END_OFFSET = 0.982
+export const PATH_END_OFFSET = 0.9915
 
 // カメラ位置の経路: 道(x≈0)を進みつつ、各ヴェニューの側で緩く膨らむ。
+// Phase 5-2で66→約200ユニットに延長。ヴェニュー間(Projects-Skills/Skills-About/About-Contact)に
+// wiggle制御点を1つずつ挟み、transit区間(骨格のみ)でも道なりの蛇行が途切れないようにする。
 // 最終点はPATH_END_OFFSETでのクランプ静止用の延長分(カメラはここまで到達しない)
 export const CAMERA_PATH = new THREE.CatmullRomCurve3(
   [
     new THREE.Vector3(0, 1.0, 10),
-    new THREE.Vector3(0.4, 1.05, 2),
-    new THREE.Vector3(-0.7, 1.1, -6),
-    new THREE.Vector3(-1.4, 1.2, -14), // Projects(左)に寄る
-    new THREE.Vector3(0.6, 1.15, -22),
-    new THREE.Vector3(1.4, 1.25, -28), // Skills(右)に寄る
-    new THREE.Vector3(-0.5, 1.15, -36),
-    new THREE.Vector3(-1.2, 1.2, -41), // About(左)に寄る
-    new THREE.Vector3(-0.9, 1.35, -46.5), // Aboutを離れて道の中央へ戻る
-    new THREE.Vector3(0, 1.45, -50.5),
-    new THREE.Vector3(0, 1.52, -55.0), // フィニッシュゲート(z=-54.4)をくぐり抜ける
-    new THREE.Vector3(0, 1.48, -56.5), // 延長終点(実際の静止はu=PATH_END_OFFSET: z≈-55.3)
+    new THREE.Vector3(0.5, 1.05, -4),
+    new THREE.Vector3(-0.9, 1.12, -19),
+    new THREE.Vector3(-1.8, 1.2, -33), // Projects(左)に寄る
+    new THREE.Vector3(1.0, 1.28, -54), // transit1 wiggle(Projects→Skills)
+    new THREE.Vector3(1.9, 1.35, -80), // Skills(右)に寄る
+    new THREE.Vector3(-0.9, 1.42, -104), // transit2 wiggle(Skills→About)
+    new THREE.Vector3(-1.7, 1.48, -128), // About(左)に寄る
+    new THREE.Vector3(-1.0, 1.42, -149), // Aboutを離れて道の中央へ戻る
+    new THREE.Vector3(0.6, 1.46, -166), // transit3 wiggle(About→Contact)
+    new THREE.Vector3(0, 1.5, -181),
+    new THREE.Vector3(0, 1.52, -187), // フィニッシュゲートをくぐり抜ける
+    new THREE.Vector3(0, 1.49, -189), // 延長終点(実際の静止はu=PATH_END_OFFSET: z≈-187.3)
   ],
   false,
   'centripetal'
@@ -40,15 +43,15 @@ export const CAMERA_PATH = new THREE.CatmullRomCurve3(
 export const LOOKAT_PATH = new THREE.CatmullRomCurve3(
   [
     new THREE.Vector3(0, 1.0, 0), // 前方(クリスタル方向)
-    new THREE.Vector3(-2.0, 1.0, -6),
-    new THREE.Vector3(-4.0, 1.0, -17), // Projectsヴェニュー
-    new THREE.Vector3(0, 1.2, -25),
-    new THREE.Vector3(4.0, 1.4, -31), // Skillsヴェニュー
-    new THREE.Vector3(-2.6, 1.1, -40.5), // 早めに左へ振ってバレーコートのネットをフレームに入れる
-    new THREE.Vector3(-4.0, 1.0, -44), // Aboutヴェニュー
-    new THREE.Vector3(-0.5, 1.1, -51), // 視線を早めに正面へ戻す(太陽側の空を長く見ない=グレア対策)
-    new THREE.Vector3(0, 1.0, -58), // Contactプラザ
-    new THREE.Vector3(0, 0.97, -59.4), // 延長終点(u=PATH_END_OFFSETで視線z≈-58.2に静止)
+    new THREE.Vector3(-2.2, 1.0, -18),
+    new THREE.Vector3(-4.0, 1.0, -33), // Projectsヴェニュー
+    new THREE.Vector3(0, 1.2, -56),
+    new THREE.Vector3(4.3, 1.4, -80), // Skillsヴェニュー
+    new THREE.Vector3(-2.8, 1.15, -116), // 早めに左へ振ってバレーコートのネットをフレームに入れる
+    new THREE.Vector3(-4.2, 1.05, -125), // Aboutヴェニュー
+    new THREE.Vector3(-0.6, 1.15, -167), // 視線を早めに正面へ戻す(太陽側の空を長く見ない=グレア対策)
+    new THREE.Vector3(0, 1.0, -191), // Contactプラザ
+    new THREE.Vector3(0, 0.95, -195), // 延長終点(u=PATH_END_OFFSETで視線z≈-193.3に静止)
   ],
   false,
   'centripetal'
@@ -60,5 +63,5 @@ for (const curve of [CAMERA_PATH, LOOKAT_PATH]) {
   curve.getLength()
 }
 
-/** ScrollControlsの仮想ページ数(スクロールの長さ) */
-export const PAGES = 7
+/** ScrollControlsの仮想ページ数(スクロールの長さ)。Phase 5-2で経路延長(約3倍)に合わせて7→21 */
+export const PAGES = 21
