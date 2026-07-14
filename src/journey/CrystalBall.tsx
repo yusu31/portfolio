@@ -1,15 +1,23 @@
-// ブランドの象徴: オレンジ発光クリスタル球。
-// 見た目は既存Crystal.tsxのレシピを移植したもの(ユーザー確認済み 2026-07-11)。
+// ブランドの象徴: オレンジ発光クリスタル球。旅の主人公として offset に連動して移動する(Phase 5-3)。
+// 見た目は既存Crystal.tsxのレシピを移植したもの(ユーザー確認済み 2026-07-11)。材質はPhase 5-3でも不変。
 // 詳細は memory: feedback-crystal-original-recipe / docs/analysis/2026-07-11-lempens-site-analysis.md
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { useScroll } from '@react-three/drei'
 import * as THREE from 'three'
+import { getBallPose } from './ball/ballPath'
 
-export default function CrystalBall({ position = [-2.3, 1, 0] as [number, number, number] }) {
+export default function CrystalBall() {
+  const groupRef = useRef<THREE.Group>(null)
   const shellRef = useRef<THREE.Mesh>(null)
   const coreRef = useRef<THREE.Mesh>(null)
+  const scroll = useScroll()
 
   useFrame((state, delta) => {
+    // 位置はCameraRigと同じ「offsetが唯一の真実」原則で自走(getBallPose)
+    if (groupRef.current) {
+      groupRef.current.position.copy(getBallPose(scroll.offset).position)
+    }
     // Crystal.tsx interactiveモードのidle回転と発光パルスを再現
     if (shellRef.current) shellRef.current.rotation.y += delta * 0.18
     if (coreRef.current) {
@@ -19,7 +27,7 @@ export default function CrystalBall({ position = [-2.3, 1, 0] as [number, number
   })
 
   return (
-    <group position={position}>
+    <group ref={groupRef}>
       {/* 外殻 — flatShadingでサッカーボール風の細かい多角形面(Crystal.tsxと同値) */}
       <mesh ref={shellRef}>
         <icosahedronGeometry args={[1.5, 2]} />

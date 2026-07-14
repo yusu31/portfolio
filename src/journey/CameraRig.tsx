@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import { useScroll } from '@react-three/drei'
 import * as THREE from 'three'
 import { CAMERA_PATH, LOOKAT_PATH, PATH_END_OFFSET, sectionAt, type SectionId } from './path'
+import { getBallPose } from './ball/ballPath'
 
 interface CameraRigProps {
   /** アクティブセクションが変わった瞬間だけ呼ばれる(カードUIの切替用) */
@@ -25,6 +26,11 @@ export default function CameraRig({ onSectionChange }: CameraRigProps) {
     const u = Math.min(offset, PATH_END_OFFSET)
     CAMERA_PATH.getPointAt(u, pos.current)
     LOOKAT_PATH.getPointAt(u, target.current)
+
+    // 見せ場(キャッチ〜フリースロー等)はfocusWeightで視線をボール側へブレンドする
+    const { position: ballPos, focusWeight } = getBallPose(offset)
+    if (focusWeight > 0) target.current.lerp(ballPos, focusWeight)
+
     state.camera.position.copy(pos.current)
     state.camera.lookAt(target.current)
 
