@@ -11,14 +11,22 @@ import CameraRig from '../journey/CameraRig'
 import CrystalBall from '../journey/CrystalBall'
 import SectionCards from '../journey/SectionCards'
 import { SoccerVenue, BasketVenue, VolleyVenue, ContactVenue } from '../journey/venues'
+import { Transit1, Transit2, Transit3 } from '../journey/Transit'
 import { PAGES, type SectionId } from '../journey/path'
 
-// 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)
+// 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)。
+// Phase 5-2の経路延長(66→約200)に合わせてtransit区間にも配置を追加
 const ORBS: Array<{ pos: [number, number, number]; scale: number }> = [
   { pos: [2.6, 2.0, -4], scale: 0.14 },
   { pos: [-1.2, 2.6, -10], scale: 0.18 },
   { pos: [3.4, 1.8, -24], scale: 0.15 },
-  { pos: [-2.8, 2.4, -38], scale: 0.17 },
+  { pos: [-2.8, 2.4, -48], scale: 0.17 },
+  { pos: [2.4, 2.2, -68], scale: 0.14 },
+  { pos: [-3.0, 2.6, -96], scale: 0.16 },
+  { pos: [3.2, 2.0, -118], scale: 0.13 },
+  { pos: [-2.2, 2.8, -140], scale: 0.18 },
+  { pos: [2.6, 2.2, -160], scale: 0.15 },
+  { pos: [-1.8, 2.4, -174], scale: 0.14 },
 ]
 
 function WarmOrbs() {
@@ -35,11 +43,12 @@ function WarmOrbs() {
 }
 
 // 地面: 全セクションを貫く1枚(乾いたグレージュ・低彩度)。
-// 終端カメラ(z≈-55)の正面で切れ目が見えないよう、Contactプラザの奥まで伸ばしてフォグに溶かす
+// 終端カメラ(z≈-187)の正面で切れ目が見えないよう、Contactプラザの奥まで伸ばしてフォグに溶かす。
+// Phase 5-2の経路延長(66→約200)に合わせて奥行きを130→270に拡張
 function Ground() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -30]}>
-      <planeGeometry args={[60, 130]} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -65]}>
+      <planeGeometry args={[60, 270]} />
       <meshStandardMaterial color="#c8a9a3" roughness={0.9} metalness={0} envMapIntensity={0.28} />
     </mesh>
   )
@@ -61,8 +70,9 @@ export default function ScrollJourneyPoc() {
           mieCoefficient={0.012}
           mieDirectionalG={0.85}
         />
-        {/* フォグは空の地平線色に合わせる → 遠くのヴェニューが夕靄から現れる */}
-        <fog attach="fog" args={['#f2b8a0', 14, 46]} />
+        {/* フォグは空の地平線色に合わせる → 遠くのヴェニューが夕靄から現れる。
+            Phase 5-2でヴェニュー間隔が広がった(66→約200)ため、次のヴェニューが早めに滲み始めるよう46→65に再検証 */}
+        <fog attach="fog" args={['#f2b8a0', 14, 65]} />
         <ambientLight intensity={0.55} color="#ffe0cf" />
         {/* 夕日: Skyの太陽位置と同方向の暖色キーライト */}
         <directionalLight position={[-8, 3, 6]} intensity={1.6} color="#ffb185" />
@@ -93,13 +103,25 @@ export default function ScrollJourneyPoc() {
               speed={0.06}
               growth={3}
             />
-            {/* Contactプラザの背景: 終着点の空が寂しくならないよう奥に雲を敷く */}
+            {/* 旅の中間(Skills〜About付近)を貫ける雲。Phase 5-2の経路延長で空いた空白を埋める */}
+            <Cloud
+              seed={9}
+              segments={20}
+              bounds={[14, 2.5, 6]}
+              volume={9}
+              position={[-4, 8.5, -104]}
+              color="#ffcdb8"
+              opacity={0.45}
+              speed={0.05}
+              growth={3}
+            />
+            {/* Contactプラザの背景: 終着点の空が寂しくならないよう奥に雲を敷く(Phase 5-2で-74→-195) */}
             <Cloud
               seed={4}
               segments={20}
               bounds={[16, 3, 6]}
               volume={10}
-              position={[0, 9, -74]}
+              position={[0, 9, -195]}
               color="#ffd2be"
               opacity={0.5}
               speed={0.05}
@@ -112,6 +134,9 @@ export default function ScrollJourneyPoc() {
             <CrystalBall />
             <WarmOrbs />
             <Ground />
+            <Transit1 />
+            <Transit2 />
+            <Transit3 />
             <SoccerVenue />
             <BasketVenue />
             <VolleyVenue />
