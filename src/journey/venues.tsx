@@ -3,7 +3,7 @@
 // 各コートは彩度を落とした色にし、白(チョーク/ネット/ゴール)を共通言語にする。
 import { Text } from '@react-three/drei'
 import { VENUES } from './path'
-import { HOOP_GROUP_OFFSET, RING_OFFSET } from './ball/anchors'
+import { HOOP_GROUP_OFFSET, RING_OFFSET, CONTACT_REST_OFFSET } from './ball/anchors'
 
 const TITLE_COLOR = '#fffaf5'
 const CHALK = '#f7f0ea'
@@ -144,11 +144,7 @@ export function VolleyVenue() {
           <meshStandardMaterial color="#f2ece6" transparent opacity={0.3} side={2} />
         </mesh>
       </group>
-      {/* バレーボール */}
-      <mesh position={[1.1, -0.08, -0.7]}>
-        <icosahedronGeometry args={[0.28, 1]} />
-        <meshStandardMaterial color="#f0e6c8" roughness={0.5} flatShading />
-      </mesh>
+      {/* バレーボールの静的メッシュはPhase 5-4で撤去(クリスタル球がレシーブ→トス→アタックで通過する) */}
       <SectionTitle text="ABOUT" accent="#69f0ae" position={[0, 2.2, 0]} />
     </group>
   )
@@ -187,32 +183,14 @@ export function ContactVenue() {
         </mesh>
         <SectionTitle text="CONTACT" accent="#ff6b2b" position={[0, 2.85, 0]} fontSize={0.62} />
       </group>
-      {/* 表彰台: 終端カメラの正面は中央固定のContactカードが占めるため、
-          カードに隠れない右サイドに奥行き方向の階段として置く(手前3位→中央1位→奥2位) */}
-      <mesh position={[1.6, -0.245, -0.55]}>
-        <boxGeometry args={[1.0, 0.27, 1.0]} />
+      {/* 台座: 旅を終えたクリスタル球(演者、半径1.5)が転がり込んで静止する場所。
+          「旅路のミニチュアジオラマ」の本実装はPhase 6-5、ここでは円柱のプレースホルダーのみ置く。
+          位置はball/anchors.tsのCONTACT_REST_OFFSETと単一ソース(球の着地点とズレないため)。
+          当初半径1.1〜1.3・高さ0.4で設計したが、QAで「球に埋もれて台座に見えない」と判明した
+          (球の半径1.5に対して小さすぎた)。半径・高さとも打ち上げ、球の下半分が乗る見た目にした */}
+      <mesh position={[CONTACT_REST_OFFSET.x, -0.18 + 0.6, CONTACT_REST_OFFSET.z]}>
+        <cylinderGeometry args={[2.0, 2.3, 1.2, 24]} />
         <meshStandardMaterial color="#e6dbcd" roughness={0.7} />
-      </mesh>
-      <mesh position={[1.6, -0.105, -1.6]}>
-        <boxGeometry args={[1.0, 0.55, 1.0]} />
-        <meshStandardMaterial color="#f3ebe2" roughness={0.7} />
-      </mesh>
-      <mesh position={[1.6, -0.19, -2.65]}>
-        <boxGeometry args={[1.0, 0.38, 1.0]} />
-        <meshStandardMaterial color="#ece2d6" roughness={0.7} />
-      </mesh>
-      {/* 3ヴェニューのボールが表彰台に集合(各コートのボールと同じレシピ) */}
-      <mesh position={[1.6, 0.17, -0.55]}>
-        <icosahedronGeometry args={[0.28, 1]} />
-        <meshStandardMaterial color="#f0e6c8" roughness={0.5} flatShading />
-      </mesh>
-      <mesh position={[1.6, 0.49, -1.6]}>
-        <icosahedronGeometry args={[0.32, 1]} />
-        <meshStandardMaterial color="#fdfdfb" roughness={0.35} flatShading />
-      </mesh>
-      <mesh position={[1.6, 0.3, -2.65]}>
-        <icosahedronGeometry args={[0.3, 1]} />
-        <meshStandardMaterial color="#d97e42" roughness={0.6} flatShading />
       </mesh>
       {/* 祝祭の暖色オーブ(道中のWarmOrbsと同レシピ・プラザ上空に散らす) */}
       {[
