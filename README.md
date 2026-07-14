@@ -1,5 +1,15 @@
 # yusu portfolio
 
+## ローカルで開く
+
+```bash
+git clone https://github.com/yusu31/portfolio.git
+cd portfolio
+./start.sh --setup   # 初回のみ（依存インストール込み）
+```
+
+起動後は [http://localhost:4321](http://localhost:4321) を開いてください。
+
 体育教師からエンジニアへ。yusuのポートフォリオサイト。  
 作ったすべての個人プロジェクトのハブとして機能します。
 
