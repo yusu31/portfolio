@@ -11,7 +11,7 @@ import CameraRig from '../journey/CameraRig'
 import CrystalBall from '../journey/CrystalBall'
 import SectionCards from '../journey/SectionCards'
 import { SoccerVenue, BasketVenue, VolleyVenue, ContactVenue } from '../journey/venues'
-import { PAGES, type SectionId } from '../journey/sections'
+import { PAGES, type SectionId } from '../journey/path'
 
 // 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)
 const ORBS: Array<{ pos: [number, number, number]; scale: number }> = [

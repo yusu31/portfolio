@@ -4,7 +4,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useScroll } from '@react-three/drei'
 import * as THREE from 'three'
-import { CAMERA_PATH, LOOKAT_PATH, sectionAt, type SectionId } from './sections'
+import { CAMERA_PATH, LOOKAT_PATH, PATH_END_OFFSET, sectionAt, type SectionId } from './path'
 
 interface CameraRigProps {
   /** アクティブセクションが変わった瞬間だけ呼ばれる(カードUIの切替用) */
@@ -20,8 +20,11 @@ export default function CameraRig({ onSectionChange }: CameraRigProps) {
   useFrame((state) => {
     const offset = scroll.offset // 0〜1
 
-    CAMERA_PATH.getPoint(offset, pos.current)
-    LOOKAT_PATH.getPoint(offset, target.current)
+    // 経路の進行は弧長ベース(getPointAt)。終端の「静止」はクランプで表現し、
+    // カード切替(sectionAt)だけは生offsetで判定する(contactの区間は1.01まである)
+    const u = Math.min(offset, PATH_END_OFFSET)
+    CAMERA_PATH.getPointAt(u, pos.current)
+    LOOKAT_PATH.getPointAt(u, target.current)
     state.camera.position.copy(pos.current)
     state.camera.lookAt(target.current)
 
