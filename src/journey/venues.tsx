@@ -3,6 +3,7 @@
 // 各コートは彩度を落とした色にし、白(チョーク/ネット/ゴール)を共通言語にする。
 import { Text } from '@react-three/drei'
 import { VENUES } from './path'
+import { HOOP_GROUP_OFFSET, RING_OFFSET } from './ball/anchors'
 
 const TITLE_COLOR = '#fffaf5'
 const CHALK = '#f7f0ea'
@@ -65,11 +66,7 @@ export function SoccerVenue() {
           <meshStandardMaterial color={CHALK} roughness={0.6} />
         </mesh>
       </group>
-      {/* サッカーボール(白の低ポリ球) */}
-      <mesh position={[1.2, -0.05, 0.8]}>
-        <icosahedronGeometry args={[0.32, 1]} />
-        <meshStandardMaterial color="#fdfdfb" roughness={0.35} flatShading />
-      </mesh>
+      {/* サッカーボールの静的メッシュはPhase 5-3で撤去(旅の主人公=クリスタル球がドリブルして通過する) */}
       <SectionTitle text="PROJECTS" accent="#4fc3f7" position={[0, 2.2, 0]} />
     </group>
   )
@@ -91,8 +88,9 @@ export function BasketVenue() {
       </mesh>
       {/* ゴール: 支柱 + バックボード + リング。
           コート横(+x)だと通過カメラのフレーム外、奥端センターだとSKILLSタイトルと同軸で埋没する。
-          奥端の左寄りに置いてタイトルと視覚的に分離する(Phase 3 QAフォローアップ) */}
-      <group position={[-1.7, 0, -1.9]}>
+          奥端の左寄りに置いてタイトルと視覚的に分離する(Phase 3 QAフォローアップ)。
+          位置はball/anchors.tsのHOOP_GROUP_OFFSET/RING_OFFSETと単一ソース(フリースローの着弾点とズレないため) */}
+      <group position={[HOOP_GROUP_OFFSET.x, HOOP_GROUP_OFFSET.y, HOOP_GROUP_OFFSET.z]}>
         <mesh position={[0, 1.1, -0.6]}>
           <cylinderGeometry args={[0.07, 0.07, 3, 8]} />
           <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
@@ -101,16 +99,12 @@ export function BasketVenue() {
           <boxGeometry args={[1.5, 0.9, 0.06]} />
           <meshStandardMaterial color={CHALK} roughness={0.4} />
         </mesh>
-        <mesh position={[0, 2.2, 0.35]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh position={[RING_OFFSET.x, RING_OFFSET.y, RING_OFFSET.z]} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[0.32, 0.035, 8, 24]} />
           <meshStandardMaterial color="#e8833a" roughness={0.45} />
         </mesh>
       </group>
-      {/* バスケットボール */}
-      <mesh position={[-1.0, -0.06, 0.9]}>
-        <icosahedronGeometry args={[0.3, 1]} />
-        <meshStandardMaterial color="#d97e42" roughness={0.6} flatShading />
-      </mesh>
+      {/* バスケットボールの静的メッシュはPhase 5-3で撤去(クリスタル球がキャッチ→フリースローで通過する) */}
       <SectionTitle text="SKILLS" accent="#ffb300" position={[0, 2.2, 0]} />
     </group>
   )
