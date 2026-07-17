@@ -7,11 +7,12 @@ export interface TransitSpan {
   length: number
 }
 
+// Phase 5-5のコート3倍化(z方向深化)に合わせてヴェニュー間隔ごと再配置。道幅14は据え置き
 export const TRANSIT_SPANS = {
   // Projects(サッカー) → Skills(バスケ): ロングパスの飛距離に相当する区間(Phase 5-3で使用)
-  transit1: { centerZ: -48, length: 33 },
+  transit1: { centerZ: -73.6, length: 48 },
   // Skills(バスケ) → About(バレー): リングを通過したボールが落下する区間
-  transit2: { centerZ: -96, length: 34 },
+  transit2: { centerZ: -137.5, length: 50 },
   // About(バレー) → Contact: レシーブ〜アタック〜ゴールまでの最終区間(旅の締め括り)
-  transit3: { centerZ: -154, length: 50 },
+  transit3: { centerZ: -209, length: 63 },
 } as const satisfies Record<string, TransitSpan>

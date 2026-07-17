@@ -54,10 +54,10 @@ describe('ビート継ぎ目', () => {
       maxStep = Math.max(maxStep, prev.distanceTo(cur))
       prev = cur
     }
-    // idle→dribbleの受け渡し(focusWeight=0の未注視区間)がHome〜ピッチ間を駆け抜ける、
-    // このビート列で最も速い区間(実測ピーク約1.84)。それでも大幅に逸脱する実装バグ
-    // (アンカー取り違え等)は検出できるよう、余裕を持たせた上限とする
-    expect(maxStep).toBeLessThan(3.0)
+    // Phase 5-5の3倍化で最速区間はsetToss序盤(easeOutの立ち上がりでネット上帯超えへ
+    // 一気に持ち上げる、実測ピーク2.69 @u=0.692)。それでも大幅に逸脱する実装バグ
+    // (アンカー取り違え等)は検出できるよう、実測×1.5弱の余裕を持たせた上限とする
+    expect(maxStep).toBeLessThan(4.0)
   })
 })
 
@@ -135,19 +135,19 @@ describe('カメラから見た球の見かけの大きさ(画面占有率)', ()
   // Phase 5-4のQAで、「距離は2ユニット以上あるのに画面の9割以上を球が占める」ケースが
   // 見つかった(u=0.48、fall序盤)。距離だけでは球の見た目半径(1.5、他venueの静的ボール
   // 0.28〜0.32よりずっと大きい)を考慮できないため、見かけの角度サイズも一次防衛線にする。
-  // RING_U以前(freeThrow終盤)は「ダイナミックな接写感」がPhase 5-3で意図的に選ばれた
-  // 演出(実測比率0.94〜0.98)なので対象外にし、Phase 5-4の新規区間(RING_U以降)のみ検査する
+  // Phase 5-4では「freeThrow終盤の意図的接写(実測0.94〜0.98)」を除外するためRING_U以降のみ
+  // 検査していたが、Phase 5-5の新配置でその接写は消滅した(実測最大0.76 @u=0.648、fall終端)
+  // ため、focusWeight>0の全域を検査対象に拡大した
   const BALL_RADIUS = 1.5
   const FOV_DEG = 50
 
-  it('RING_U以降、focusWeight>0の全区間で見かけの角度サイズが視野角の90%を超えない', () => {
+  it('focusWeight>0の全区間で見かけの角度サイズが視野角の90%を超えない', () => {
     const N = 500
     const fovRad = THREE.MathUtils.degToRad(FOV_DEG)
     let maxRatio = 0
     let maxRatioU = 0
     for (let i = 0; i <= N; i++) {
       const u = i / N
-      if (u < RING_U) continue
       const { position: ballPos, focusWeight } = getBallPose(u)
       if (focusWeight <= 0) continue
       const camPos = CAMERA_PATH.getPointAt(Math.min(u, PATH_END_OFFSET))

@@ -15,18 +15,18 @@ import { Transit1, Transit2, Transit3 } from '../journey/Transit'
 import { PAGES, type SectionId } from '../journey/path'
 
 // 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)。
-// Phase 5-2の経路延長(66→約200)に合わせてtransit区間にも配置を追加
+// Phase 5-5の世界3倍化(全長約200→253.5)に合わせてzを新全長へほぼ等間隔に再配分(x/y/scaleは踏襲)
 const ORBS: Array<{ pos: [number, number, number]; scale: number }> = [
-  { pos: [2.6, 2.0, -4], scale: 0.14 },
-  { pos: [-1.2, 2.6, -10], scale: 0.18 },
-  { pos: [3.4, 1.8, -24], scale: 0.15 },
-  { pos: [-2.8, 2.4, -48], scale: 0.17 },
-  { pos: [2.4, 2.2, -68], scale: 0.14 },
-  { pos: [-3.0, 2.6, -96], scale: 0.16 },
-  { pos: [3.2, 2.0, -118], scale: 0.13 },
-  { pos: [-2.2, 2.8, -140], scale: 0.18 },
-  { pos: [2.6, 2.2, -160], scale: 0.15 },
-  { pos: [-1.8, 2.4, -174], scale: 0.14 },
+  { pos: [2.6, 2.0, -5], scale: 0.14 },
+  { pos: [-1.2, 2.6, -13], scale: 0.18 },
+  { pos: [3.4, 1.8, -30], scale: 0.15 },
+  { pos: [-2.8, 2.4, -61], scale: 0.17 },
+  { pos: [2.4, 2.2, -86], scale: 0.14 },
+  { pos: [-3.0, 2.6, -122], scale: 0.16 },
+  { pos: [3.2, 2.0, -150], scale: 0.13 },
+  { pos: [-2.2, 2.8, -178], scale: 0.18 },
+  { pos: [2.6, 2.2, -203], scale: 0.15 },
+  { pos: [-1.8, 2.4, -221], scale: 0.14 },
 ]
 
 function WarmOrbs() {
@@ -43,12 +43,12 @@ function WarmOrbs() {
 }
 
 // 地面: 全セクションを貫く1枚(乾いたグレージュ・低彩度)。
-// 終端カメラ(z≈-187)の正面で切れ目が見えないよう、Contactプラザの奥まで伸ばしてフォグに溶かす。
-// Phase 5-2の経路延長(66→約200)に合わせて奥行きを130→270に拡張
+// 終端カメラ(z≈-241.3)の正面で切れ目が見えないよう、Contactプラザの奥まで伸ばしてフォグに溶かす。
+// Phase 5-5の世界3倍化(全長約200→253.5・3倍コートの横幅27)に合わせて[60,270]→[70,330]に拡張
 function Ground() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -65]}>
-      <planeGeometry args={[60, 270]} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -100]}>
+      <planeGeometry args={[70, 330]} />
       <meshStandardMaterial color="#c8a9a3" roughness={0.9} metalness={0} envMapIntensity={0.28} />
     </mesh>
   )
@@ -92,36 +92,37 @@ export default function ScrollJourneyPoc() {
               speed={0.08}
               growth={4}
             />
+            {/* transit1(Projects→Skills)の空を埋める雲(Phase 5-5の3倍化で-34→-60へ再配分) */}
             <Cloud
               seed={7}
               segments={20}
               bounds={[12, 2.5, 5]}
               volume={8}
-              position={[8, 9.5, -34]}
+              position={[8, 9.5, -60]}
               color="#ffcdb8"
               opacity={0.45}
               speed={0.06}
               growth={3}
             />
-            {/* 旅の中間(Skills〜About付近)を貫ける雲。Phase 5-2の経路延長で空いた空白を埋める */}
+            {/* 旅の中間(Skills〜About付近)を貫ける雲(Phase 5-5で-104→-137へ再配分) */}
             <Cloud
               seed={9}
               segments={20}
               bounds={[14, 2.5, 6]}
               volume={9}
-              position={[-4, 8.5, -104]}
+              position={[-4, 8.5, -137]}
               color="#ffcdb8"
               opacity={0.45}
               speed={0.05}
               growth={3}
             />
-            {/* Contactプラザの背景: 終着点の空が寂しくならないよう奥に雲を敷く(Phase 5-2で-74→-195) */}
+            {/* Contactプラザの背景: 終着点の空が寂しくならないよう奥に雲を敷く(Phase 5-5で-195→-250) */}
             <Cloud
               seed={4}
               segments={20}
               bounds={[16, 3, 6]}
               volume={10}
-              position={[0, 9, -195]}
+              position={[0, 9, -250]}
               color="#ffd2be"
               opacity={0.5}
               speed={0.05}
