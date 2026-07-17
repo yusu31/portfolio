@@ -6,11 +6,22 @@ import { useFrame } from '@react-three/fiber'
 import { useScroll } from '@react-three/drei'
 import * as THREE from 'three'
 import { getBallPose } from './ball/ballPath'
+import { getBallRollQuaternion, getHorizontalSpeed } from './ball/roll'
+
+// 静止区間で温存するアイドルスピン(Crystal.tsx由来の0.18 rad/s)と、
+// 転がりへ遷移する水平速度(ユニット/u)のフェード帯。移動が始まるとスピンが自然に転がりに置き換わる
+const IDLE_SPIN_RATE = 0.18
+const IDLE_FADE_LOW = 10
+const IDLE_FADE_HIGH = 60
+const Y_AXIS = new THREE.Vector3(0, 1, 0)
 
 export default function CrystalBall() {
   const groupRef = useRef<THREE.Group>(null)
   const shellRef = useRef<THREE.Mesh>(null)
   const coreRef = useRef<THREE.Mesh>(null)
+  const rollQuat = useRef(new THREE.Quaternion())
+  const idleYawQuat = useRef(new THREE.Quaternion())
+  const idleYaw = useRef(0)
   const scroll = useScroll()
 
   useFrame((state, delta) => {
@@ -18,8 +29,16 @@ export default function CrystalBall() {
     if (groupRef.current) {
       groupRef.current.position.copy(getBallPose(scroll.offset).position)
     }
-    // Crystal.tsx interactiveモードのidle回転と発光パルスを再現
-    if (shellRef.current) shellRef.current.rotation.y += delta * 0.18
+    // 外殻の回転 = 進行連動ローリング(offsetの純粋関数) × アイドルスピン(静止区間のみ)。
+    // アイドルスピンは発光パルスと同じ「アンビエント演出はoffset原則の例外」扱いで時間ベース
+    if (shellRef.current) {
+      const idleFactor = 1 - THREE.MathUtils.smoothstep(getHorizontalSpeed(scroll.offset), IDLE_FADE_LOW, IDLE_FADE_HIGH)
+      idleYaw.current += delta * IDLE_SPIN_RATE * idleFactor
+      idleYawQuat.current.setFromAxisAngle(Y_AXIS, idleYaw.current)
+      getBallRollQuaternion(scroll.offset, rollQuat.current)
+      shellRef.current.quaternion.multiplyQuaternions(rollQuat.current, idleYawQuat.current)
+    }
+    // Crystal.tsx interactiveモードの発光パルスを再現
     if (coreRef.current) {
       const mat = coreRef.current.material as THREE.MeshStandardMaterial
       mat.emissiveIntensity = 3.5 + Math.sin(state.clock.elapsedTime * 2.2) * 1.2
