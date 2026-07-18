@@ -13,6 +13,7 @@ import SectionCards from '../journey/SectionCards'
 import { SoccerVenue, BasketVenue, VolleyVenue, ContactVenue } from '../journey/venues'
 import { Transit1, Transit2, Transit3 } from '../journey/Transit'
 import { PAGES, type SectionId } from '../journey/path'
+import { SUN_POSITION, KEY_LIGHT_POSITION } from '../journey/skyConfig'
 
 // 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)。
 // Phase 5-5の世界3倍化(全長約200→253.5)に合わせてzを新全長へほぼ等間隔に再配分(x/y/scaleは踏襲)
@@ -61,10 +62,11 @@ export default function ScrollJourneyPoc() {
     <div style={{ width: '100vw', height: '100vh', background: '#f2b8a0' }}>
       {/* alpha:false は transmission 系マテリアルの既知制約(旧Crystal.tsxで実証済み) */}
       <Canvas camera={{ position: [0, 1, 10], fov: 50 }} gl={{ alpha: false }} dpr={[1, 2]}>
-        {/* 物理夕焼け空: 太陽を地平線近くに置いてピーチ〜クリームのグラデーションを作る */}
+        {/* 物理夕焼け空: 太陽を地平線近くに置いてピーチ〜クリームのグラデーションを作る。
+            位置はskyConfig.tsの共有定数(カメラ姿勢のグレア検証と単一ソース) */}
         <Sky
           distance={450000}
-          sunPosition={[-8, 1.5, 6]}
+          sunPosition={SUN_POSITION}
           turbidity={7}
           rayleigh={4}
           mieCoefficient={0.012}
@@ -74,8 +76,8 @@ export default function ScrollJourneyPoc() {
             Phase 5-2でヴェニュー間隔が広がった(66→約200)ため、次のヴェニューが早めに滲み始めるよう46→65に再検証 */}
         <fog attach="fog" args={['#f2b8a0', 14, 65]} />
         <ambientLight intensity={0.55} color="#ffe0cf" />
-        {/* 夕日: Skyの太陽位置と同方向の暖色キーライト */}
-        <directionalLight position={[-8, 3, 6]} intensity={1.6} color="#ffb185" />
+        {/* 夕日: Skyの太陽位置と同方向の暖色キーライト(skyConfig.tsの共有定数) */}
+        <directionalLight position={KEY_LIGHT_POSITION} intensity={1.6} color="#ffb185" />
         {/* 逆光のリムライト: 薄紫でシルエットを立てる(球の輪郭が背景ピーチに溶けるのを防ぐ) */}
         <directionalLight position={[5, 8, -10]} intensity={0.6} color="#c3b0ff" />
         <Suspense fallback={null}>

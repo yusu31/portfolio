@@ -20,6 +20,7 @@ import {
   REST_END,
 } from './beats'
 import { CAMERA_PATH, LOOKAT_PATH, PATH_END_OFFSET } from '../path'
+import { applyCameraAttitude } from '../cameraAttitude'
 
 describe('ビート継ぎ目', () => {
   const boundaries: Array<[string, number]> = [
@@ -61,6 +62,8 @@ describe('ビート継ぎ目', () => {
   })
 })
 
+// CameraRigと同一手順のカメラ再現。カメラ姿勢反転演出(#271)以降は
+// lookAt後にapplyCameraAttitudeを重ねた「実際のカメラ姿勢込み」で検証する
 function cameraAt(u: number): THREE.PerspectiveCamera {
   const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 1000)
   const clampedU = Math.min(u, PATH_END_OFFSET)
@@ -69,6 +72,7 @@ function cameraAt(u: number): THREE.PerspectiveCamera {
   const { position: ballPos, focusWeight } = getBallPose(u)
   if (focusWeight > 0) target.lerp(ballPos, focusWeight)
   camera.lookAt(target)
+  applyCameraAttitude(camera, u, 1)
   camera.updateMatrixWorld()
   return camera
 }
@@ -80,7 +84,14 @@ describe('見せ場でのフレーム内収まり(NDC)', () => {
     return ballPos.clone().project(camera)
   }
 
-  const sampleUs: Array<[string, number]> = [
+  // fall中間はカメラ姿勢反転演出(#271)のダイブピーク(roll90°/pitch-35°)と重なる。
+  // roll90°でベースラインの縦オフセットが横軸へ写るため、ボールは一時的にフレーム
+  // 右端のわずか外へ出る(実測NDC x=1.045 @u=0.5528、スクラッチパッド1000分割 2026-07-18)。
+  // ここはfocusWeight=0.2の非見せ場区間で、ボールではなく「地面が上空になる」世界反転を
+  // 見せる演出中のため意図的な許容点とする(beats.tsのRING_U見上げ許容と同じ考え方。
+  // 設計書の指針「第一手=振付調整」は演出強度をユーザーがブラウザで判断する前に
+  // 弱めることになるため採らず、第二手=実測コメント付きの区間限定閾値とした。PR2で再実測)
+  const sampleUs: Array<[string, number, { maxX?: number; maxY?: number }?]> = [
     ['dribble序盤', DRIBBLE_START + 0.01],
     ['dribble中間', (DRIBBLE_START + DRIBBLE_END) / 2],
     ['dribble終盤', DRIBBLE_END - 0.001],
@@ -88,7 +99,7 @@ describe('見せ場でのフレーム内収まり(NDC)', () => {
     ['catch直後', CATCH_START + 0.005],
     ['freeThrow中間', (CATCH_END + RING_U) / 2],
     ['freeThrow終盤(リング直前)', RING_U - 0.001],
-    ['fall中間', (RING_U + FALL_END) / 2],
+    ['fall中間', (RING_U + FALL_END) / 2, { maxX: 1.15 }],
     ['receive中間', (FALL_END + RECEIVE_END) / 2],
     ['receive終盤', RECEIVE_END - 0.001],
     ['setToss中間', (RECEIVE_END + TOSS_END) / 2],
@@ -99,11 +110,13 @@ describe('見せ場でのフレーム内収まり(NDC)', () => {
     ['rest終端(最終静止)', REST_END - 0.0005],
   ]
 
-  for (const [label, u] of sampleUs) {
-    it(`${label}(u=${u.toFixed(4)})でボールがカメラのフレーム内(|x|<0.9, |y|<0.85)にある`, () => {
+  for (const [label, u, override] of sampleUs) {
+    const maxX = override?.maxX ?? 0.9
+    const maxY = override?.maxY ?? 0.85
+    it(`${label}(u=${u.toFixed(4)})でボールがカメラのフレーム内(|x|<${maxX}, |y|<${maxY})にある`, () => {
       const ndc = projectAt(u)
-      expect(Math.abs(ndc.x)).toBeLessThan(0.9)
-      expect(Math.abs(ndc.y)).toBeLessThan(0.85)
+      expect(Math.abs(ndc.x)).toBeLessThan(maxX)
+      expect(Math.abs(ndc.y)).toBeLessThan(maxY)
     })
   }
 })
