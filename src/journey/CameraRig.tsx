@@ -6,6 +6,8 @@ import { useScroll } from '@react-three/drei'
 import * as THREE from 'three'
 import { CAMERA_PATH, LOOKAT_PATH, PATH_END_OFFSET, sectionAt, type SectionId } from './path'
 import { getBallPose } from './ball/ballPath'
+import { applyCameraAttitude } from './cameraAttitude'
+import { useReducedMotion } from './useReducedMotion'
 
 interface CameraRigProps {
   /** アクティブセクションが変わった瞬間だけ呼ばれる(カードUIの切替用) */
@@ -17,6 +19,7 @@ export default function CameraRig({ onSectionChange }: CameraRigProps) {
   const pos = useRef(new THREE.Vector3())
   const target = useRef(new THREE.Vector3())
   const lastSection = useRef<SectionId | null | undefined>(undefined)
+  const reducedMotionScale = useReducedMotion()
 
   useFrame((state) => {
     const offset = scroll.offset // 0〜1
@@ -33,6 +36,9 @@ export default function CameraRig({ onSectionChange }: CameraRigProps) {
 
     state.camera.position.copy(pos.current)
     state.camera.lookAt(target.current)
+    // 姿勢レイヤー: バスケ区間+バスケ→バレー移行のロール/ピッチをlookAtの後段で重ねる
+    // (位置・視線経路には触れない。u≥RECEIVE_ENDでは厳密に恒等=About後半以降は無変更)
+    applyCameraAttitude(state.camera, u, reducedMotionScale)
 
     // セクション切替はuseFrame内で検知し、変化した瞬間だけReactへ通知する
     // (毎フレームsetStateするとDOM側が60fpsで再レンダリングされるため)
