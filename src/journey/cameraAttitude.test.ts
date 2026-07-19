@@ -1,13 +1,14 @@
 // カメラ姿勢反転演出(#271)の回帰テスト。ブラウザ不要の一次防衛線:
 // ①恒等区間の保証(サッカー区間・About後半〜Contactへ影響ゼロ) ②継ぎ目の連続性
 // ③ダイブピークの成立 ④復帰の厳密性 ⑤太陽グレア安全性 ⑥reduced-motion ⑦振幅暴走ガード
-// 数値の根拠はスクラッチパッド実測(2026-07-18、u1000分割。PR #271本文に記録)
+// 数値の根拠はスクラッチパッド実測(2026-07-18、u1000分割。PR #271本文に記録)。
+// チェイスカム化(PR-2)でカメラの基準方向が根本的に変わったため、太陽グレア判定に使う
+// カメラ再現をposeJourneyCamera(camera.ts)ベースへ置換して全域再実測した(2026-07-19)。
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { getCameraAttitude, applyCameraAttitude, DIVE_PEAK_U } from './cameraAttitude'
 import { CATCH_START, RING_U, FALL_END, RECEIVE_END } from './ball/beats'
-import { CAMERA_PATH, LOOKAT_PATH, PATH_END_OFFSET } from './path'
-import { getBallPose } from './ball/ballPath'
+import { poseJourneyCamera } from './camera'
 import { SUN_DIRECTION } from './skyConfig'
 
 const deg = THREE.MathUtils.radToDeg
@@ -92,16 +93,10 @@ describe('復帰の厳密性', () => {
 })
 
 describe('太陽グレア安全性(Bloom threshold 0.9の暴発防止)', () => {
-  // CameraRigと同一手順でカメラを再現する(ballPath.test.tsのcameraAtと同型)
+  // CameraRigと同一手順でカメラを再現する(ballPath.test.tsのcameraAtと同じposeJourneyCameraを使う)
   function buildCamera(u: number, attitudeScale: number): THREE.PerspectiveCamera {
     const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 1000)
-    const clampedU = Math.min(u, PATH_END_OFFSET)
-    camera.position.copy(CAMERA_PATH.getPointAt(clampedU))
-    const target = LOOKAT_PATH.getPointAt(clampedU)
-    const { position: ballPos, focusWeight } = getBallPose(u)
-    if (focusWeight > 0) target.lerp(ballPos, focusWeight)
-    camera.lookAt(target)
-    applyCameraAttitude(camera, u, attitudeScale)
+    poseJourneyCamera(camera, u, attitudeScale)
     camera.updateMatrixWorld()
     return camera
   }
@@ -112,12 +107,15 @@ describe('太陽グレア安全性(Bloom threshold 0.9の暴発防止)', () => {
     return deg(fwd.angleTo(SUN_DIRECTION))
   }
 
-  // 設計書の原不変条件は「全uで>55°(FOV対角半角43.6°+マージン)」だったが、実測の結果、
-  // ベースライン(姿勢なし)自体がu≈0.689(receive終盤、視線がバレーコート=太陽側へ振れる)で
-  // 48.06°まで近づくことが判明した(Phase 5-5の3倍化による既存挙動で、本演出とは無関係。
-  // その地点の姿勢はほぼ恒等)。よって不変条件を「姿勢演出が新たなグレアリスクを作らない」
-  // 形に分解して恒久化する: (a)姿勢が意味を持つ区間では55°超(実測最小70.45°)
-  // (b)全uで姿勢がベースラインの太陽角度を55°未満へ押し下げない
+  // 設計書の原不変条件は「全uで>55°(FOV対角半角43.6°+マージン)」。旧独立経路(CAMERA_PATH/
+  // LOOKAT_PATH)時代はベースライン(姿勢なし)がu≈0.689で48.06°まで近づく既存挙動があったが、
+  // チェイスカム化(PR-2)でカメラが常にボールの進行方向(≒-z)を向くようになった結果、
+  // ベースラインの最小太陽角は74.30°@u=0.145まで改善した(実測、scratchpad 2026-07-19)。
+  // それでも「姿勢演出が新たなグレアリスクを作らない」不変条件は形式として維持する:
+  // (a)姿勢が意味を持つ区間では55°超(実測最小89.61°) (b)全uで姿勢がベースラインの
+  // 太陽角度を55°未満へ押し下げない(実測: 全域55°を下回らないためb側は事実上恒等的に成立)
+  // PR-2再調整(D_BACK 10→4.5等、camera.ts参照)後も再実測: ベースライン最小75.19°@u=0.145、
+  // 姿勢区間最小90.26°。カメラをanchorへ寄せても太陽グレア安全性は変わらず良好
   it('姿勢が1°を超える全区間で太陽角度>55°(1/1000刻み)', () => {
     const N = 1000
     let minAngle = Infinity

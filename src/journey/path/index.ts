@@ -13,7 +13,7 @@ export {
   FINISH_GATE_OFFSET_Z,
   FINISH_GATE_POLE_X,
 } from './venues'
-export { CAMERA_PATH, LOOKAT_PATH, PATH_END_OFFSET, PAGES } from './curves'
+export { PATH_END_OFFSET, PAGES } from './curves'
 export { SECTION_RANGES, sectionAt } from './sections'
 export type { SectionId, SectionRange } from './sections'
 export { TRANSIT_SPANS } from './transit'
