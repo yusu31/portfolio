@@ -7,11 +7,20 @@
 // チェイスカム化(PR-2)でCameraRig.tsxが独立経路(CAMERA_PATH/LOOKAT_PATH、廃止)を
 // 使わなくなったため、この回帰テストのカメラ再現もposeJourneyCamera(camera.ts)を
 // 直接呼ぶ形に置換した(CameraRig.tsx・cameraAttitude.test.tsと共有する唯一のビルダー)。
-// NDC枠は「下2/3バンド」(y∈[-0.6,-0.05], |x|<0.5)に改定: チェイスカムは常にボールの
-// 背後から追うため、独立経路時代の「フレームのどこかに収まっていればよい」広い許容
-// (|x|<0.9, |y|<0.85)は不要になり、より厳格な構図保証に置き換えられる
-// (実測: scratchpad 2026-07-19、D_BACK=10/D_UP=3/LOOK_AHEAD=3/LOOK_UP=1で
-// 姿勢演出区間(CATCH_START〜RECEIVE_END)を除く全域(1001サンプル)で違反ゼロ)。
+//
+// PR-2再調整(scratchpad 2026-07-19、ユーザーQA後)でNDC枠の意味論を変更した:
+// ユーザーフィードバック「もっとボールに近づいて、上3分の2が見えていればいい」を受け、
+// D_BACK 10→4.5・D_UP 3→3(維持)・LOOK_AHEAD 3→2・LOOK_UP 1→1.5に変更(camera.ts参照)。
+// これによりボールは画面下寄り・大きく映るようになり、「下側は意図的にフレーム外へ
+// クロップされてよい」設計に変わった。旧「下2/3バンド」(center y∈[-0.6,-0.05]の
+// 上下両方に閾値を持つ帯)は前提が崩れるため廃止し、新たに以下2条件へ置き換える:
+//   ①ボール中心が画面下寄り(ndc.y <= BAND_Y_CENTER_MAX、下限なし=どれだけ低くてもよい)
+//   ②ボール上端(中心+見かけ半径をworld up方向に投影した点)がフレーム内(yTop > -1)
+// ①は「ちゃんとボールに寄って低い位置にある」ことを、②は「上端が見切れて
+// ボールが完全に画面外へ消えることはない(=上3分の2が見える、の最低保証)」ことを担保する。
+// 実測(scratchpad 2026-07-19、D_BACK=4.5/D_UP=3/LOOK_AHEAD=2/LOOK_UP=1.5):
+// 姿勢演出区間を除く全域(1001サンプル)でndc中心の最大値(最も高い=画面中央寄りな値)は
+// -0.538、上端の最小値(最も下がった値)は-0.877(いずれも閾値に対して十分な余裕あり)
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { getBallPose } from './ballPath'
@@ -83,23 +92,42 @@ function cameraAt(u: number): THREE.PerspectiveCamera {
   return camera
 }
 
-describe('見せ場でのフレーム内収まり(NDC・下2/3バンド)', () => {
+describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロップ許容)', () => {
   function projectAt(u: number): THREE.Vector3 {
     const camera = cameraAt(u)
     const { position: ballPos } = getBallPose(u)
     return ballPos.clone().project(camera)
   }
 
-  // 下2/3バンド: y∈[-0.6,-0.05](画面下2/3、下端に張り付かない)・|x|<0.5(横ズレなし)
-  const BAND_Y_MIN = -0.6
-  const BAND_Y_MAX = -0.05
+  /**
+   * ボール上端のNDC yを概算する。world up方向へBALL_RADIUS分オフセットした点を
+   * 個別に投影し、中心の投影点との比較で「より上」側を採用する(ロール姿勢下では
+   * world upがカメラのローカルupと一致しないため、この概算はskipBand区間では使わない)
+   */
+  function topNdcYAt(u: number): number {
+    const camera = cameraAt(u)
+    const { position: ballPos } = getBallPose(u)
+    const up = ballPos.clone().add(new THREE.Vector3(0, BALL_RADIUS, 0)).project(camera).y
+    const down = ballPos.clone().add(new THREE.Vector3(0, -BALL_RADIUS, 0)).project(camera).y
+    return Math.max(up, down)
+  }
+
+  // PR-2再調整(D_BACK 10→4.5・LOOK_AHEAD 3→2・LOOK_UP 1→1.5、camera.ts参照)で
+  // 「ボールに寄り、下側は意図的にクロップされてよい」設計に変更した。
+  // ①BAND_Y_CENTER_MAX: ボール中心が画面下寄りであること(下限なし=どれだけ低くてもよい)
+  // ②TOP_VISIBLE_MIN: ボール上端(中心+見かけ半径)がフレーム内(y>-1)であること
+  //   (=「上3分の2が見える」というユーザー要望の最低保証。下端がフレーム外に出るのは許容)
+  // 実測(scratchpad 2026-07-19): 姿勢演出区間を除く全域(1001サンプル)で中心の最大値
+  // (=最も画面中央寄りな値)-0.538、上端の最小値(=最も下がった値)-0.877
+  const BAND_Y_CENTER_MAX = -0.45
+  const TOP_VISIBLE_MIN = -1
   const BAND_X_ABS = 0.5
 
   // fall中間(=DIVE_PEAK_U)はカメラ姿勢反転演出のダイブピーク(roll90°/pitch-35°)と重なる。
   // roll90°でベースラインの縦オフセットが横軸へ写り、かつ「地面が上空になる」世界反転を
-  // 見せる演出そのものが目的のため、下2/3バンドの対象外として実測値+マージンの緩い枠で
+  // 見せる演出そのものが目的のため、通常バンドの対象外として実測値+マージンの緩い枠で
   // 別枠許容する(計画書§2「姿勢演出区間は別枠で許容」の実装)。
-  // 実測(scratchpad 2026-07-19): x=0.617, y=0.000 @u=0.5528
+  // 実測(scratchpad 2026-07-19、D_BACK=4.5/D_UP=3/LOOK_AHEAD=2/LOOK_UP=1.5): x=0.310, y=0.000 @u=0.5528
   const sampleUs: Array<[string, number, { skipBand?: boolean }?]> = [
     ['dribble序盤', DRIBBLE_START + 0.01],
     ['dribble中間', (DRIBBLE_START + DRIBBLE_END) / 2],
@@ -121,28 +149,26 @@ describe('見せ場でのフレーム内収まり(NDC・下2/3バンド)', () =>
 
   for (const [label, u, override] of sampleUs) {
     if (override?.skipBand) {
-      it(`${label}(u=${u.toFixed(4)})は姿勢演出ピークのため下2/3バンド対象外(実測+マージンの緩い枠のみ確認)`, () => {
+      it(`${label}(u=${u.toFixed(4)})は姿勢演出ピークのため通常バンド対象外(実測+マージンの緩い枠のみ確認)`, () => {
         const ndc = projectAt(u)
-        expect(Math.abs(ndc.x)).toBeLessThan(0.75) // 実測0.617+マージン
+        expect(Math.abs(ndc.x)).toBeLessThan(0.5) // 実測0.310+マージン
         expect(Math.abs(ndc.y)).toBeLessThan(0.3) // 実測0.000+マージン
       })
       continue
     }
-    it(`${label}(u=${u.toFixed(4)})でボールが下2/3バンド(y∈[${BAND_Y_MIN},${BAND_Y_MAX}], |x|<${BAND_X_ABS})に収まる`, () => {
+    it(`${label}(u=${u.toFixed(4)})でボール中心が画面下寄り(y<=${BAND_Y_CENTER_MAX})かつ上端がフレーム内(y>${TOP_VISIBLE_MIN})、|x|<${BAND_X_ABS}`, () => {
       const ndc = projectAt(u)
-      expect(ndc.y).toBeGreaterThanOrEqual(BAND_Y_MIN)
-      expect(ndc.y).toBeLessThanOrEqual(BAND_Y_MAX)
+      expect(ndc.y).toBeLessThanOrEqual(BAND_Y_CENTER_MAX)
+      expect(topNdcYAt(u)).toBeGreaterThan(TOP_VISIBLE_MIN)
       expect(Math.abs(ndc.x)).toBeLessThan(BAND_X_ABS)
     })
   }
 
-  it('全区間(1001サンプル)でも下2/3バンド違反が姿勢演出区間以外に出ない', () => {
+  it('全区間(1001サンプル)でも姿勢演出区間以外で違反が出ない(中心が下寄り・上端がフレーム内・xズレなし)', () => {
     // 姿勢演出区間(CATCH_START〜RECEIVE_END、roll/pitchが1°を超える区間)全体を対象外とする。
-    // ビート代表点(上のit群)ではfreeThrow中間/リング直前/receive中間は帯に収まっていたが、
-    // その間の遷移区間(smootherstepの立ち上がり・立ち下がり)で帯を一時的に外れる箇所が
-    // 実測で見つかった(ダイブピーク近傍だけの除外では不十分だった)。姿勢演出はroll90°/
-    // pitch-35°という「地面が上空になる」意図的な世界反転のためNDC帯の対象外として扱う設計
-    // (計画書§2「姿勢演出区間は別枠で許容」)であり、この区間だけ対象外にするのは妥当
+    // 姿勢演出はroll90°/pitch-35°という「地面が上空になる」意図的な世界反転のため
+    // 通常バンドの対象外として扱う設計(計画書§2「姿勢演出区間は別枠で許容」)であり、
+    // この区間だけ対象外にするのは妥当
     const N = 1000
     let violations = 0
     for (let i = 0; i <= N; i++) {
@@ -150,7 +176,8 @@ describe('見せ場でのフレーム内収まり(NDC・下2/3バンド)', () =>
       const { roll, pitch } = getCameraAttitude(u, 1)
       if (Math.max(Math.abs(deg(roll)), Math.abs(deg(pitch))) > 1) continue
       const ndc = projectAt(u)
-      if (ndc.y < BAND_Y_MIN || ndc.y > BAND_Y_MAX || Math.abs(ndc.x) >= BAND_X_ABS) violations++
+      const yTop = topNdcYAt(u)
+      if (ndc.y > BAND_Y_CENTER_MAX || yTop <= TOP_VISIBLE_MIN || Math.abs(ndc.x) >= BAND_X_ABS) violations++
     }
     expect(violations).toBe(0)
   })
@@ -161,6 +188,8 @@ describe('カメラ-ボール間の近接歪み検知(Phase 5-3の教訓: NDCフ
   // Phase 5-3では距離2〜3ユニットで角度ズレがNDCに激しく増幅される事故が2件あった。
   // チェイスカムは常にボールを追うため、focusWeightに関わらず全区間を検査する
   // (独立経路時代はfocusWeight>0の見せ場だけが対象だったが、その前提が既に無い)
+  // PR-2再調整(D_BACK 10→4.5)後の実測: 全区間最小距離4.85(旧9.83)。カメラを寄せても
+  // 閾値2.0ユニットに対して十分な余裕(2.4倍以上)を維持できている
   it('全区間サンプルでカメラ-ボール距離が2ユニット未満にならない', () => {
     const N = 500
     let minDist = Infinity
@@ -183,6 +212,9 @@ describe('カメラから見た球の見かけの大きさ(画面占有率)', ()
   // Phase 5-4のQAで、「距離は2ユニット以上あるのに画面の9割以上を球が占める」ケースが
   // 見つかった。距離だけでは球の見た目半径(1.5)を考慮できないため、見かけの角度サイズも
   // 一次防衛線にする。チェイスカムは常にボールを追うため全区間を検査する
+  // PR-2再調整(D_BACK 10→4.5)でボールを積極的に大きく見せる設計に変更したため、
+  // 実測最大占有率も0.35→0.687へ上昇した(u≈0.047の近接ポイント。home→dribble遷移の
+  // 瞬間的な最接近で、閾値90%に対しては約21ポイントの余裕を維持)
   const FOV_DEG = 50
 
   it('全区間で見かけの角度サイズが視野角の90%を超えない', () => {
