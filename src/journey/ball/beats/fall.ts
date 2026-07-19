@@ -17,7 +17,13 @@ export function fallPosition(start: THREE.Vector3, end: THREE.Vector3, t: number
 
   // 鉛直: 自由落下（初速 = 0）の物理式。
   // start.y から end.y へ落下する時間を逆算し、その中での位置を計算。
-  const fallDistance = start.y - end.y
+  const fallDistance = Math.max(start.y - end.y, 0) // 負値保護（座標逆転対策）
+
+  if (fallDistance < 0.01) {
+    // 落下距離が微小 → 単純補間に フォールバック
+    return new THREE.Vector3(x, THREE.MathUtils.lerp(start.y, end.y, t), z)
+  }
+
   // 落下時間: y = 0.5 * g * t^2 → t = sqrt(2*y/g)
   const fallTime = Math.sqrt(2 * fallDistance / 12.0)
   // 現在時刻（正規化）

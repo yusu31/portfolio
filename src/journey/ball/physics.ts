@@ -60,18 +60,21 @@ export function calcVelocityForArc(
   const dz = endPos.z - startPos.z
   const dy = endPos.y - startPos.y
 
+  // peakHeight が負またはゼロの安全値チェック
+  const safePeakHeight = Math.max(peakHeight, 0.1)
+
   // 飛行時間（最高点に達する時間の2倍）
   // peakHeight = v0y * t_peak - 0.5*g*t_peak²
   // v0y = peakHeight / t_peak (最高点で速度0)
   // 解: t_total = 2 * sqrt(2*peakHeight / GRAVITY)
-  const t_total = 2 * Math.sqrt(2 * peakHeight / GRAVITY)
+  const t_total = 2 * Math.sqrt(2 * safePeakHeight / GRAVITY)
 
   // 水平速度（等速）
-  const vx = dx / t_total
-  const vz = dz / t_total
+  const vx = dx / t_total || 0
+  const vz = dz / t_total || 0
 
   // 初速度y（最高点の物理式から逆算）
-  const vy = Math.sqrt(2 * GRAVITY * peakHeight)
+  const vy = Math.sqrt(2 * GRAVITY * safePeakHeight)
 
   return new THREE.Vector3(vx, vy, vz)
 }
