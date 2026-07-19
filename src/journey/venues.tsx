@@ -123,7 +123,7 @@ export function BasketVenue() {
           <meshStandardMaterial color={CHALK} roughness={0.4} />
         </mesh>
         <mesh position={[RING_OFFSET.x, RING_OFFSET.y, RING_OFFSET.z]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.96, 0.105, 8, 24]} />
+          <torusGeometry args={[3.0, 0.14, 8, 32]} />
           <meshStandardMaterial color="#e8833a" roughness={0.45} />
         </mesh>
       </group>

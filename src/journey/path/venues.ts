@@ -13,12 +13,15 @@ export const VENUE_SCALE = 3
 
 /**
  * 拡大後のコート寸法(width=x方向, depth=z方向)。
+ * PR-3スケール調整(scratchpad実測 2026-07-19):
+ * - skills/about: 旧21×15に×1.9倍を適用。短辺/球比 5→9.5(目標9〜10)
+ * - projects: 旧27×19.5に×1.5倍を適用(完全追従は不可能・ドリブルレーン体感優先)
  * venues.tsxのplaneGeometryとpath.test.tsの視線AABBテストが共有する単一ソース
  */
 export const COURT_SIZES = {
-  projects: { width: 27, depth: 19.5 },
-  skills: { width: 21, depth: 15 },
-  about: { width: 21, depth: 15 },
+  projects: { width: 40.5, depth: 29.25 },
+  skills: { width: 39.9, depth: 28.5 },
+  about: { width: 39.9, depth: 28.5 },
 } as const
 
 /**
@@ -29,14 +32,15 @@ export const COURT_SIZES = {
 export const STRUCTURE_GROUND_LIFT = 0.8
 
 // 各座標の根拠(近サイドライン=x=0):
-// projects: 半幅13.5 → 東タッチラインがx=0。コートz∈[-49.75, -30.25]
-// skills:   半幅10.5 → 西サイドラインがx=0。コートz∈[-112.5, -97.5]
-// about:    半幅10.5 → 東サイドラインがx=0。コートz∈[-177.5, -162.5]
+// PR-3スケール調整で幅が変更:
+// projects: 幅27→40.5、半幅13.5→20.25 → 東タッチラインがx=0。コートz∈[-49.75, -30.25]
+// skills:   幅21→39.9、半幅10.5→19.95 → 西サイドラインがx=0。コートz∈[-112.5, -97.5]
+// about:    幅21→39.9、半幅10.5→19.95 → 東サイドラインがx=0。コートz∈[-177.5, -162.5]
 // contact:  プラザは1x据え置き(終着の儀式空間に広さは不要・QA済み構図の保護。ユーザー承認済み)
 export const VENUES = {
-  projects: { center: new THREE.Vector3(-13.5, 0, -40) },
-  skills: { center: new THREE.Vector3(10.5, 0, -105) },
-  about: { center: new THREE.Vector3(-10.5, 0, -170) },
+  projects: { center: new THREE.Vector3(-20.25, 0, -40) },
+  skills: { center: new THREE.Vector3(19.95, 0, -105) },
+  about: { center: new THREE.Vector3(-19.95, 0, -170) },
   contact: { center: new THREE.Vector3(0, 0, -245) },
 } as const
 
