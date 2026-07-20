@@ -128,9 +128,17 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
   // 見せる演出そのものが目的のため、通常バンドの対象外として実測値+マージンの緩い枠で
   // 別枠許容する(計画書§2「姿勢演出区間は別枠で許容」の実装)。
   // PR-1(ダイブオフセットブレンド、Issue #288)でカメラ自体がボール真上付近(D_BACK 4.5→1.5・
-  // D_UP 3→7)へ移動するようになり、roll90°を重ねた際の見え方が変わった(x方向へのズレが
-  // 拡大)。実測(2026-07-20、camera.ts DIVE_D_BACK=1.5/DIVE_D_UP=7/DIVE_LOOK_AHEAD=0.5/
-  // DIVE_LOOK_UP=-1.5): x=0.811, y=0.000 @u=0.5528
+  // D_UP 3→7)へ移動するようになり、roll90°/pitch-35°を重ねた際のx方向ズレが拡大した
+  // (旧実測0.310→新実測0.846)。lookTargetをanchorに正確に一致させても(LOOK_AHEAD/LOOK_UP=0)
+  // ズレはほぼ変わらなかった(0.846)ことから、主因はlookTargetオフセットではなく
+  // pitch(-35°、rotateX)がanchorを画面中心から一旦縦方向にずらし、その直後のroll(90°、
+  // rotateZ)がそのズレを横方向へ回転させる、既存cameraAttitude.ts側の力学だと判明した
+  // (回転角と距離の関係で、カメラをanchorへ近づけるほど同じ回転角でも画面上のズレが拡大する)。
+  // ダイブ区間全体を通した目視確認(2026-07-20)でも、この区間はボールが画面端寄りになる
+  // ことを確認済み。ダイブという「世界反転」演出の意図的な範囲内か、cameraAttitude.tsの
+  // roll/pitchキーフレームとの再チューニングが必要かはPhase 6候補として記録
+  // (camera.ts DIVE_D_BACK=1.5/DIVE_D_UP=7/DIVE_LOOK_AHEAD=0/DIVE_LOOK_UP=0時点の実測):
+  // x=0.846, y=0.000 @u=0.5528
   const sampleUs: Array<[string, number, { skipBand?: boolean }?]> = [
     ['dribble序盤', DRIBBLE_START + 0.01],
     ['dribble中間', (DRIBBLE_START + DRIBBLE_END) / 2],
@@ -154,7 +162,7 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
     if (override?.skipBand) {
       it(`${label}(u=${u.toFixed(4)})は姿勢演出ピークのため通常バンド対象外(実測+マージンの緩い枠のみ確認)`, () => {
         const ndc = projectAt(u)
-        expect(Math.abs(ndc.x)).toBeLessThan(1.0) // 実測0.811+マージン
+        expect(Math.abs(ndc.x)).toBeLessThan(0.95) // 実測0.846+マージン
         expect(Math.abs(ndc.y)).toBeLessThan(0.3) // 実測0.000+マージン
       })
       continue

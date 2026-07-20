@@ -8,7 +8,7 @@ import { RING_U, FALL_END } from './ball/beats'
 import { DIVE_PEAK_U } from './cameraAttitude'
 
 const NORMAL = { dBack: 4.5, dUp: 3.0, lookAhead: 2, lookUp: 1.5 }
-const DIVE = { dBack: 1.5, dUp: 7, lookAhead: 0.5, lookUp: -1.5 }
+const DIVE = { dBack: 1.5, dUp: 7, lookAhead: 0, lookUp: 0 }
 
 describe('恒等区間(ダイブ対象外への影響ゼロ)', () => {
   it('u<RING_Uの全サンプルで通常chase値のまま', () => {

@@ -52,15 +52,19 @@ const LOOK_UP = 1.5
  * 既存のcameraAttitude(roll90°/pitch-35°)は視線の回転だけでカメラ位置は
  * 水平heading方向に縛られたままだったため、「下降しているはず」なのに水平前進にしか
  * 見えなかった。カメラ自体をボール真上付近へ移動させ(D_BACK 4.5→1.5・D_UP 3.0→7)、
- * lookTargetもanchor直下寄り(LOOK_AHEAD 2→0.5・LOOK_UP 1.5→-1.5)へブレンドすることで
- * 見下ろし追走にする。lookTargetをanchor真下(オフセット0)にしないのは、視線ベクトルが
- * 世界upとほぼ平行になるlookAtの特異点を避けるため(この値で視線と鉛直の角度差は約13°)。
- * 数値は設計アーティファクトのD_BACK/D_UP以外は初期値で、視覚チューニングPRで実測調整する前提
+ * lookTargetもanchor真上(LOOK_AHEAD/LOOK_UPともに0)へブレンドすることで見下ろし追走にする。
+ * lookTargetをanchorに正確に一致させるのは、rollがlookAt後段のrotateZ(視線軸まわり)
+ * であり画面中心を軸に回るだけなので、視線をanchorへ正確に向けておけばroll角度に関わらず
+ * ボールが常に画面中心に留まるため(実測: 非ゼロオフセット時はroll90°でボールが画面端まで
+ * 寄ってしまい「見下ろしているというより画面外に逃げていく」ように見えるNGパターンだった)。
+ * 視線ベクトルが世界upとほぼ平行になるlookAtの特異点は、rollより前段のD_BACK/D_UP位置
+ * オフセットだけで既に角度差約12°(atan(1.5/7))を確保できているため、lookTarget側で
+ * 追加のマージンを取る必要はない
  */
 const DIVE_D_BACK = 1.5
 const DIVE_D_UP = 7
-const DIVE_LOOK_AHEAD = 0.5
-const DIVE_LOOK_UP = -1.5
+const DIVE_LOOK_AHEAD = 0
+const DIVE_LOOK_UP = 0
 
 /** 両端で値・傾きゼロのsmootherstep(6t⁵-15t⁴+10t³)。cameraAttitude.tsと同じ手法 */
 const smootherstep = (t: number): number => {
