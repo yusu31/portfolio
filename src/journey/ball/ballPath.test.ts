@@ -127,7 +127,10 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
   // roll90°でベースラインの縦オフセットが横軸へ写り、かつ「地面が上空になる」世界反転を
   // 見せる演出そのものが目的のため、通常バンドの対象外として実測値+マージンの緩い枠で
   // 別枠許容する(計画書§2「姿勢演出区間は別枠で許容」の実装)。
-  // 実測(scratchpad 2026-07-19、D_BACK=4.5/D_UP=3/LOOK_AHEAD=2/LOOK_UP=1.5): x=0.310, y=0.000 @u=0.5528
+  // PR-1(ダイブオフセットブレンド、Issue #288)でカメラ自体がボール真上付近(D_BACK 4.5→1.5・
+  // D_UP 3→7)へ移動するようになり、roll90°を重ねた際の見え方が変わった(x方向へのズレが
+  // 拡大)。実測(2026-07-20、camera.ts DIVE_D_BACK=1.5/DIVE_D_UP=7/DIVE_LOOK_AHEAD=0.5/
+  // DIVE_LOOK_UP=-1.5): x=0.811, y=0.000 @u=0.5528
   const sampleUs: Array<[string, number, { skipBand?: boolean }?]> = [
     ['dribble序盤', DRIBBLE_START + 0.01],
     ['dribble中間', (DRIBBLE_START + DRIBBLE_END) / 2],
@@ -151,7 +154,7 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
     if (override?.skipBand) {
       it(`${label}(u=${u.toFixed(4)})は姿勢演出ピークのため通常バンド対象外(実測+マージンの緩い枠のみ確認)`, () => {
         const ndc = projectAt(u)
-        expect(Math.abs(ndc.x)).toBeLessThan(0.5) // 実測0.310+マージン
+        expect(Math.abs(ndc.x)).toBeLessThan(1.0) // 実測0.811+マージン
         expect(Math.abs(ndc.y)).toBeLessThan(0.3) // 実測0.000+マージン
       })
       continue
