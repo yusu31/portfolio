@@ -37,11 +37,12 @@ describe('恒等区間(演出対象外への影響ゼロ)', () => {
 
 describe('継ぎ目の連続性', () => {
   it('1000分割で隣接Δroll・Δpitchが閾値未満(瞬間スナップなし)', () => {
-    // smootherstep補間の理論最大勾配は最急セグメント(RING_U→DIVE_PEAK_U、roll70°/長さ≈0.095)で
-    // 1.875×70/0.095≈1380°/u → 1/1000刻みで≈1.38°/step(実測1.378°)。2.5°/stepなら
-    // 補間の破壊(線形化・キーフレーム順序の崩れ等)だけを検出できる
+    // 新設計(基調ティルト+小振幅ウォブル)の理論最大勾配はウォブル項の高周波成分
+    // (roll: amplitude3°×2π×freq23≈433°/u、pitch: amplitude1.5°×2π×freq19≈179°/u)。
+    // 1/1000刻みでroll≈0.43°/step相当 → 1.0°/stepなら、旧90°スイングへの回帰も
+    // 検知できる意味あるガードとして十分な余裕を持たせつつ引き締めた値
     const N = 1000
-    const maxStepDeg = 2.5
+    const maxStepDeg = 1.0
     let prev = getCameraAttitude(0, 1)
     for (let i = 1; i <= N; i++) {
       const cur = getCameraAttitude(i / N, 1)
@@ -52,27 +53,26 @@ describe('継ぎ目の連続性', () => {
   })
 })
 
-describe('ダイブピークの成立', () => {
-  it('DIVE_PEAK_U(fall中間)でroll=90°・pitch=-35°(設計書の確定振付)', () => {
+describe('ダイブ区間の姿勢が小振幅に収まる(PR-1の教訓: 大きなroll×pitchはボールを画面端へ押し出す)', () => {
+  it('DIVE_PEAK_U(fall中間)で基調ティルトは巻き戻り済み、ウォブル上限内(|roll|<3.01°・|pitch|<1.51°)', () => {
     const { roll, pitch } = getCameraAttitude(DIVE_PEAK_U, 1)
-    expect(deg(roll)).toBeCloseTo(90, 5)
-    expect(deg(pitch)).toBeCloseTo(-35, 5)
+    expect(Math.abs(deg(roll))).toBeLessThan(3.01)
+    expect(Math.abs(deg(pitch))).toBeLessThan(1.51)
   })
 
-  it('[RING_U, FALL_END]内でroll・pitchがピークレンジ(90°付近・-35°付近)を通過する', () => {
+  it('[RING_U, RECEIVE_END)内でroll・pitchが安全な上限内に収まる(旧90°/-35°スイングへの回帰を検知)', () => {
     const N = 500
-    let maxRoll = -Infinity
-    let minPitch = Infinity
+    let maxAbsRoll = 0
+    let maxAbsPitch = 0
     for (let i = 0; i <= N; i++) {
-      const u = RING_U + (i / N) * (FALL_END - RING_U)
+      const u = RING_U + (i / N) * (RECEIVE_END - RING_U) * 0.9999
       const { roll, pitch } = getCameraAttitude(u, 1)
-      maxRoll = Math.max(maxRoll, deg(roll))
-      minPitch = Math.min(minPitch, deg(pitch))
+      maxAbsRoll = Math.max(maxAbsRoll, Math.abs(deg(roll)))
+      maxAbsPitch = Math.max(maxAbsPitch, Math.abs(deg(pitch)))
     }
-    expect(maxRoll).toBeGreaterThan(85)
-    expect(maxRoll).toBeLessThanOrEqual(90 + 1e-9) // 完全反転(オーバーシュート)しない
-    expect(minPitch).toBeLessThan(-30)
-    expect(minPitch).toBeGreaterThanOrEqual(-35 - 1e-9)
+    // 20(リード演出)+3(ウォブル)+余裕、6(リード演出)+1.5(ウォブル)+余裕
+    expect(maxAbsRoll).toBeLessThan(24)
+    expect(maxAbsPitch).toBeLessThan(8)
   })
 })
 
@@ -116,6 +116,8 @@ describe('太陽グレア安全性(Bloom threshold 0.9の暴発防止)', () => {
   // 太陽角度を55°未満へ押し下げない(実測: 全域55°を下回らないためb側は事実上恒等的に成立)
   // PR-2再調整(D_BACK 10→4.5等、camera.ts参照)後も再実測: ベースライン最小75.19°@u=0.145、
   // 姿勢区間最小90.26°。カメラをanchorへ寄せても太陽グレア安全性は変わらず良好
+  // ダイブ演出の大幅縮小(roll90°/pitch-35°→基調ティルト+小振幅ウォブル、cameraAttitude.ts
+  // 参照)後に再実測: 姿勢区間最小98.79°@u=0.464。回転量が大幅に縮小したことでさらに安全側へ改善
   it('姿勢が1°を超える全区間で太陽角度>55°(1/1000刻み)', () => {
     const N = 1000
     let minAngle = Infinity
@@ -158,12 +160,15 @@ describe('reduced-motion', () => {
 })
 
 describe('振幅上限ガード(暴走防止)', () => {
-  it('全uで|pitch|≤85°・|roll|≤180°', () => {
+  // 旧閾値(pitch≤85°・roll≤180°)は90°/-35°設計時代の名残で、現在の小振幅設計
+  // (最大でも20+3=23°・6+1.5=7.5°程度)に対しては緩すぎて回帰を検知できない。
+  // 安全マージンを持たせつつ引き締めた値
+  it('全uで|pitch|≤10°・|roll|≤30°', () => {
     const N = 1000
     for (let i = 0; i <= N; i++) {
       const { roll, pitch } = getCameraAttitude(i / N, 1)
-      expect(Math.abs(deg(pitch))).toBeLessThanOrEqual(85)
-      expect(Math.abs(deg(roll))).toBeLessThanOrEqual(180)
+      expect(Math.abs(deg(pitch))).toBeLessThanOrEqual(10)
+      expect(Math.abs(deg(roll))).toBeLessThanOrEqual(30)
     }
   })
 })
