@@ -39,9 +39,7 @@ import {
 } from './beats'
 import { BALL_RADIUS } from './roll'
 import { poseJourneyCamera } from '../camera'
-import { DIVE_PEAK_U, getCameraAttitude } from '../cameraAttitude'
-
-const deg = THREE.MathUtils.radToDeg
+import { DIVE_PEAK_U } from '../cameraAttitude'
 
 describe('ビート継ぎ目', () => {
   const boundaries: Array<[string, number]> = [
@@ -123,12 +121,12 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
   const TOP_VISIBLE_MIN = -1
   const BAND_X_ABS = 0.5
 
-  // fall中間(=DIVE_PEAK_U)はカメラ姿勢反転演出のダイブピーク(roll90°/pitch-35°)と重なる。
-  // roll90°でベースラインの縦オフセットが横軸へ写り、かつ「地面が上空になる」世界反転を
-  // 見せる演出そのものが目的のため、通常バンドの対象外として実測値+マージンの緩い枠で
-  // 別枠許容する(計画書§2「姿勢演出区間は別枠で許容」の実装)。
-  // 実測(scratchpad 2026-07-19、D_BACK=4.5/D_UP=3/LOOK_AHEAD=2/LOOK_UP=1.5): x=0.310, y=0.000 @u=0.5528
-  const sampleUs: Array<[string, number, { skipBand?: boolean }?]> = [
+  // fall中間(=DIVE_PEAK_U)は位置レイヤー(camera.tsのdiveBlendT)がボール直上から見下ろす
+  // ダイブピークと重なる。ダイブ演出の縮小(roll90°/pitch-35°→基調ティルト+小振幅ウォブル)後の
+  // 実測ではx方向ズレはほぼ解消した(旧0.846→新x≈0)が、この区間はカメラがボール直上から
+  // 見下ろす別カット構図のため、中心が画面下寄り(BAND_Y_CENTER_MAX)ではなく画面中央付近に
+  // 来るのが正しい(意図通りの)構図であり、その点だけ通常バンドと異なる
+  const sampleUs: Array<[string, number, { overheadShot?: boolean }?]> = [
     ['dribble序盤', DRIBBLE_START + 0.01],
     ['dribble中間', (DRIBBLE_START + DRIBBLE_END) / 2],
     ['dribble終盤', DRIBBLE_END - 0.001],
@@ -136,7 +134,7 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
     ['catch直後', CATCH_START + 0.005],
     ['freeThrow中間', (CATCH_END + RING_U) / 2],
     ['freeThrow終盤(リング直前)', RING_U - 0.001],
-    ['fall中間(ダイブピーク)', DIVE_PEAK_U, { skipBand: true }],
+    ['fall中間(ダイブピーク)', DIVE_PEAK_U, { overheadShot: true }],
     ['receive中間', (FALL_END + RECEIVE_END) / 2],
     ['receive終盤', RECEIVE_END - 0.001],
     ['setToss中間', (RECEIVE_END + TOSS_END) / 2],
@@ -148,11 +146,11 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
   ]
 
   for (const [label, u, override] of sampleUs) {
-    if (override?.skipBand) {
-      it(`${label}(u=${u.toFixed(4)})は姿勢演出ピークのため通常バンド対象外(実測+マージンの緩い枠のみ確認)`, () => {
+    if (override?.overheadShot) {
+      it(`${label}(u=${u.toFixed(4)})は俯瞰カットのため中心バイアスのみ対象外(x方向・上端フレーム内は通常通り厳格判定)`, () => {
         const ndc = projectAt(u)
-        expect(Math.abs(ndc.x)).toBeLessThan(0.5) // 実測0.310+マージン
-        expect(Math.abs(ndc.y)).toBeLessThan(0.3) // 実測0.000+マージン
+        expect(topNdcYAt(u)).toBeGreaterThan(TOP_VISIBLE_MIN)
+        expect(Math.abs(ndc.x)).toBeLessThan(BAND_X_ABS)
       })
       continue
     }
@@ -164,20 +162,23 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
     })
   }
 
-  it('全区間(1001サンプル)でも姿勢演出区間以外で違反が出ない(中心が下寄り・上端がフレーム内・xズレなし)', () => {
-    // 姿勢演出区間(CATCH_START〜RECEIVE_END、roll/pitchが1°を超える区間)全体を対象外とする。
-    // 姿勢演出はroll90°/pitch-35°という「地面が上空になる」意図的な世界反転のため
-    // 通常バンドの対象外として扱う設計(計画書§2「姿勢演出区間は別枠で許容」)であり、
-    // この区間だけ対象外にするのは妥当
+  it('全区間(1001サンプル)でx方向ズレ・上端フレーム内は例外なく守られる(旧90°/-35°設計からの回帰検知)', () => {
+    // ダイブ演出の縮小(roll90°/pitch-35°→基調ティルト+小振幅ウォブル、cameraAttitude.ts参照)
+    // 後に再実測した結果、x方向ズレ(旧設計の主症状)と上端フレーム内は全域で例外なく
+    // 守られることを確認した。中心の下寄り判定(BAND_Y_CENTER_MAX)だけは、位置レイヤーが
+    // ボール直上から見下ろす区間(RING_U〜FALL_END、camera.tsのdiveBlendT)では意図的に
+    // ボールが画面中心付近に来る別カット構図のため、その区間だけ対象外にする
+    // (実測: この区間はx≤0.03・yTop≥-0.12で安全域、中心yのみ-0.45を上回る=画面中央寄り)
     const N = 1000
     let violations = 0
     for (let i = 0; i <= N; i++) {
       const u = i / N
-      const { roll, pitch } = getCameraAttitude(u, 1)
-      if (Math.max(Math.abs(deg(roll)), Math.abs(deg(pitch))) > 1) continue
       const ndc = projectAt(u)
       const yTop = topNdcYAt(u)
-      if (ndc.y > BAND_Y_CENTER_MAX || yTop <= TOP_VISIBLE_MIN || Math.abs(ndc.x) >= BAND_X_ABS) violations++
+      const inDiveOverheadShot = u >= RING_U && u < FALL_END
+      if ((!inDiveOverheadShot && ndc.y > BAND_Y_CENTER_MAX) || yTop <= TOP_VISIBLE_MIN || Math.abs(ndc.x) >= BAND_X_ABS) {
+        violations++
+      }
     }
     expect(violations).toBe(0)
   })

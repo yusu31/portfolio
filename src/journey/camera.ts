@@ -4,12 +4,16 @@
 // ボール軌道の内部実装(ビート・sin波・将来の物理式)が変わってもこの関数は無変更で動く
 // (設計原則3「カメラは getBallFrame(u) という契約だけを消費する」)。
 //
-// 手順: getBallFrame(u) → camPos = anchor − heading・D_BACK + (0, D_UP, 0) →
-//       lookTarget = anchor + heading・LOOK_AHEAD + (0, LOOK_UP, 0) →
+// 手順: getBallFrame(u) → getCameraOffset(u)でオフセット4値(dBack/dUp/lookAhead/lookUp)を
+//       取得 → camPos = anchor − heading・dBack + (0, dUp, 0) →
+//       lookTarget = anchor + heading・lookAhead + (0, lookUp, 0) →
 //       camera.lookAt(lookTarget) → 既存applyCameraAttitudeをそのまま後段適用(機構は無変更)。
+//       オフセット4値は通常chase区間では定数(D_BACK/D_UP/LOOK_AHEAD/LOOK_UP)だが、
+//       ダイブ区間(RING_U〜FALL_END)だけダイブ値へブレンドされる(getCameraOffset内)。
 import * as THREE from 'three'
 import { getBallFrame } from './ball/chase'
-import { applyCameraAttitude } from './cameraAttitude'
+import { RING_U, FALL_END } from './ball/beats'
+import { applyCameraAttitude, DIVE_PEAK_U } from './cameraAttitude'
 import { PATH_END_OFFSET } from './path'
 
 /**
@@ -43,6 +47,60 @@ const LOOK_AHEAD = 2
  */
 const LOOK_UP = 1.5
 
+/**
+ * ダイブ(ショット#6・HANDOFF_PHASE5-5_SESSION2.md設計)ピーク時のオフセット。
+ * 既存のcameraAttitude(roll90°/pitch-35°)は視線の回転だけでカメラ位置は
+ * 水平heading方向に縛られたままだったため、「下降しているはず」なのに水平前進にしか
+ * 見えなかった。カメラ自体をボール真上付近へ移動させ(D_BACK 4.5→1.5・D_UP 3.0→7)、
+ * lookTargetもanchor真上(LOOK_AHEAD/LOOK_UPともに0)へブレンドすることで見下ろし追走にする。
+ * lookTargetをanchorに正確に一致させるのは、rollがlookAt後段のrotateZ(視線軸まわり)
+ * であり画面中心を軸に回るだけなので、視線をanchorへ正確に向けておけばroll角度に関わらず
+ * ボールが常に画面中心に留まるため(実測: 非ゼロオフセット時はroll90°でボールが画面端まで
+ * 寄ってしまい「見下ろしているというより画面外に逃げていく」ように見えるNGパターンだった)。
+ * 視線ベクトルが世界upとほぼ平行になるlookAtの特異点は、rollより前段のD_BACK/D_UP位置
+ * オフセットだけで既に角度差約12°(atan(1.5/7))を確保できているため、lookTarget側で
+ * 追加のマージンを取る必要はない
+ */
+const DIVE_D_BACK = 1.5
+const DIVE_D_UP = 7
+const DIVE_LOOK_AHEAD = 0
+const DIVE_LOOK_UP = 0
+
+/** 両端で値・傾きゼロのsmootherstep(6t⁵-15t⁴+10t³)。cameraAttitude.tsと同じ手法 */
+const smootherstep = (t: number): number => {
+  const x = THREE.MathUtils.clamp(t, 0, 1)
+  return x * x * x * (x * (x * 6 - 15) + 10)
+}
+
+/**
+ * RING_U→DIVE_PEAK_U→FALL_ENDでダイブ値へブレンドする係数(0=通常chase, 1=ダイブピーク)。
+ * 区間外は厳密に0(サッカー区間・About以降に一切影響しない)。
+ */
+function diveBlendT(u: number): number {
+  if (u < RING_U || u >= FALL_END) return 0
+  if (u < DIVE_PEAK_U) return smootherstep((u - RING_U) / (DIVE_PEAK_U - RING_U))
+  return smootherstep((FALL_END - u) / (FALL_END - DIVE_PEAK_U))
+}
+
+/** オフセット4値からなるカメラ組み立てパラメータ。u<RING_Uとu≥FALL_ENDでは厳密に恒等 */
+export interface CameraOffset {
+  dBack: number
+  dUp: number
+  lookAhead: number
+  lookUp: number
+}
+
+/** offset(u)からカメラのオフセット値を返す純関数(camera.test.tsの回帰テスト対象) */
+export function getCameraOffset(u: number): CameraOffset {
+  const t = diveBlendT(u)
+  return {
+    dBack: THREE.MathUtils.lerp(D_BACK, DIVE_D_BACK, t),
+    dUp: THREE.MathUtils.lerp(D_UP, DIVE_D_UP, t),
+    lookAhead: THREE.MathUtils.lerp(LOOK_AHEAD, DIVE_LOOK_AHEAD, t),
+    lookUp: THREE.MathUtils.lerp(LOOK_UP, DIVE_LOOK_UP, t),
+  }
+}
+
 // useFrame毎の呼び出しでアロケーションしないよう、モジュールスコープで使い回す
 const frame = { anchor: new THREE.Vector3(), heading: new THREE.Vector3() }
 const camPos = new THREE.Vector3()
@@ -58,11 +116,12 @@ const lookTarget = new THREE.Vector3()
 export function poseJourneyCamera(camera: THREE.Camera, u: number, reducedMotionScale: number): void {
   const clampedU = Math.min(u, PATH_END_OFFSET)
   getBallFrame(clampedU, frame)
+  const { dBack, dUp, lookAhead, lookUp } = getCameraOffset(clampedU)
 
-  camPos.copy(frame.anchor).addScaledVector(frame.heading, -D_BACK)
-  camPos.y += D_UP
-  lookTarget.copy(frame.anchor).addScaledVector(frame.heading, LOOK_AHEAD)
-  lookTarget.y += LOOK_UP
+  camPos.copy(frame.anchor).addScaledVector(frame.heading, -dBack)
+  camPos.y += dUp
+  lookTarget.copy(frame.anchor).addScaledVector(frame.heading, lookAhead)
+  lookTarget.y += lookUp
 
   camera.position.copy(camPos)
   camera.lookAt(lookTarget)
