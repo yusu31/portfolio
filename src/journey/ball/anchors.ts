@@ -61,6 +61,17 @@ export const RECEIVE_PEAK = VENUES.about.center.clone().add(new THREE.Vector3(4.
  */
 export const TOSS_PEAK = VENUES.about.center.clone().add(new THREE.Vector3(3.5, 8.5, -9))
 /**
+ * スパイク(#9)の叩きつけ地点。ネット奥側支柱(world z≈-177.2)より奥、コート奥端
+ * (z≈-184.25)手前の床。y=0.55はFALL_LANDINGと同じ「球の見た目半径(1.5)由来」の
+ * 値(床埋没バグ回避)。座標は叩き台、Playwright実機QAで調整する
+ */
+export const SPIKE_FLOOR = VENUES.about.center.clone().add(new THREE.Vector3(3.0, 1.4, -13))
+/**
+ * スパイク(#9)の短いバウンドの頂点。SPIKE_FLOORで叩きつけた直後の控えめな跳ね上がり
+ * (TOSS_PEAKの高さ8.5に対しごく低い)。座標は叩き台、Playwright実機QAで調整する
+ */
+export const SPIKE_BOUNCE_PEAK = VENUES.about.center.clone().add(new THREE.Vector3(2.0, 3.0, -20))
+/**
  * スパイク後、Contact手前を通過する低空飛行点(restへの受け渡し位置)。
  * プラザは1x据え置きのため相対値不変: フィニッシュゲートの支柱(x=±2.6)や
  * 画面中央固定のContactCardとの重なりを避けた右サイド(x=1.6)のQA済み構図を保つ
