@@ -26,6 +26,11 @@ const CHALK = '#f7f0ea'
 const TITLE_Y = 6.5
 const TITLE_FONT_SIZE = 1.8
 
+/** 各コートの色(Contactジオラマ(ContactDiorama)と単一ソース共有。統一感を色定数の共有で担保する) */
+const SOCCER_COURT_COLOR = '#a3b58c'
+const BASKET_COURT_COLOR = '#cfa477'
+const VOLLEY_COURT_COLOR = '#8fb5a3'
+
 function SectionTitle({
   text,
   accent,
@@ -55,7 +60,7 @@ export function SoccerVenue() {
       {/* ピッチ(乾いた芝色。夕景に馴染む低彩度グリーン) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0]}>
         <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial color="#a3b58c" roughness={0.95} />
+        <meshStandardMaterial color={SOCCER_COURT_COLOR} roughness={0.95} />
       </mesh>
       {/* チョークライン: 外周+センターライン(細い白板で表現)。
           位置・長さ・幅とも旧値×3(幅0.09→0.27。QAで太すぎれば0.15〜0.2に個別調整) */}
@@ -102,7 +107,7 @@ export function BasketVenue() {
       {/* コート(乾いたアンバー) + センターサークル(無地の床だとコートに見えないQA指摘対応) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0]}>
         <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial color="#cfa477" roughness={0.95} />
+        <meshStandardMaterial color={BASKET_COURT_COLOR} roughness={0.95} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.365, 0]}>
         <ringGeometry args={[1.65, 1.89, 32]} />
@@ -142,7 +147,7 @@ export function VolleyVenue() {
       {/* コート(低彩度ティール) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0]}>
         <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial color="#8fb5a3" roughness={0.95} />
+        <meshStandardMaterial color={VOLLEY_COURT_COLOR} roughness={0.95} />
       </mesh>
       {/* ネット: 支柱2本 + 白帯 + 半透明ネット面。
           支柱位置はpath/venues.tsのVOLLEY_NET_POST_Zと単一ソース(構造物クリアランステスト共有)。
@@ -172,6 +177,152 @@ export function VolleyVenue() {
       </group>
       {/* バレーボールの静的メッシュはPhase 5-4で撤去(クリスタル球がレシーブ→トス→アタックで通過する) */}
       <SectionTitle text="ABOUT" accent="#69f0ae" position={[0, TITLE_Y, 0]} fontSize={TITLE_FONT_SIZE} />
+    </group>
+  )
+}
+
+// Contact台座: 3ヴェニューのミニチュアジオラマ(Issue #304)。
+// 実機QAで判明: 最終カメラは球の真横をほぼアイレベルで見ており、球の足元に水平に置いた模型は
+// 球本体に隠れて見えない(ハブ&スポーク型の初期案を却下・詳細はObsidian Decisions/
+// 2026-07-13-journey-ending-diorama.md追記部分)。そのため3コートは水平タイルではなく、
+// 球のシルエットの外側(左右・後方)に立てる「小さな展示パネル」として配置する。
+// SoccerVenue等の縮小再利用ではなく専用の簡略ジオメトリで新規作成する(理由は同ノート参照:
+// Phase5-5でコートが3倍化済みのため一律scale groupだとディテールが視認できないため)。
+// 数値は叩き台(他Anchor同様、Playwright実機QAで個別調整する前提)。
+const DIORAMA_BASE_Y = -0.18 // 旧円柱台座の底面yを踏襲(球の静止位置を変えないため)
+const DIORAMA_RISER_RADIUS_TOP = 0.55
+const DIORAMA_RISER_RADIUS_BOTTOM = 0.7
+const DIORAMA_RISER_HEIGHT = 1.0
+const DIORAMA_TABLETOP_RADIUS = 1.7
+const DIORAMA_TABLETOP_HEIGHT = 0.2
+/** テーブル天面y。旧円柱台座の上面y=1.02と一致させ、球の見え方を変えない */
+const DIORAMA_TOP_SURFACE_Y = DIORAMA_BASE_Y + DIORAMA_RISER_HEIGHT + DIORAMA_TABLETOP_HEIGHT
+
+const DIORAMA_PANEL_WIDTH = 0.6
+const DIORAMA_PANEL_HEIGHT = 1.0
+/** パネル中心の高さ。球の上半分(CONTACT_REST_OFFSET.y=1.0+半径1.5)と横並びになる目安 */
+const DIORAMA_PANEL_CENTER_Y = 2.2
+/** ハブ中心からパネルまでの水平距離。球の半径1.5+余裕を確保しシルエット外に出す */
+const DIORAMA_PANEL_RADIUS = 2.1
+const DIORAMA_POST_RADIUS = 0.025
+/** パネル支柱の高さ(地面からパネル下端まで) */
+const DIORAMA_POST_HEIGHT = DIORAMA_PANEL_CENTER_Y - DIORAMA_PANEL_HEIGHT / 2 - DIORAMA_BASE_Y
+
+type MiniCourtKind = 'soccer' | 'basket' | 'volley'
+
+/** 構造物の簡易記号。縮尺が小さすぎて実物形状(支柱+バックボード+ネット等)は視認できないため、
+    輪郭だけのシンボルに簡略化する(本編ジオメトリの流用はしない)。パネル手前の地面に置く */
+function MiniStructureSymbol({ kind }: { kind: MiniCourtKind }) {
+  if (kind === 'soccer') {
+    return (
+      <group position={[0, DIORAMA_BASE_Y, 0.22]}>
+        <mesh position={[-0.1, 0.08, 0]}>
+          <boxGeometry args={[0.018, 0.16, 0.018]} />
+          <meshStandardMaterial color={CHALK} roughness={0.6} />
+        </mesh>
+        <mesh position={[0.1, 0.08, 0]}>
+          <boxGeometry args={[0.018, 0.16, 0.018]} />
+          <meshStandardMaterial color={CHALK} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.16, 0]}>
+          <boxGeometry args={[0.22, 0.018, 0.018]} />
+          <meshStandardMaterial color={CHALK} roughness={0.6} />
+        </mesh>
+      </group>
+    )
+  }
+  if (kind === 'basket') {
+    return (
+      <group position={[0, DIORAMA_BASE_Y, 0.22]}>
+        <mesh position={[0, 0.09, 0]}>
+          <cylinderGeometry args={[0.014, 0.014, 0.18, 6]} />
+          <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
+        </mesh>
+        <mesh position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.065, 0.011, 6, 16]} />
+          <meshStandardMaterial color="#e8833a" roughness={0.45} />
+        </mesh>
+      </group>
+    )
+  }
+  return (
+    <group position={[0, DIORAMA_BASE_Y, 0.22]}>
+      <mesh position={[-0.12, 0.09, 0]}>
+        <cylinderGeometry args={[0.011, 0.011, 0.18, 6]} />
+        <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
+      </mesh>
+      <mesh position={[0.12, 0.09, 0]}>
+        <cylinderGeometry args={[0.011, 0.011, 0.18, 6]} />
+        <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.12, 0]}>
+        <planeGeometry args={[0.22, 0.09]} />
+        <meshStandardMaterial color="#f2ece6" transparent opacity={0.35} side={2} />
+      </mesh>
+    </group>
+  )
+}
+
+/** 1コート分の立て看板(支柱+額縁パネル+手前の構造物記号)。
+    positionAngleでハブを中心に配置する。facingはパネル自体の向き(position angleと分離): 実測で
+    チェイスカムの進行方向は経路依存で計算予測できないと判明したため、position angleをそのまま
+    向きに使うと配置によっては真横(エッジオン)になり細い線にしか見えなくなる。
+    実測で良好だった向きを別のpositionへ使い回せるようにする */
+function MiniCourtPanel({
+  positionAngle,
+  facing,
+  color,
+  kind,
+}: {
+  positionAngle: number
+  facing: number
+  color: string
+  kind: MiniCourtKind
+}) {
+  const x = DIORAMA_PANEL_RADIUS * Math.sin(positionAngle)
+  const z = DIORAMA_PANEL_RADIUS * Math.cos(positionAngle)
+  return (
+    <group position={[x, 0, z]} rotation={[0, facing, 0]}>
+      <mesh position={[0, DIORAMA_BASE_Y + DIORAMA_POST_HEIGHT / 2, 0]}>
+        <cylinderGeometry args={[DIORAMA_POST_RADIUS, DIORAMA_POST_RADIUS, DIORAMA_POST_HEIGHT, 8]} />
+        <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
+      </mesh>
+      {/* コート色パネル本体。1枚板+side={2}(両面描画)にする: 額縁boxを手前に重ねる旧案は、
+          チェイスカムの実際の進行方向が経路の向きに従い単純な世界座標軸の想定と合わないため、
+          パネルを裏側から見る角度でboxがcolor面を完全に隠す実測不具合が出た(奥行きのある
+          重なりは片側からしか正しく見えない)。奥行きを持たせず1枚板にすることで解消する */}
+      <mesh position={[0, DIORAMA_PANEL_CENTER_Y, 0]}>
+        <planeGeometry args={[DIORAMA_PANEL_WIDTH, DIORAMA_PANEL_HEIGHT]} />
+        <meshStandardMaterial color={color} roughness={0.85} side={2} />
+      </mesh>
+      <MiniStructureSymbol kind={kind} />
+    </group>
+  )
+}
+
+/** ハブ(支柱+テーブル天面、球の着地面)+3コートの立て看板。
+    位置はCONTACT_REST_OFFSETと単一ソース(球の着地点直下) */
+function ContactDiorama() {
+  return (
+    <group position={[CONTACT_REST_OFFSET.x, 0, CONTACT_REST_OFFSET.z]}>
+      <mesh position={[0, DIORAMA_BASE_Y + DIORAMA_RISER_HEIGHT / 2, 0]}>
+        <cylinderGeometry args={[DIORAMA_RISER_RADIUS_TOP, DIORAMA_RISER_RADIUS_BOTTOM, DIORAMA_RISER_HEIGHT, 20]} />
+        <meshStandardMaterial color="#c9beae" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, DIORAMA_BASE_Y + DIORAMA_RISER_HEIGHT + DIORAMA_TABLETOP_HEIGHT / 2, 0]}>
+        <cylinderGeometry args={[DIORAMA_TABLETOP_RADIUS, DIORAMA_TABLETOP_RADIUS, DIORAMA_TABLETOP_HEIGHT, 32]} />
+        <meshStandardMaterial color="#e6dbcd" roughness={0.6} />
+      </mesh>
+      {/* 実機QA実測(位置角度→画面上の見え方、チェイスカムの進行方向は経路依存のため計算では
+          予測できず実測で決めた): position 90°=球の左脇に視認(良好)/330°=右脇に視認(良好)/
+          210°=ContactCard裏に完全に隠れる(不採用)/0°=球の正面を塞ぐ(不採用、隠れるより悪い)。
+          さらにfacingをposition角度と同じ値にすると、位置によってはパネルがカメラにほぼ真横
+          (エッジオン)になり細い線にしか見えない実測不具合が出たため、facingは90°/330°の
+          実測良好値を使い回す(向きと位置を分離)。バスケは330°側とのカード脇での重なりを
+          減らすため位置を65°に置き、向きだけ実測良好な90°(soccerと同じ)を流用する */}
+      <MiniCourtPanel positionAngle={Math.PI / 2} facing={Math.PI / 2} color={SOCCER_COURT_COLOR} kind="soccer" />
+      <MiniCourtPanel positionAngle={(13 * Math.PI) / 36} facing={Math.PI / 2} color={BASKET_COURT_COLOR} kind="basket" />
+      <MiniCourtPanel positionAngle={(11 * Math.PI) / 6} facing={(11 * Math.PI) / 6} color={VOLLEY_COURT_COLOR} kind="volley" />
     </group>
   )
 }
@@ -212,14 +363,9 @@ export function ContactVenue() {
         <SectionTitle text="CONTACT" accent="#ff6b2b" position={[0, 2.85, 0]} fontSize={0.62} />
       </group>
       {/* 台座: 旅を終えたクリスタル球(演者、半径1.5)が転がり込んで静止する場所。
-          「旅路のミニチュアジオラマ」の本実装はPhase 6-5、ここでは円柱のプレースホルダーのみ置く。
-          位置はball/anchors.tsのCONTACT_REST_OFFSETと単一ソース(球の着地点とズレないため)。
-          当初半径1.1〜1.3・高さ0.4で設計したが、QAで「球に埋もれて台座に見えない」と判明した
-          (球の半径1.5に対して小さすぎた)。半径・高さとも打ち上げ、球の下半分が乗る見た目にした */}
-      <mesh position={[CONTACT_REST_OFFSET.x, -0.18 + 0.6, CONTACT_REST_OFFSET.z]}>
-        <cylinderGeometry args={[2.0, 2.3, 1.2, 24]} />
-        <meshStandardMaterial color="#e6dbcd" roughness={0.7} />
-      </mesh>
+          「旅路のミニチュアジオラマ」本実装(Issue #304)。高さスタックは旧円柱台座(上面y=1.02)を
+          踏襲し球の見え方は変えていない。位置はball/anchors.tsのCONTACT_REST_OFFSETと単一ソース */}
+      <ContactDiorama />
       {/* 祝祭の暖色オーブ(道中のWarmOrbsと同レシピ・プラザ上空に散らす) */}
       {[
         { pos: [-2.2, 2.6, -1.2] as const, scale: 0.12 },
