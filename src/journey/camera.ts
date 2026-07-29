@@ -12,7 +12,7 @@
 //       ダイブ区間(RING_U〜FALL_END)だけダイブ値へブレンドされる(getCameraOffset内)。
 import * as THREE from 'three'
 import { getBallFrame } from './ball/chase'
-import { RING_U, FALL_END } from './ball/beats'
+import { DRIBBLE_END, CATCH_START, RING_U, FALL_END } from './ball/beats'
 import { applyCameraAttitude, DIVE_PEAK_U } from './cameraAttitude'
 import { PATH_END_OFFSET } from './path'
 
@@ -66,6 +66,15 @@ const DIVE_D_UP = 7
 const DIVE_LOOK_AHEAD = 0
 const DIVE_LOOK_UP = 0
 
+/**
+ * ロングキック(ショット#4)arc区間のオフセット。ゴールを越えバスケコートまで飛ぶ長距離弾道
+ * (pass.ts参照)の間だけチェイス距離をやや広げ、Lempensの「広い街を優雅に横断する」体感に
+ * 寄せる。スクラッチパッドシミュレーション(2026-07-29)でKICK_POINT地点でのクロスバー・
+ * 支柱クリアランス3.40ユニット(拡張時)を確認済み
+ */
+const ARC_D_BACK = 7
+const ARC_D_UP = 4.5
+
 /** 両端で値・傾きゼロのsmootherstep(6t⁵-15t⁴+10t³)。cameraAttitude.tsと同じ手法 */
 const smootherstep = (t: number): number => {
   const x = THREE.MathUtils.clamp(t, 0, 1)
@@ -82,6 +91,21 @@ function diveBlendT(u: number): number {
   return smootherstep((FALL_END - u) / (FALL_END - DIVE_PEAK_U))
 }
 
+/**
+ * arc区間(u∈[DRIBBLE_END, CATCH_START])で距離を広げる係数(0=通常chase, 1=arc広め)。
+ * diveBlendTと違い台形形状: 前後12%だけsmootherstepでイーズし、中央は1.0を保持する
+ * (キック直後の急な引きを避けつつ、飛行のほとんどで広めの画を維持するため)。
+ * 区間外は厳密に0(dribble・freeThrow以降に一切影響しない)
+ */
+function arcBlendT(u: number): number {
+  if (u < DRIBBLE_END || u >= CATCH_START) return 0
+  const EASE = 0.12
+  const tIn = (u - DRIBBLE_END) / (CATCH_START - DRIBBLE_END)
+  if (tIn < EASE) return smootherstep(tIn / EASE)
+  if (tIn > 1 - EASE) return smootherstep((1 - tIn) / EASE)
+  return 1
+}
+
 /** オフセット4値からなるカメラ組み立てパラメータ。u<RING_Uとu≥FALL_ENDでは厳密に恒等 */
 export interface CameraOffset {
   dBack: number
@@ -90,14 +114,22 @@ export interface CameraOffset {
   lookUp: number
 }
 
-/** offset(u)からカメラのオフセット値を返す純関数(camera.test.tsの回帰テスト対象) */
+/**
+ * offset(u)からカメラのオフセット値を返す純関数(camera.test.tsの回帰テスト対象)。
+ * arc区間とdive区間は互いに重ならない(arcBlendT/diveBlendTが同時に非ゼロにならない)ため、
+ * D_BACK/D_UPはarc→通常→diveの順に連鎖的にlerpするだけで安全に合成できる。
+ * lookAhead/lookUpはarc区間では変更しない(design: 距離のみ広げ、視線ターゲットは据え置き)
+ */
 export function getCameraOffset(u: number): CameraOffset {
-  const t = diveBlendT(u)
+  const arcT = arcBlendT(u)
+  const diveT = diveBlendT(u)
+  const dBack = THREE.MathUtils.lerp(THREE.MathUtils.lerp(D_BACK, ARC_D_BACK, arcT), DIVE_D_BACK, diveT)
+  const dUp = THREE.MathUtils.lerp(THREE.MathUtils.lerp(D_UP, ARC_D_UP, arcT), DIVE_D_UP, diveT)
   return {
-    dBack: THREE.MathUtils.lerp(D_BACK, DIVE_D_BACK, t),
-    dUp: THREE.MathUtils.lerp(D_UP, DIVE_D_UP, t),
-    lookAhead: THREE.MathUtils.lerp(LOOK_AHEAD, DIVE_LOOK_AHEAD, t),
-    lookUp: THREE.MathUtils.lerp(LOOK_UP, DIVE_LOOK_UP, t),
+    dBack,
+    dUp,
+    lookAhead: THREE.MathUtils.lerp(LOOK_AHEAD, DIVE_LOOK_AHEAD, diveT),
+    lookUp: THREE.MathUtils.lerp(LOOK_UP, DIVE_LOOK_UP, diveT),
   }
 }
 

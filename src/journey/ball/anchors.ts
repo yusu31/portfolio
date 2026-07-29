@@ -6,7 +6,7 @@
 // カメラフレーミング制約で決まる実測値として再定義する(設計書§3)。コートが3倍でも
 // カメラは引かない(タッチライン際並走)ため、ボールはカメラ近傍の「道寄りの活動帯」でプレーする
 import * as THREE from 'three'
-import { VENUES, STRUCTURE_GROUND_LIFT } from '../path'
+import { VENUES, STRUCTURE_GROUND_LIFT, SOCCER_GOAL_GROUP_OFFSET } from '../path'
 
 /** Home区間でボールが静止する位置(旧CrystalBall.tsxの既定position。Home映像はQA済みのため据え置き) */
 export const HOME_REST = new THREE.Vector3(-2.3, 1, 0)
@@ -24,6 +24,16 @@ export const DRIBBLE_Z_ENTRY = -28
 export const DRIBBLE_Z_EXIT = VENUES.projects.center.z - 9.0
 /** バスケのキャッチ地点(コート手前・道寄り。カメラ前方約10ユニットのフレーミング実測値) */
 export const CATCH_POINT = VENUES.skills.center.clone().add(new THREE.Vector3(-6.5, 1.2, 7))
+
+/**
+ * ロングキック(#4)の蹴り出し地点。ゴール正面、ゴールライン(SOCCER_GOAL_GROUP_OFFSET)から
+ * +x方向へ6.45ユニット。スクラッチパッドシミュレーション(2026-07-29)でゴール直近(2〜3ユニット)
+ * に置くとチェイスカメラのarc区間拡張オフセット(D_BACK7/D_UP4.5)がクロスバー・支柱の
+ * 1〜2ユニット圏内まで接近することが判明したため、クロスバー距離3.40ユニット(拡張時)・
+ * 4.28ユニット(通常時)を確保できるこの距離に調整した
+ */
+const SOCCER_GOAL_FRONT = VENUES.projects.center.clone().add(SOCCER_GOAL_GROUP_OFFSET)
+export const KICK_POINT = new THREE.Vector3(SOCCER_GOAL_FRONT.x + 6.45, DRIBBLE_GROUND_Y, SOCCER_GOAL_FRONT.z)
 
 /**
  * バスケゴールの支柱グループのvenue相対オフセット。venues.tsxのBasketVenueと単一ソース共有。

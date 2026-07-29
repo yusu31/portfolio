@@ -8,6 +8,12 @@ import * as THREE from 'three'
 import { getBallFrame, HEADING_KERNEL_U, type BallFrame } from './chase'
 import { HOME_HOLD_END, DRIBBLE_START, DRIBBLE_END, REST_END } from './beats'
 import { HOME_REST, CONTACT_REST } from './anchors'
+import { KICK_APPROACH_START } from './beats/dribble'
+
+/** ドリブル区間内でウィーブ→ゴール前KICK_POINTへの方向転換が始まるu(PR-4) */
+const KICK_APPROACH_U = DRIBBLE_START + KICK_APPROACH_START * (DRIBBLE_END - DRIBBLE_START)
+/** headingの平滑カーネル(±HEADING_KERNEL_U)がKICK_APPROACH_Uより手前まで影響する分を除いた安全側の境界 */
+const KICK_APPROACH_SAFE_U = KICK_APPROACH_U - HEADING_KERNEL_U
 
 const newFrame = (): BallFrame => ({ anchor: new THREE.Vector3(), heading: new THREE.Vector3() })
 
@@ -48,17 +54,35 @@ describe('headingの単位長と水平性', () => {
 })
 
 describe('隣接Δ角上限(ジッターの定量化)', () => {
-  it('dribble区間(バウンド+ウィーブ)でもヨーが振動しない', () => {
+  it('dribble区間・キックアプローチ前(バウンド+ウィーブ)でもヨーが振動しない', () => {
     // 生の隣接差分では最大64.0°/サンプルだったものが、±0.006uカーネルで5.35°に収束(実測)。
-    // 残差はウィーブの真の曲率(旋回方向フリップ3回=振動なし)なので、これ以上は削らない
+    // 残差はウィーブの真の曲率(旋回方向フリップ3回=振動なし)なので、これ以上は削らない。
+    // KICK_APPROACH_U(PR-4、ゴール前KICK_POINTへの方向転換開始点)以降は別テストで扱う。
+    // headingの平滑カーネル(±HEADING_KERNEL_U)がKICK_APPROACH_Uの影響を手前まで
+    // 持ち込む分だけ早めに打ち切る(KICK_APPROACH_SAFE_U)
     let maxDeg = 0
     const prev = getBallFrame(DRIBBLE_START).heading.clone()
-    for (let i = Math.ceil(DRIBBLE_START * 2048) + 1; i <= Math.floor(DRIBBLE_END * 2048); i++) {
+    for (let i = Math.ceil(DRIBBLE_START * 2048) + 1; i <= Math.floor(KICK_APPROACH_SAFE_U * 2048); i++) {
       const cur = getBallFrame(i / 2048).heading
       maxDeg = Math.max(maxDeg, THREE.MathUtils.radToDeg(prev.angleTo(cur)))
       prev.copy(cur)
     }
     expect(maxDeg, `dribble区間の最大Δ角 ${maxDeg.toFixed(2)}°`).toBeLessThan(6.5) // 実測5.35°×1.2
+  })
+
+  it('キックアプローチ区間(ウィーブ→ゴール前KICK_POINTへの方向転換)は単発の転換に収まる', () => {
+    // PR-4: ウィーブ振幅を0へ減衰させながらゴール前へ直進する方向転換。heading角の推移を
+    // 実測したところ、なめらかに転換して1箇所で緩やかな極値を取り戻る形(高周波の
+    // 振動ではない)ことを確認済み(KICK_POINTという固定点へ収束する終盤特有の挙動)。
+    // 実測18.56°に余裕を持たせた上限とする
+    let maxDeg = 0
+    const prev = getBallFrame(KICK_APPROACH_SAFE_U).heading.clone()
+    for (let i = Math.ceil(KICK_APPROACH_SAFE_U * 2048) + 1; i <= Math.floor(DRIBBLE_END * 2048); i++) {
+      const cur = getBallFrame(i / 2048).heading
+      maxDeg = Math.max(maxDeg, THREE.MathUtils.radToDeg(prev.angleTo(cur)))
+      prev.copy(cur)
+    }
+    expect(maxDeg, `キックアプローチ区間の最大Δ角 ${maxDeg.toFixed(2)}°`).toBeLessThan(25)
   })
 
   it('全域でビート継ぎ目を含め異常な向きの飛びがない', () => {
@@ -112,14 +136,31 @@ describe('anchorの契約(PR-2のカメラが依存する性質)', () => {
 
   it('dribble中盤のanchor.yはバウンドの縦揺れを吸収している', () => {
     // 生のボールyはバウンドで振幅1.30。±0.01uカーネルで残留リップル0.115(実測)。
-    // これが崩れる=カメラが1バウンドごとに上下して酔う、を検出する
+    // これが崩れる=カメラが1バウンドごとに上下して酔う、を検出する。
+    // 上限0.17はKICK_APPROACH_U(≈0.178、PR-4)にy平滑カーネル(±0.01u)が到達する
+    // 手前で打ち切り、ゴール前への沈み込み(意図的な高さ変化)を誤検出しないようにする
     let min = Infinity
     let max = -Infinity
-    for (let i = Math.round(0.14 * 2048); i <= Math.round(0.19 * 2048); i++) {
+    for (let i = Math.round(0.14 * 2048); i <= Math.round(0.17 * 2048); i++) {
       const y = getBallFrame(i / 2048).anchor.y
       min = Math.min(min, y)
       max = Math.max(max, y)
     }
     expect(max - min, `dribble中盤のanchor.yリップル ${(max - min).toFixed(3)}`).toBeLessThan(0.2)
+  })
+
+  it('キックアプローチ区間のanchor.yリップルが異常値でない(バウンド減衰の範囲内)', () => {
+    // PR-4: ゴール前KICK_POINT(y=-0.05)へ向けてバウンド自体の実効振幅を絞っていく区間。
+    // バウンドは続くため単調収束ではなく減衰振動になるが、「1バウンドごとに一定の
+    // 高さで上下し続ける」異常(=酔う)ではなく振幅が先細っていく想定通りの挙動
+    // (実測0.465に余裕を持たせた上限)
+    let min = Infinity
+    let max = -Infinity
+    for (let i = Math.round(KICK_APPROACH_U * 2048); i <= Math.round(DRIBBLE_END * 2048); i++) {
+      const y = getBallFrame(i / 2048).anchor.y
+      min = Math.min(min, y)
+      max = Math.max(max, y)
+    }
+    expect(max - min, `キックアプローチ区間のanchor.yリップル ${(max - min).toFixed(3)}`).toBeLessThan(0.6)
   })
 })

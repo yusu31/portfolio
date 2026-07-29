@@ -4,17 +4,27 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { getCameraOffset } from './camera'
-import { RING_U, FALL_END } from './ball/beats'
+import { DRIBBLE_END, CATCH_START, RING_U, FALL_END } from './ball/beats'
 import { DIVE_PEAK_U } from './cameraAttitude'
 
 const NORMAL = { dBack: 4.5, dUp: 3.0, lookAhead: 2, lookUp: 1.5 }
 const DIVE = { dBack: 1.5, dUp: 7, lookAhead: 0, lookUp: 0 }
+const ARC = { dBack: 7, dUp: 4.5 }
 
-describe('恒等区間(ダイブ対象外への影響ゼロ)', () => {
-  it('u<RING_Uの全サンプルで通常chase値のまま', () => {
+describe('恒等区間(arc/ダイブ対象外への影響ゼロ)', () => {
+  it('dribble前(u<DRIBBLE_END)の全サンプルで通常chase値のまま', () => {
     const N = 250
     for (let i = 0; i <= N; i++) {
-      const u = (i / N) * RING_U * 0.9999
+      const u = (i / N) * DRIBBLE_END * 0.9999
+      const offset = getCameraOffset(u)
+      expect(offset).toEqual(NORMAL)
+    }
+  })
+
+  it('catch後〜RING_U手前(arc/ダイブどちらの対象区間でもない)は通常chase値のまま', () => {
+    const N = 250
+    for (let i = 0; i <= N; i++) {
+      const u = CATCH_START + (i / N) * (RING_U - CATCH_START) * 0.9999
       const offset = getCameraOffset(u)
       expect(offset).toEqual(NORMAL)
     }
@@ -31,6 +41,36 @@ describe('恒等区間(ダイブ対象外への影響ゼロ)', () => {
 
   it('FALL_ENDちょうどで通常chase値', () => {
     expect(getCameraOffset(FALL_END)).toEqual(NORMAL)
+  })
+})
+
+describe('arcブレンド(ロングキック #4)の成立', () => {
+  it('DRIBBLE_END・CATCH_STARTちょうどで通常chase値(ブレンド開始/終了点)', () => {
+    expect(getCameraOffset(DRIBBLE_END)).toEqual(NORMAL)
+    expect(getCameraOffset(CATCH_START)).toEqual(NORMAL)
+  })
+
+  it('arc区間中央でARC値(dBack=7, dUp=4.5)に達し、lookAhead/lookUpは通常値のまま', () => {
+    const mid = (DRIBBLE_END + CATCH_START) / 2
+    const offset = getCameraOffset(mid)
+    expect(offset.dBack).toBeCloseTo(ARC.dBack, 5)
+    expect(offset.dUp).toBeCloseTo(ARC.dUp, 5)
+    expect(offset.lookAhead).toBe(NORMAL.lookAhead)
+    expect(offset.lookUp).toBe(NORMAL.lookUp)
+  })
+
+  it('[DRIBBLE_END, CATCH_START]内でdBack/dUpがARC値を超えない(オーバーシュートなし)', () => {
+    const N = 500
+    let maxDBack = -Infinity
+    let maxDUp = -Infinity
+    for (let i = 0; i <= N; i++) {
+      const u = DRIBBLE_END + (i / N) * (CATCH_START - DRIBBLE_END)
+      const offset = getCameraOffset(u)
+      maxDBack = Math.max(maxDBack, offset.dBack)
+      maxDUp = Math.max(maxDUp, offset.dUp)
+    }
+    expect(maxDBack).toBeCloseTo(ARC.dBack, 5)
+    expect(maxDUp).toBeCloseTo(ARC.dUp, 5)
   })
 })
 
