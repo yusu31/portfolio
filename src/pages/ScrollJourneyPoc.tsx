@@ -2,14 +2,19 @@
 // Home(クリスタル球) → Projects(サッカー) → Skills(バスケ) → About(バレー) → Contact(プラザ) を
 // 1本のスクロール空間として実装(設計書§4〜§8)。
 // シーンの色支配: Lempens風の明るいパステル夕景(Phase 2で確立・ユーザー承認済み)。
-import { Suspense, useState } from 'react'
+import { Suspense, useCallback, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { ScrollControls, Environment, Sky, Clouds, Cloud } from '@react-three/drei'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import CameraRig from '../journey/CameraRig'
 import CrystalBall from '../journey/CrystalBall'
 import DiveCloudVeil from '../journey/DiveCloudVeil'
+import WarpFlash, {
+  BLOOM_BASE_INTENSITY,
+  type BloomEffectLike,
+  type ChromaticAberrationEffectLike,
+} from '../journey/WarpFlash'
 import SectionCards from '../journey/SectionCards'
 import { SoccerVenue, BasketVenue, VolleyVenue, ContactVenue } from '../journey/venues'
 import { Transit1, Transit2, Transit3 } from '../journey/Transit'
@@ -47,6 +52,11 @@ function WarmOrbs() {
 // 地面: 全セクションを貫く1枚(乾いたグレージュ・低彩度)。
 // 終端カメラ(z≈-241.3)の正面で切れ目が見えないよう、Contactプラザの奥まで伸ばしてフォグに溶かす。
 // Phase 5-5の世界3倍化(全長約200→253.5・3倍コートの横幅27)に合わせて[60,270]→[70,330]に拡張
+// ChromaticAberrationのoffsetプロップはwrapEffect実装上生値がそのままコンストラクタへ渡り
+// Vector2への変換は行われないため、useVector2相当の変換をここで自前で行う必要がある
+// (配列[0,0]を渡すと実体がplain arrayのままになり、WarpFlash.tsxの.offset.set()が壊れる)
+const CA_INITIAL_OFFSET = new THREE.Vector2(0, 0)
+
 function Ground() {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -100]}>
@@ -58,6 +68,20 @@ function Ground() {
 
 export default function ScrollJourneyPoc() {
   const [activeSection, setActiveSection] = useState<SectionId | null>('home')
+  // ワープVFX(#5): EffectComposerはScrollControlsの外にあるため、useScroll()を使う
+  // WarpFlash(ScrollControls配下)とエフェクトインスタンスをrefで橋渡しする。
+  // オブジェクトref(ref={someRefObject})を直接渡すと、activeSection変化での再レンダー時に
+  // wrapEffect内部のuseMemo依存キーJSON.stringify(props)がマウント済みエフェクトインスタンス
+  // (循環参照を含む)を直列化しようとして例外を投げる(実機で確認済みの@react-three/postprocessing
+  // v3の制約)。コールバックrefは関数のためJSON.stringifyで無視され(undefined化)、この問題を回避する
+  const chromaticAberrationRef = useRef<ChromaticAberrationEffectLike | null>(null)
+  const bloomRef = useRef<BloomEffectLike | null>(null)
+  const setChromaticAberrationRef = useCallback((instance: ChromaticAberrationEffectLike | null) => {
+    chromaticAberrationRef.current = instance
+  }, [])
+  const setBloomRef = useCallback((instance: BloomEffectLike | null) => {
+    bloomRef.current = instance
+  }, [])
 
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#f2b8a0' }}>
@@ -139,6 +163,7 @@ export default function ScrollJourneyPoc() {
               <DiveCloudVeil />
             </Clouds>
             <CameraRig onSectionChange={setActiveSection} />
+            <WarpFlash chromaticAberrationRef={chromaticAberrationRef} bloomRef={bloomRef} />
             <CrystalBall />
             <WarmOrbs />
             <Ground />
@@ -152,7 +177,21 @@ export default function ScrollJourneyPoc() {
           </ScrollControls>
           {/* 明るいシーン用: 閾値0.9で空の暴発を防ぎつつ、太陽と白熱コアの縁を柔らかく滲ませる */}
           <EffectComposer>
-            <Bloom intensity={1.1} luminanceThreshold={0.9} luminanceSmoothing={0.7} mipmapBlur />
+            <Bloom
+              ref={setBloomRef}
+              intensity={BLOOM_BASE_INTENSITY}
+              luminanceThreshold={0.9}
+              luminanceSmoothing={0.7}
+              mipmapBlur
+            />
+            {/* ワープVFX(#5): キック軌道中間点だけWarpFlashがoffsetを押し上げる、平常時は完全に無効
+                (offset=[0,0]でvActive=0になり、シェーダー内で早期returnされる) */}
+            <ChromaticAberration
+              ref={setChromaticAberrationRef}
+              offset={CA_INITIAL_OFFSET}
+              radialModulation
+              modulationOffset={0.3}
+            />
           </EffectComposer>
         </Suspense>
       </Canvas>
