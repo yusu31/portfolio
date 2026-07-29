@@ -9,6 +9,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import CameraRig from '../journey/CameraRig'
 import CrystalBall from '../journey/CrystalBall'
+import DiveCloudVeil from '../journey/DiveCloudVeil'
 import SectionCards from '../journey/SectionCards'
 import { SoccerVenue, BasketVenue, VolleyVenue, ContactVenue } from '../journey/venues'
 import { Transit1, Transit2, Transit3 } from '../journey/Transit'
@@ -81,58 +82,62 @@ export default function ScrollJourneyPoc() {
         {/* 逆光のリムライト: 薄紫でシルエットを立てる(球の輪郭が背景ピーチに溶けるのを防ぐ) */}
         <directionalLight position={[5, 8, -10]} intensity={0.6} color="#c3b0ff" />
         <Suspense fallback={null}>
-          {/* 夕焼けの雲: 奥にゆっくり流れるパステルの雲塊 */}
-          <Clouds material={THREE.MeshBasicMaterial}>
-            <Cloud
-              seed={2}
-              segments={24}
-              bounds={[14, 3, 6]}
-              volume={10}
-              position={[-6, 8, -18]}
-              color="#ffd9c8"
-              opacity={0.55}
-              speed={0.08}
-              growth={4}
-            />
-            {/* transit1(Projects→Skills)の空を埋める雲(Phase 5-5の3倍化で-34→-60へ再配分) */}
-            <Cloud
-              seed={7}
-              segments={20}
-              bounds={[12, 2.5, 5]}
-              volume={8}
-              position={[8, 9.5, -60]}
-              color="#ffcdb8"
-              opacity={0.45}
-              speed={0.06}
-              growth={3}
-            />
-            {/* 旅の中間(Skills〜About付近)を貫ける雲(Phase 5-5で-104→-137へ再配分) */}
-            <Cloud
-              seed={9}
-              segments={20}
-              bounds={[14, 2.5, 6]}
-              volume={9}
-              position={[-4, 8.5, -137]}
-              color="#ffcdb8"
-              opacity={0.45}
-              speed={0.05}
-              growth={3}
-            />
-            {/* Contactプラザの背景: 終着点の空が寂しくならないよう奥に雲を敷く(Phase 5-5で-195→-250) */}
-            <Cloud
-              seed={4}
-              segments={20}
-              bounds={[16, 3, 6]}
-              volume={10}
-              position={[0, 9, -250]}
-              color="#ffd2be"
-              opacity={0.5}
-              speed={0.05}
-              growth={4}
-            />
-          </Clouds>
           <Environment preset="sunset" environmentIntensity={0.7} />
           <ScrollControls pages={PAGES} damping={0.25}>
+            {/* 夕焼けの雲: 奥にゆっくり流れるパステルの雲塊。DiveCloudVeilがuseScroll()を
+                使うためScrollControls内へ移動した(ScrollControlsはプレーンな子要素を
+                transformでラップしないため、既存4つの装飾雲の位置には影響しない) */}
+            <Clouds material={THREE.MeshBasicMaterial} frustumCulled={false}>
+              <Cloud
+                seed={2}
+                segments={24}
+                bounds={[14, 3, 6]}
+                volume={10}
+                position={[-6, 8, -18]}
+                color="#ffd9c8"
+                opacity={0.55}
+                speed={0.08}
+                growth={4}
+              />
+              {/* transit1(Projects→Skills)の空を埋める雲(Phase 5-5の3倍化で-34→-60へ再配分) */}
+              <Cloud
+                seed={7}
+                segments={20}
+                bounds={[12, 2.5, 5]}
+                volume={8}
+                position={[8, 9.5, -60]}
+                color="#ffcdb8"
+                opacity={0.45}
+                speed={0.06}
+                growth={3}
+              />
+              {/* 旅の中間(Skills〜About付近)を貫ける雲(Phase 5-5で-104→-137へ再配分) */}
+              <Cloud
+                seed={9}
+                segments={20}
+                bounds={[14, 2.5, 6]}
+                volume={9}
+                position={[-4, 8.5, -137]}
+                color="#ffcdb8"
+                opacity={0.45}
+                speed={0.05}
+                growth={3}
+              />
+              {/* Contactプラザの背景: 終着点の空が寂しくならないよう奥に雲を敷く(Phase 5-5で-195→-250) */}
+              <Cloud
+                seed={4}
+                segments={20}
+                bounds={[16, 3, 6]}
+                volume={10}
+                position={[0, 9, -250]}
+                color="#ffd2be"
+                opacity={0.5}
+                speed={0.05}
+                growth={4}
+              />
+              {/* ダイブ演出(#6): ボールに追従する密な雲ヴェール(DiveCloudVeil.tsx参照) */}
+              <DiveCloudVeil />
+            </Clouds>
             <CameraRig onSectionChange={setActiveSection} />
             <CrystalBall />
             <WarmOrbs />
