@@ -1,7 +1,7 @@
 // クリスタル球の位置と視線ブレンド強度(focusWeight)をoffsetから導く純粋関数。
 // カメラ(CameraRig)・カード(SectionCards)と同じ「offsetが唯一の真実」原則に従う。
 import * as THREE from 'three'
-import { CATCH_POINT, RING_CENTER, FALL_LANDING, RECEIVE_PEAK, TOSS_PEAK, SPIKE_LANDING, CONTACT_REST } from './anchors'
+import { CATCH_POINT, KICK_POINT, RING_CENTER, FALL_LANDING, RECEIVE_PEAK, TOSS_PEAK, SPIKE_LANDING, CONTACT_REST } from './anchors'
 import {
   DRIBBLE_START,
   DRIBBLE_END,
@@ -40,7 +40,7 @@ export function getBallPose(u: number): BallPose {
   }
   if (u < CATCH_START) {
     const t = (u - DRIBBLE_END) / (CATCH_START - DRIBBLE_END)
-    return { position: passPosition(dribblePosition(1), CATCH_POINT, t), focusWeight: 0.5 }
+    return { position: passPosition(KICK_POINT, CATCH_POINT, t), focusWeight: 0.5 }
   }
   if (u < CATCH_END) return { position: catchPose(u), focusWeight: 0.6 }
   if (u < RING_U) {

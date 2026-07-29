@@ -383,3 +383,20 @@ export function solveBallisticArcLateral(
     gravity
   }
 }
+
+/**
+ * solveBallisticArcLateralを正規化時間τ(0〜1)で解いた閉形式。
+ *
+ * y(t_real) = a + vy*t_real - 0.5*g*t_real^2 に vy=(4b-3a-c)/time、g=4(2b-a-c)/time^2
+ * (solveBallisticArcLateralの導出式)を代入しτ=t_real/timeで置換すると、time(=lateralDist/lateralSpeed)
+ * が完全に消去されτだけの式に潰れる。XZ位置は横速度一定のため常にlerp(start,end,τ)でよく、
+ * この関数はY成分だけを担う。a=c=0のときpass.ts旧実装の4H·t(1-t)に一致する特殊形
+ *
+ * @param a 始点の高さ(τ=0)
+ * @param b 頂点の高さ(τ=0.5で通過)
+ * @param c 終点の高さ(τ=1)
+ * @param t 正規化時間(0〜1)
+ */
+export function arcHeightAt(a: number, b: number, c: number, t: number): number {
+  return a + (4 * b - 3 * a - c) * t - 2 * (2 * b - a - c) * t * t
+}

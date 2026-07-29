@@ -14,7 +14,11 @@ export const HOME_HOLD_END = homeRange.end // 0.047
 export const DRIBBLE_START = projectsRange.start // 0.122
 export const DRIBBLE_END = projectsRange.end // 0.202
 export const CATCH_START = skillsRange.start // 0.384
-export const CATCH_END = CATCH_START + 0.01
+/**
+ * PR-4(#4.5「キャッチ&構え」)でΔu 0.01→0.025へ拡張。ロングキックの派手な演出と
+ * フリースローの間に「キャッチした、よし行くぞ」の溜めを挟むための尺
+ */
+export const CATCH_END = CATCH_START + 0.025
 /**
  * フリースローがリングを通過するu(skills区間終端のわずかに手前 ≈0.4575)。
  * Phase 5-3ではカメラ-リング間の接写距離(3.3程度)を確保するためのオフセットだったが、
@@ -56,9 +60,29 @@ export function idlePose(u: number): THREE.Vector3 {
   return HOME_REST.clone().lerp(dribblePosition(0), t)
 }
 
-/** キャッチの衝撃を吸収する軽い沈み込み。t=0/1でCATCH_POINTに一致する */
+/** キャッチの沈み込みが底へ達する進行度(この後CATCH_HOLD_ENDまでホールドする) */
+const CATCH_DIP_BOTTOM_T = 0.4
+/** ホールドが終わり、フリースローへ向けて加速上昇を始める進行度 */
+const CATCH_HOLD_END_T = 0.6
+/** 沈み込みの深さ(ユニット) */
+const CATCH_DIP_DEPTH = -0.15
+
+/**
+ * キャッチの衝撃吸収+「よし行くぞ」の構え。t=0/1でCATCH_POINTに一致する。
+ * 3段構成(PR-4 #4.5): ①沈み込み(quarter-sine、0→CATCH_DIP_BOTTOM_Tで底へ) ②底でホールド
+ * (CATCH_DIP_BOTTOM_T→CATCH_HOLD_END_T) ③ease-inで加速しながら上昇、t=1でCATCH_POINTへ
+ * 戻りフリースローの上昇へ滑らかに引き継ぐ(位置のみ一致、速度は繋がない設計は他ビートと共通)
+ */
 export function catchPose(u: number): THREE.Vector3 {
   const t = clamp01((u - CATCH_START) / (CATCH_END - CATCH_START))
-  const dip = Math.sin(t * Math.PI) * -0.15
+  let dip: number
+  if (t < CATCH_DIP_BOTTOM_T) {
+    dip = Math.sin((t / CATCH_DIP_BOTTOM_T) * (Math.PI / 2)) * CATCH_DIP_DEPTH
+  } else if (t < CATCH_HOLD_END_T) {
+    dip = CATCH_DIP_DEPTH
+  } else {
+    const p = (t - CATCH_HOLD_END_T) / (1 - CATCH_HOLD_END_T)
+    dip = CATCH_DIP_DEPTH * (1 - p * p)
+  }
   return CATCH_POINT.clone().add(new THREE.Vector3(0, dip, 0))
 }
