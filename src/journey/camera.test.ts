@@ -4,12 +4,13 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { getCameraOffset } from './camera'
-import { DRIBBLE_END, CATCH_START, RING_U, FALL_END } from './ball/beats'
+import { DRIBBLE_END, CATCH_START, CATCH_END, RING_U, FALL_END } from './ball/beats'
 import { DIVE_PEAK_U } from './cameraAttitude'
 
 const NORMAL = { dBack: 4.5, dUp: 3.0, lookAhead: 2, lookUp: 1.5 }
 const DIVE = { dBack: 1.5, dUp: 7, lookAhead: 0, lookUp: 0 }
 const ARC = { dBack: 7, dUp: 4.5 }
+const FREE_THROW = { dBack: 4.5, dUp: 3.8, lookAhead: 2, lookUp: 1.5 }
 
 describe('恒等区間(arc/ダイブ対象外への影響ゼロ)', () => {
   it('dribble前(u<DRIBBLE_END)の全サンプルで通常chase値のまま', () => {
@@ -21,10 +22,10 @@ describe('恒等区間(arc/ダイブ対象外への影響ゼロ)', () => {
     }
   })
 
-  it('catch後〜RING_U手前(arc/ダイブどちらの対象区間でもない)は通常chase値のまま', () => {
+  it('catch開始〜CATCH_END手前(フリースローブレンド未開始)は通常chase値のまま', () => {
     const N = 250
     for (let i = 0; i <= N; i++) {
-      const u = CATCH_START + (i / N) * (RING_U - CATCH_START) * 0.9999
+      const u = CATCH_START + (i / N) * (CATCH_END - CATCH_START) * 0.9999
       const offset = getCameraOffset(u)
       expect(offset).toEqual(NORMAL)
     }
@@ -74,6 +75,26 @@ describe('arcブレンド(ロングキック #4)の成立', () => {
   })
 })
 
+describe('freeThrowブレンド(D_UP微増 #308)の成立', () => {
+  it('CATCH_ENDちょうどで通常chase値(ブレンド開始点)', () => {
+    expect(getCameraOffset(CATCH_END)).toEqual(NORMAL)
+  })
+
+  it('RING_Uちょうどでフリースローブースト値(dUpのみ上昇、dBack/lookAhead/lookUpは通常値のまま)', () => {
+    expect(getCameraOffset(RING_U)).toEqual(FREE_THROW)
+  })
+
+  it('[CATCH_END, RING_U]内でdUpがFREE_THROW_D_UP(3.8)を超えない(オーバーシュートなし)', () => {
+    const N = 500
+    let maxDUp = -Infinity
+    for (let i = 0; i <= N; i++) {
+      const u = CATCH_END + (i / N) * (RING_U - CATCH_END)
+      maxDUp = Math.max(maxDUp, getCameraOffset(u).dUp)
+    }
+    expect(maxDUp).toBeCloseTo(FREE_THROW.dUp, 5)
+  })
+})
+
 describe('継ぎ目の連続性', () => {
   it('1000分割で隣接Δdback・Δdup・Δlookが閾値未満(瞬間スナップなし)', () => {
     const N = 1000
@@ -115,10 +136,6 @@ describe('ダイブピークの成立', () => {
 })
 
 describe('復帰の厳密性', () => {
-  it('RING_Uちょうどで通常chase値(ブレンド開始点)', () => {
-    expect(getCameraOffset(RING_U)).toEqual(NORMAL)
-  })
-
   it('FALL_END直前で値がほぼダイブ値から離れきっていない中間だが、直後に恒等復帰する', () => {
     const justBefore = getCameraOffset(FALL_END - 1e-6)
     const at = getCameraOffset(FALL_END)

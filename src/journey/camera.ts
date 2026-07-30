@@ -12,7 +12,7 @@
 //       ダイブ区間(RING_U〜FALL_END)だけダイブ値へブレンドされる(getCameraOffset内)。
 import * as THREE from 'three'
 import { getBallFrame } from './ball/chase'
-import { DRIBBLE_END, CATCH_START, RING_U, FALL_END } from './ball/beats'
+import { DRIBBLE_END, CATCH_START, CATCH_END, RING_U, FALL_END } from './ball/beats'
 import { applyCameraAttitude, DIVE_PEAK_U } from './cameraAttitude'
 import { PATH_END_OFFSET } from './path'
 
@@ -75,6 +75,14 @@ const DIVE_LOOK_UP = 0
 const ARC_D_BACK = 7
 const ARC_D_UP = 4.5
 
+/**
+ * フリースロー区間(CATCH_END〜RING_U)だけD_UPをわずかに上げるクレーン気味のブースト値。
+ * cameraAttitude.tsのKEYFRAMES(ロール20°/pitch+6°、同区間でRING_Uへ向けてピーク)は
+ * 無変更のまま、回転だけでなく位置でも「見上げ」を裏付ける(PR-8, Issue #308)。
+ * 微増のため実機QAでの視覚チューニング前提の出発値
+ */
+const FREE_THROW_D_UP = 3.8
+
 /** 両端で値・傾きゼロのsmootherstep(6t⁵-15t⁴+10t³)。cameraAttitude.tsと同じ手法 */
 const smootherstep = (t: number): number => {
   const x = THREE.MathUtils.clamp(t, 0, 1)
@@ -106,6 +114,20 @@ function arcBlendT(u: number): number {
   return 1
 }
 
+/**
+ * フリースロー区間(CATCH_END〜RING_U)でD_UPブーストへ、RING_U〜DIVE_PEAK_Uでダイブへ
+ * 受け渡す係数(0=通常/dive値、1=フリースローブースト値)。cameraAttitudeのロール/pitchが
+ * RING_Uでピークになるのと同じタイミングでピーク(=1)にし、その後はdiveBlendTがピークに
+ * 達するDIVE_PEAK_Uまでの間に0へ戻す(diveBlendTはRING_Uで0からDIVE_PEAK_Uで1へ
+ * 立ち上がるため、両者の合成は常にどちらか一方が支配的でD_UPに不連続を作らない)。
+ * 区間外は厳密に0(dribble・通常chase・About以降に一切影響しない)
+ */
+function freeThrowBlendT(u: number): number {
+  if (u < CATCH_END || u >= DIVE_PEAK_U) return 0
+  if (u < RING_U) return smootherstep((u - CATCH_END) / (RING_U - CATCH_END))
+  return smootherstep((DIVE_PEAK_U - u) / (DIVE_PEAK_U - RING_U))
+}
+
 /** オフセット4値からなるカメラ組み立てパラメータ。u<RING_Uとu≥FALL_ENDでは厳密に恒等 */
 export interface CameraOffset {
   dBack: number
@@ -116,15 +138,18 @@ export interface CameraOffset {
 
 /**
  * offset(u)からカメラのオフセット値を返す純関数(camera.test.tsの回帰テスト対象)。
- * arc区間とdive区間は互いに重ならない(arcBlendT/diveBlendTが同時に非ゼロにならない)ため、
- * D_BACK/D_UPはarc→通常→diveの順に連鎖的にlerpするだけで安全に合成できる。
- * lookAhead/lookUpはarc区間では変更しない(design: 距離のみ広げ、視線ターゲットは据え置き)
+ * arc/freeThrow/dive区間は互いに重ならない(arcBlendT/freeThrowBlendT/diveBlendTが
+ * 同時に非ゼロにならない)ため、D_BACK/D_UPはarc→通常→freeThrow→diveの順に連鎖的に
+ * lerpするだけで安全に合成できる(dBackはfreeThrowブーストを持たないため素通り)。
+ * lookAhead/lookUpはarc/freeThrow区間では変更しない(design: 距離のみ広げ、視線ターゲットは据え置き)
  */
 export function getCameraOffset(u: number): CameraOffset {
   const arcT = arcBlendT(u)
+  const freeThrowT = freeThrowBlendT(u)
   const diveT = diveBlendT(u)
   const dBack = THREE.MathUtils.lerp(THREE.MathUtils.lerp(D_BACK, ARC_D_BACK, arcT), DIVE_D_BACK, diveT)
-  const dUp = THREE.MathUtils.lerp(THREE.MathUtils.lerp(D_UP, ARC_D_UP, arcT), DIVE_D_UP, diveT)
+  const dUpBase = THREE.MathUtils.lerp(THREE.MathUtils.lerp(D_UP, ARC_D_UP, arcT), FREE_THROW_D_UP, freeThrowT)
+  const dUp = THREE.MathUtils.lerp(dUpBase, DIVE_D_UP, diveT)
   return {
     dBack,
     dUp,
