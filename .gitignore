@@ -26,3 +26,11 @@ Thumbs.db
 
 # 誤作成ファイル
 public/og-image.png.svg
+
+# Cloudflare Pages ローカルキャッシュ
+.wrangler/
+
+# テスト・監査の生成物
+test-results/
+lighthouse-report*.json
+qa_*.png
