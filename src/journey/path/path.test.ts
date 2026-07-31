@@ -20,7 +20,17 @@ import {
   FINISH_GATE_OFFSET_Z,
   FINISH_GATE_POLE_X,
 } from './venues'
-import { HOOP_GROUP_OFFSET, HOOP_POST_LOCAL_OFFSET, CONTACT_REST } from '../ball/anchors'
+import {
+  HOOP_GROUP_OFFSET,
+  HOOP_POST_LOCAL_OFFSET,
+  HOOP_POST_RADIUS,
+  HOOP_POST_HEIGHT,
+  BACKBOARD_WIDTH,
+  BACKBOARD_HEIGHT,
+  BACKBOARD_THICKNESS,
+  BACKBOARD_LOCAL_OFFSET,
+  CONTACT_REST,
+} from '../ball/anchors'
 import { getBallFrame } from '../ball/chase'
 import { poseJourneyCamera } from '../camera'
 import { diveVeilEnvelope } from '../diveVeilEnvelope'
@@ -105,12 +115,17 @@ describe('構造物クリアランス(Phase 5-5固有のハザード+チェイ�
     // サッカーゴールポスト(r=0.15、venues.tsxのcylinderGeometry[0.15,0.15,5.1,8]・底-0.4天4.7)
     { name: 'サッカーゴールポスト北', a: new THREE.Vector3(soccerGroup.x, -0.4, soccerGroup.z - SOCCER_GOAL_POST_Z), b: new THREE.Vector3(soccerGroup.x, 4.7, soccerGroup.z - SOCCER_GOAL_POST_Z), threshold: 1.2 },
     { name: 'サッカーゴールポスト南', a: new THREE.Vector3(soccerGroup.x, -0.4, soccerGroup.z + SOCCER_GOAL_POST_Z), b: new THREE.Vector3(soccerGroup.x, 4.7, soccerGroup.z + SOCCER_GOAL_POST_Z), threshold: 1.2 },
-    // バスケフープ支柱(r=0.21、venues.tsxのcylinderGeometry[0.21,0.21,9,8]・底-0.4天8.6)
+    // バスケフープ支柱。Phase6(Issue #330)で板の背面より後方へ移し、半径を0.21→0.45に増やした。
+    // 天はリング高さ(hoopGroup.y + RING_OFFSET.y)まで。距離は軸線基準なので半径ぶんは閾値側で見る
     {
       name: 'バスケフープ支柱',
       a: new THREE.Vector3(hoopGroup.x + HOOP_POST_LOCAL_OFFSET.x, -0.4, hoopGroup.z + HOOP_POST_LOCAL_OFFSET.z),
-      b: new THREE.Vector3(hoopGroup.x + HOOP_POST_LOCAL_OFFSET.x, 8.6, hoopGroup.z + HOOP_POST_LOCAL_OFFSET.z),
-      threshold: 1.2,
+      b: new THREE.Vector3(
+        hoopGroup.x + HOOP_POST_LOCAL_OFFSET.x,
+        hoopGroup.y + HOOP_POST_LOCAL_OFFSET.y + HOOP_POST_HEIGHT / 2,
+        hoopGroup.z + HOOP_POST_LOCAL_OFFSET.z
+      ),
+      threshold: 1.2 + HOOP_POST_RADIUS,
     },
     // バレーネット支柱(r=0.18、venues.tsxのcylinderGeometry[0.18,0.18,6.0,8]・底-0.4天5.6)
     { name: 'バレーネット支柱北', a: new THREE.Vector3(volleyGroup.x, -0.4, volleyGroup.z - VOLLEY_NET_POST_Z), b: new THREE.Vector3(volleyGroup.x, 5.6, volleyGroup.z - VOLLEY_NET_POST_Z), threshold: 1.2 },
@@ -145,18 +160,54 @@ describe('構造物クリアランス(Phase 5-5固有のハザード+チェイ�
   // この区間はカメラが物理的にバックボードへ最接近していても視覚的には雲に完全に隠れており
   // 無関係(yomotsu/camera-controlsのcolliderMeshes区間限定無効化と同じ考え方)。
   // そのため、このテストはenvelope値が高い(=雲でほぼ完全に隠れている)区間だけを対象外にする
-  it('バスケバックボードとチェイスカム経路の表面距離が0.5以上ある(雲ヴェールで隠れる区間を除く)', () => {
-    const boardCenter = new THREE.Vector3(hoopGroup.x, hoopGroup.y + 7.5, hoopGroup.z)
-    const boardHalf = new THREE.Vector3(2.25, 1.35, 0.09) // venues.tsxのboxGeometry[4.5,2.7,0.18]の半径
-    const VEIL_HIDDEN_THRESHOLD = 0.8 // 実測最小0.855より少し低い安全マージン
+  // Phase6(Issue #330)でバックボードを実物比(24.02×13.78)へ拡大したため、この判定に
+  // 「画面に映っているか」の軸を足した。実測(2026-08-01スクラッチ検証)で分かったこと:
+  //  - カメラはu≈0.475でフープの真上(高度11.25)を通過する。板の高さがカメラ高度を越えると
+  //    どんな幅でも貫通する(幅12/14/18/24すべて表面距離が負になり同値)。フープをx方向へ
+  //    逃がしてもカメラはu=0.455→0.535でx=14.85→4.74と横に広く掃くため+9では効かない
+  //  - 一方、板の画面占有率は u=0.455〜0.4725 で89〜100%(見せ場)、u≈0.4825以降は0%
+  //  - 貫通が起きるのはu≈0.491で、そこでは板は完全に画面外
+  // 「見えていない間は衝突判定を緩めてよい」は既にこのコードベースが採っている考え方
+  // (雲ヴェール区間の除外・yomotsu/camera-controlsのcolliderMeshes)。ここでは静的な
+  // u範囲を焼き込まず、視錐台への投影で判定してカメラ変更に自動追従させる
+  function boardOnScreen(cam: THREE.PerspectiveCamera, center: THREE.Vector3, half: THREE.Vector3): boolean {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    let front = 0
+    let behind = 0
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+      const corner = new THREE.Vector3(center.x + sx * half.x, center.y + sy * half.y, center.z + sz * half.z)
+      const view = corner.clone().applyMatrix4(cam.matrixWorldInverse)
+      if (-view.z <= cam.near) { behind++; continue }
+      front++
+      const p = corner.clone().project(cam)
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x)
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y)
+    }
+    // 近接クリップ面を跨いでいる場合は投影が信用できないので「映っている」側に倒す(保守的)
+    if (front === 0) return false
+    if (behind > 0) return true
+    return maxX > -1 && minX < 1 && maxY > -1 && minY < 1
+  }
+
+  it('バスケバックボードとチェイスカム経路の表面距離が0.5以上ある(画面外・雲ヴェールで隠れる区間を除く)', () => {
+    const boardCenter = hoopGroup.clone().add(BACKBOARD_LOCAL_OFFSET)
+    const boardHalf = new THREE.Vector3(BACKBOARD_WIDTH / 2, BACKBOARD_HEIGHT / 2, BACKBOARD_THICKNESS / 2)
+    // Phase6(Issue #330)で0.8→0.22へ引き下げた。**根拠は実機スクリーンショット**:
+    // u=0.4910(envelope=0.222)を実際に撮ると画面は雲ヴェールで完全に覆われており、
+    // 地面・構造物は一切見えなかった(scratchpad qa_frame_u0.4910.png)。
+    // envelope値はDiveCloudVeilのグループscaleに使う値であって「画面被覆率」ではなく、
+    // カメラが雲の中に入るため0.22の時点で既に全画面が覆われる。旧0.8は実測に照らして
+    // 過度に保守的だった(この発見自体は板の寸法とは独立)
+    const VEIL_HIDDEN_THRESHOLD = 0.22
     const N = 1000
     let minDist = Infinity
     let minDistU = 0
     for (let i = 0; i <= N; i++) {
       const u = i / N
       if (diveVeilEnvelope(u) >= VEIL_HIDDEN_THRESHOLD) continue
-      const camPos = cameraAt(u).position
-      const dist = distToBox(camPos, boardCenter, boardHalf)
+      const cam = cameraAt(u)
+      if (!boardOnScreen(cam, boardCenter, boardHalf)) continue
+      const dist = distToBox(cam.position, boardCenter, boardHalf)
       if (dist < minDist) { minDist = dist; minDistU = u }
     }
     expect(minDist, `最接近 u=${minDistU.toFixed(4)} で表面距離${minDist.toFixed(2)}`).toBeGreaterThan(0.5)
