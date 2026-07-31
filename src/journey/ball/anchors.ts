@@ -40,8 +40,18 @@ export const KICK_POINT = new THREE.Vector3(SOCCER_GOAL_FRONT.x + 6.45, DRIBBLE_
  * 旧(-1.7,0,-1.9)×VENUE_SCALE+接地補正(STRUCTURE_GROUND_LIFT)
  */
 export const HOOP_GROUP_OFFSET = new THREE.Vector3(-5.1, STRUCTURE_GROUND_LIFT, -5.7)
-/** 支柱meshのhoopグループ相対オフセット(旧(0,1.1,-0.6)×3)。構造物クリアランステストと共有 */
-export const HOOP_POST_LOCAL_OFFSET = new THREE.Vector3(0, 3.3, -1.8)
+/**
+ * 支柱meshのhoopグループ相対オフセット。構造物クリアランステストと共有。
+ *
+ * Phase6でz=-1.8→BACKBOARD背面より後方へ移した(Issue #330)。旧値はネット段0の半径3.0
+ * (リング中心z=1.05基準で背面がz=-1.95)の内側2.85にあり、支柱がネットを貫通していた。
+ * 実物のポール式ゴールと同じく板の後方に立て、アームで前へ張り出す構成にする
+ */
+export const HOOP_POST_LOCAL_OFFSET = new THREE.Vector3(0, 2.7, -6.5)
+/** 支柱の半径。実物比ボード(24×13.8)を支える太さとして旧0.21から増やした */
+export const HOOP_POST_RADIUS = 0.45
+/** 支柱の高さ。足元は地面(world -0.4 = hoopグループ相対 -1.2)、天はリング高さ(6.6)まで */
+export const HOOP_POST_HEIGHT = 7.8
 /** リングmeshのhoopグループ相対オフセット(旧(0,2.2,0.35)×3)。venues.tsxと単一ソース共有 */
 export const RING_OFFSET = new THREE.Vector3(0, 6.6, 1.05)
 /**
@@ -52,6 +62,46 @@ export const RING_OFFSET = new THREE.Vector3(0, 6.6, 1.05)
 export const RING_RADIUS = 3.0
 /** リング(torus)の管半径。venues.tsxの描画と単一ソース共有 */
 export const RING_TUBE_RADIUS = 0.14
+
+/**
+ * この世界と実物の縮尺比(約13.12)。リング半径3.0が実物の規格0.2286mに対応することから導出。
+ * ボール半径1.5もこの比で実物0.114m相当(実物0.12m)になり、ボール/リング径比は実物と一致する。
+ *
+ * **注意: これはフープ周りのみ成立する比**。コート寸法・取り付け高さ・サッカー/バレーの
+ * 構造物はこの比に従っていない(ボールを主人公として意図的に過大にしているため)。
+ * 実物比で決められるのは「リングを基準に相対寸法が決まるもの」= ネット・バックボードだけ
+ */
+export const REAL_SCALE = RING_RADIUS / 0.2286
+
+/** バックボード幅。実物1.83m(規格) */
+export const BACKBOARD_WIDTH = 1.83 * REAL_SCALE
+/** バックボード高さ。実物1.05m(規格) */
+export const BACKBOARD_HEIGHT = 1.05 * REAL_SCALE
+/** バックボードの厚み。実物の強化ガラス0.05m相当より厚いが、エッジが線になるのを避ける値 */
+export const BACKBOARD_THICKNESS = 0.6
+/** リング内側近端から板面までの距離。実物0.15m(規格) */
+const RING_INNER_TO_BOARD = 0.15 * REAL_SCALE
+/**
+ * バックボードのhoopグループ相対オフセット。
+ *
+ * Phase6で寸法4.5×2.7・z=0から実物比へ作り直した(Issue #330)。旧配置には3つの欠陥があった:
+ * リングがボードを貫通(リング近端z=-1.95がボード面z=-0.09の1.86奥)、リング直径6.0が
+ * ボード幅4.5より広い(実物比は逆に4倍広い)、板と支柱を繋ぐアームが存在しない。
+ *
+ * **RING_OFFSETは動かさない**(RING_CENTER=フリースローの着弾点が動くとカメラ構図の
+ * QAが全部やり直しになる)。板だけを実物比の位置へ後退させることで解決する
+ */
+export const BACKBOARD_LOCAL_OFFSET = new THREE.Vector3(
+  0,
+  RING_OFFSET.y - RING_INNER_TO_BOARD + BACKBOARD_HEIGHT / 2,
+  RING_OFFSET.z - RING_RADIUS - RING_INNER_TO_BOARD - BACKBOARD_THICKNESS / 2
+)
+/** シューターズスクエア(内側の白枠)の幅。実物0.59m(規格) */
+export const SHOOTER_SQUARE_WIDTH = 0.59 * REAL_SCALE
+/** シューターズスクエアの高さ。実物0.45m(規格)。下辺はリング高さに揃える */
+export const SHOOTER_SQUARE_HEIGHT = 0.45 * REAL_SCALE
+/** 支柱とバックボード背面を繋ぐアームのy(hoopグループ相対)。ネットより後方なので干渉しない */
+export const HOOP_ARM_Y = 6.0
 /** リング中心のワールド座標(5.4, 7.4, -109.65)。フリースローの通過判定点でfallビートの起点 */
 export const RING_CENTER = VENUES.skills.center.clone().add(HOOP_GROUP_OFFSET).add(RING_OFFSET)
 

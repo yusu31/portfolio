@@ -126,15 +126,17 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
   // 実測ではx方向ズレはほぼ解消した(旧0.846→新x≈0)が、この区間はカメラがボール直上から
   // 見下ろす別カット構図のため、中心が画面下寄り(BAND_Y_CENTER_MAX)ではなく画面中央付近に
   // 来るのが正しい(意図通りの)構図であり、その点だけ通常バンドと異なる
-  const sampleUs: Array<[string, number, { overheadShot?: boolean }?]> = [
+  const sampleUs: Array<[string, number, { centerBiasExempt?: boolean }?]> = [
     ['dribble序盤', DRIBBLE_START + 0.01],
     ['dribble中間', (DRIBBLE_START + DRIBBLE_END) / 2],
     ['dribble終盤', DRIBBLE_END - 0.001],
     ['pass中間', (DRIBBLE_END + CATCH_START) / 2],
     ['catch直後', CATCH_START + 0.005],
-    ['freeThrow中間', (CATCH_END + RING_U) / 2],
-    ['freeThrow終盤(リング直前)', RING_U - 0.001],
-    ['fall中間(ダイブピーク)', DIVE_PEAK_U, { overheadShot: true }],
+    // Phase6(Issue #330)の引き(D_BACK 4.5→17)でフリースロー区間はワイドの別カットになった。
+    // カメラが引くとボールは下寄りではなく中心寄りに来るのが正しい構図(実測y=-0.44〜-0.39)
+    ['freeThrow中間', (CATCH_END + RING_U) / 2, { centerBiasExempt: true }],
+    ['freeThrow終盤(リング直前)', RING_U - 0.001, { centerBiasExempt: true }],
+    ['fall中間(ダイブピーク)', DIVE_PEAK_U, { centerBiasExempt: true }],
     ['receive中間', (FALL_END + RECEIVE_END) / 2],
     ['receive終盤', RECEIVE_END - 0.001],
     ['setToss中間', (RECEIVE_END + TOSS_END) / 2],
@@ -146,8 +148,8 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
   ]
 
   for (const [label, u, override] of sampleUs) {
-    if (override?.overheadShot) {
-      it(`${label}(u=${u.toFixed(4)})は俯瞰カットのため中心バイアスのみ対象外(x方向・上端フレーム内は通常通り厳格判定)`, () => {
+    if (override?.centerBiasExempt) {
+      it(`${label}(u=${u.toFixed(4)})は別カット(ワイドの引き/俯瞰)のため中心バイアスのみ対象外(x方向・上端フレーム内は通常通り厳格判定)`, () => {
         const ndc = projectAt(u)
         expect(topNdcYAt(u)).toBeGreaterThan(TOP_VISIBLE_MIN)
         expect(Math.abs(ndc.x)).toBeLessThan(BAND_X_ABS)
@@ -169,14 +171,21 @@ describe('見せ場でのフレーム内収まり(NDC・意図的な下側クロ
     // ボール直上から見下ろす区間(RING_U〜FALL_END、camera.tsのdiveBlendT)では意図的に
     // ボールが画面中心付近に来る別カット構図のため、その区間だけ対象外にする
     // (実測: この区間はx≤0.03・yTop≥-0.12で安全域、中心yのみ-0.45を上回る=画面中央寄り)
+    // Phase6(Issue #330)でフリースロー区間にも「引き」を入れた(D_BACK 4.5→17、camera.ts)。
+    // 実物比バックボードを見せ場で画面に収めるための別カット(ワイドの寄り引き構図)であり、
+    // カメラが引くとボールは画面下寄りではなく中心寄りに来るのが正しい。
+    // 実測(2026-08-01): この区間の違反は「中心が下寄りでない」だけで23サンプル、
+    // y=-0.444〜-0.389(中心より下にはある)。**上端フレーム外は0件・横ズレも0件**
+    // (最大|x|=0.085 ≪ 0.5)で、旧設計の主症状は一切再発していない。
+    // よってダイブ見下ろし区間と同じ扱いで、中心の下寄り判定のみ対象外にする
     const N = 1000
     let violations = 0
     for (let i = 0; i <= N; i++) {
       const u = i / N
       const ndc = projectAt(u)
       const yTop = topNdcYAt(u)
-      const inDiveOverheadShot = u >= RING_U && u < FALL_END
-      if ((!inDiveOverheadShot && ndc.y > BAND_Y_CENTER_MAX) || yTop <= TOP_VISIBLE_MIN || Math.abs(ndc.x) >= BAND_X_ABS) {
+      const inWideOrOverheadShot = u >= CATCH_END && u < FALL_END
+      if ((!inWideOrOverheadShot && ndc.y > BAND_Y_CENTER_MAX) || yTop <= TOP_VISIBLE_MIN || Math.abs(ndc.x) >= BAND_X_ABS) {
         violations++
       }
     }

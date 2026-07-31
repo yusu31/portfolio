@@ -10,7 +10,10 @@ import { DIVE_PEAK_U } from './cameraAttitude'
 const NORMAL = { dBack: 4.5, dUp: 3.0, lookAhead: 2, lookUp: 1.5 }
 const DIVE = { dBack: 1.5, dUp: 7, lookAhead: 0, lookUp: 0 }
 const ARC = { dBack: 7, dUp: 4.5 }
-const FREE_THROW = { dBack: 4.5, dUp: 3.8, lookAhead: 2, lookUp: 1.5 }
+// Phase6(Issue #330)でdBackにも引きのブーストを載せた(4.5→17)。実物比バックボードが
+// 見せ場で画面全体を覆う「白い壁」になる問題の解決で、板の4辺がフレームに収まる距離。
+// 17は「隣接Δdbackが0.5未満」の滑らかさ制約から決まる上限(Δ12.5でmax 0.483)
+const FREE_THROW = { dBack: 17, dUp: 3.8, lookAhead: 2, lookUp: 1.5 }
 
 describe('恒等区間(arc/ダイブ対象外への影響ゼロ)', () => {
   it('dribble前(u<DRIBBLE_END)の全サンプルで通常chase値のまま', () => {
@@ -80,7 +83,7 @@ describe('freeThrowブレンド(D_UP微増 #308)の成立', () => {
     expect(getCameraOffset(CATCH_END)).toEqual(NORMAL)
   })
 
-  it('RING_Uちょうどでフリースローブースト値(dUpのみ上昇、dBack/lookAhead/lookUpは通常値のまま)', () => {
+  it('RING_Uちょうどでフリースローブースト値(dBack/dUpが上昇、lookAhead/lookUpは通常値のまま)', () => {
     expect(getCameraOffset(RING_U)).toEqual(FREE_THROW)
   })
 

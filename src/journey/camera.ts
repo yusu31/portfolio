@@ -83,6 +83,18 @@ const ARC_D_UP = 4.5
  */
 const FREE_THROW_D_UP = 3.8
 
+/**
+ * フリースロー区間でチェイス距離を大きく広げる「引き」の値(Phase6, Issue #330)。
+ *
+ * バックボードを実物比(24.02×13.78)へ拡大した結果、リング通過の見せ場で板が画面全体を覆う
+ * 「白い壁」になった。原因は板の大きさではなく**カメラが板に近すぎて4辺がフレームに
+ * 入らないこと**で、実測ではu=0.4575での板のNDC幅が4.83(画面幅2.0)だった。
+ * カメラを引くと(1)板の4辺が収まってバックボードとして認識できる (2)ネットをストンと
+ * 抜けるスイッシュが1つの絵として読める (3)過大なボールの見かけサイズも同時に緩む、
+ * の3つが同時に解決する。D_UPと同じfreeThrowBlendTに乗せるので不連続は生まれない
+ */
+const FREE_THROW_D_BACK = 17
+
 /** 両端で値・傾きゼロのsmootherstep(6t⁵-15t⁴+10t³)。cameraAttitude.tsと同じ手法 */
 const smootherstep = (t: number): number => {
   const x = THREE.MathUtils.clamp(t, 0, 1)
@@ -140,14 +152,19 @@ export interface CameraOffset {
  * offset(u)からカメラのオフセット値を返す純関数(camera.test.tsの回帰テスト対象)。
  * arc/freeThrow/dive区間は互いに重ならない(arcBlendT/freeThrowBlendT/diveBlendTが
  * 同時に非ゼロにならない)ため、D_BACK/D_UPはarc→通常→freeThrow→diveの順に連鎖的に
- * lerpするだけで安全に合成できる(dBackはfreeThrowブーストを持たないため素通り)。
+ * lerpするだけで安全に合成できる。
  * lookAhead/lookUpはarc/freeThrow区間では変更しない(design: 距離のみ広げ、視線ターゲットは据え置き)
  */
 export function getCameraOffset(u: number): CameraOffset {
   const arcT = arcBlendT(u)
   const freeThrowT = freeThrowBlendT(u)
   const diveT = diveBlendT(u)
-  const dBack = THREE.MathUtils.lerp(THREE.MathUtils.lerp(D_BACK, ARC_D_BACK, arcT), DIVE_D_BACK, diveT)
+  const dBackBase = THREE.MathUtils.lerp(
+    THREE.MathUtils.lerp(D_BACK, ARC_D_BACK, arcT),
+    FREE_THROW_D_BACK,
+    freeThrowT
+  )
+  const dBack = THREE.MathUtils.lerp(dBackBase, DIVE_D_BACK, diveT)
   const dUpBase = THREE.MathUtils.lerp(THREE.MathUtils.lerp(D_UP, ARC_D_UP, arcT), FREE_THROW_D_UP, freeThrowT)
   const dUp = THREE.MathUtils.lerp(dUpBase, DIVE_D_UP, diveT)
   return {

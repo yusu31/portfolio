@@ -21,9 +21,18 @@ import {
 import {
   HOOP_GROUP_OFFSET,
   HOOP_POST_LOCAL_OFFSET,
+  HOOP_POST_RADIUS,
+  HOOP_POST_HEIGHT,
+  HOOP_ARM_Y,
   RING_OFFSET,
   RING_RADIUS,
   RING_TUBE_RADIUS,
+  BACKBOARD_WIDTH,
+  BACKBOARD_HEIGHT,
+  BACKBOARD_THICKNESS,
+  BACKBOARD_LOCAL_OFFSET,
+  SHOOTER_SQUARE_WIDTH,
+  SHOOTER_SQUARE_HEIGHT,
   CONTACT_REST_OFFSET,
 } from './ball/anchors'
 import { BasketNet } from './nets/BasketNet'
@@ -55,6 +64,40 @@ function SectionTitle({
       <Text fontSize={fontSize} color={TITLE_COLOR} anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor={accent}>
         {text}
       </Text>
+    </group>
+  )
+}
+
+/**
+ * シューターズスクエア(バックボード内側の白枠)。実物では下辺がリング高さに揃う。
+ * 枠線4辺を細い板でバックボード前面のすぐ手前に置く(同一平面だとz-fightingするため
+ * コートのチョークラインと同じ「描画イプシロン」の作法に倣う)。
+ * 「バックボードらしさ」に最も効く記号なので、ベベル化(Blender)より先に入れる
+ */
+const SQUARE_LINE_WIDTH = 0.34
+const SQUARE_EPSILON = 0.04
+
+function ShooterSquare() {
+  const w = SHOOTER_SQUARE_WIDTH
+  const h = SHOOTER_SQUARE_HEIGHT
+  // 枠の下辺をリング高さに合わせる
+  const bottomY = RING_OFFSET.y
+  const centerY = bottomY + h / 2
+  const z = BACKBOARD_LOCAL_OFFSET.z + BACKBOARD_THICKNESS / 2 + SQUARE_EPSILON
+  const bars: { pos: [number, number, number]; size: [number, number, number] }[] = [
+    { pos: [0, bottomY, z], size: [w, SQUARE_LINE_WIDTH, SQUARE_EPSILON] },
+    { pos: [0, bottomY + h, z], size: [w, SQUARE_LINE_WIDTH, SQUARE_EPSILON] },
+    { pos: [-w / 2, centerY, z], size: [SQUARE_LINE_WIDTH, h, SQUARE_EPSILON] },
+    { pos: [w / 2, centerY, z], size: [SQUARE_LINE_WIDTH, h, SQUARE_EPSILON] },
+  ]
+  return (
+    <group>
+      {bars.map((bar, i) => (
+        <mesh key={i} position={bar.pos}>
+          <boxGeometry args={bar.size} />
+          <meshStandardMaterial color="#e8833a" roughness={0.5} />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -121,20 +164,38 @@ export function BasketVenue() {
         <ringGeometry args={[1.65, 1.89, 32]} />
         <meshStandardMaterial color={CHALK} roughness={0.9} />
       </mesh>
-      {/* ゴール: 支柱 + バックボード + リング。
+      {/* ゴール: 支柱 + アーム + バックボード + シューターズスクエア + リング + ネット。
           コート横(+x)だと通過カメラのフレーム外、奥端センターだとSKILLSタイトルと同軸で埋没する。
           奥端の左寄りに置いてタイトルと視覚的に分離する(Phase 3 QAフォローアップ)。
-          位置はball/anchors.tsのHOOP_GROUP_OFFSET/HOOP_POST_LOCAL_OFFSET/RING_OFFSETと単一ソース
-          (フリースローの着弾点・構造物クリアランステストとズレないため)。寸法は旧値×3 */}
+          位置・寸法はすべてball/anchors.tsと単一ソース(フリースローの着弾点・構造物
+          クリアランステストとズレないため)。
+          Phase6(Issue #330)でバックボードを実物比へ作り直し、支柱を板の後方へ移してアームを追加した */}
       <group position={[HOOP_GROUP_OFFSET.x, HOOP_GROUP_OFFSET.y, HOOP_GROUP_OFFSET.z]}>
+        {/* 支柱: 板の背面より後方に立てる(旧z=-1.8はネットを貫通していた・Issue #330) */}
         <mesh position={[HOOP_POST_LOCAL_OFFSET.x, HOOP_POST_LOCAL_OFFSET.y, HOOP_POST_LOCAL_OFFSET.z]}>
-          <cylinderGeometry args={[0.21, 0.21, 9, 8]} />
+          <cylinderGeometry args={[HOOP_POST_RADIUS, HOOP_POST_RADIUS, HOOP_POST_HEIGHT, 12]} />
           <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
         </mesh>
-        <mesh position={[0, 7.5, 0]}>
-          <boxGeometry args={[4.5, 2.7, 0.18]} />
+        {/* 張り出しアーム: 支柱とバックボード背面を繋ぐ。旧実装には存在せず板が空中に浮いていた */}
+        <mesh
+          position={[0, HOOP_ARM_Y, (HOOP_POST_LOCAL_OFFSET.z + BACKBOARD_LOCAL_OFFSET.z) / 2]}
+          rotation={[Math.PI / 2, 0, 0]}
+        >
+          <cylinderGeometry
+            args={[0.28, 0.28, Math.abs(BACKBOARD_LOCAL_OFFSET.z - HOOP_POST_LOCAL_OFFSET.z) + 0.6, 10]}
+          />
+          <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
+        </mesh>
+        {/* バックボード: 実物比(1.83×1.05m → 24.02×13.78)。リング内側近端から板面まで実物0.15m規格 */}
+        <mesh
+          position={[BACKBOARD_LOCAL_OFFSET.x, BACKBOARD_LOCAL_OFFSET.y, BACKBOARD_LOCAL_OFFSET.z]}
+        >
+          <boxGeometry args={[BACKBOARD_WIDTH, BACKBOARD_HEIGHT, BACKBOARD_THICKNESS]} />
           <meshStandardMaterial color={CHALK} roughness={0.4} />
         </mesh>
+        {/* シューターズスクエア(内側の白枠4辺)。下辺をリング高さに揃える実物の作法。
+            「バックボードに見える」ことに一番効く記号なので枠線として描く */}
+        <ShooterSquare />
         <mesh position={[RING_OFFSET.x, RING_OFFSET.y, RING_OFFSET.z]} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[RING_RADIUS, RING_TUBE_RADIUS, 8, 32]} />
           <meshStandardMaterial color="#e8833a" roughness={0.45} />
