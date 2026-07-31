@@ -44,6 +44,14 @@ export const HOOP_GROUP_OFFSET = new THREE.Vector3(-5.1, STRUCTURE_GROUND_LIFT, 
 export const HOOP_POST_LOCAL_OFFSET = new THREE.Vector3(0, 3.3, -1.8)
 /** リングmeshのhoopグループ相対オフセット(旧(0,2.2,0.35)×3)。venues.tsxと単一ソース共有 */
 export const RING_OFFSET = new THREE.Vector3(0, 6.6, 1.05)
+/**
+ * リング(torus)の主半径。venues.tsxの描画・geometry.test.tsの開口テスト・
+ * nets/basketNet.tsのネット上端半径が共有する単一ソース(Phase6で抽出)。
+ * この世界は実物の約13.1倍スケールで、3.0は実物のリング半径0.2286mに対応する
+ */
+export const RING_RADIUS = 3.0
+/** リング(torus)の管半径。venues.tsxの描画と単一ソース共有 */
+export const RING_TUBE_RADIUS = 0.14
 /** リング中心のワールド座標(5.4, 7.4, -109.65)。フリースローの通過判定点でfallビートの起点 */
 export const RING_CENTER = VENUES.skills.center.clone().add(HOOP_GROUP_OFFSET).add(RING_OFFSET)
 

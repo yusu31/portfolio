@@ -18,7 +18,15 @@ import {
   FINISH_GATE_OFFSET_Z,
   FINISH_GATE_POLE_X,
 } from './path'
-import { HOOP_GROUP_OFFSET, HOOP_POST_LOCAL_OFFSET, RING_OFFSET, CONTACT_REST_OFFSET } from './ball/anchors'
+import {
+  HOOP_GROUP_OFFSET,
+  HOOP_POST_LOCAL_OFFSET,
+  RING_OFFSET,
+  RING_RADIUS,
+  RING_TUBE_RADIUS,
+  CONTACT_REST_OFFSET,
+} from './ball/anchors'
+import { BasketNet } from './nets/BasketNet'
 
 const TITLE_COLOR = '#fffaf5'
 const CHALK = '#f7f0ea'
@@ -128,9 +136,14 @@ export function BasketVenue() {
           <meshStandardMaterial color={CHALK} roughness={0.4} />
         </mesh>
         <mesh position={[RING_OFFSET.x, RING_OFFSET.y, RING_OFFSET.z]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[3.0, 0.14, 8, 32]} />
+          <torusGeometry args={[RING_RADIUS, RING_TUBE_RADIUS, 8, 32]} />
           <meshStandardMaterial color="#e8833a" roughness={0.45} />
         </mesh>
+        {/* ネット(Phase6): リングから吊り下がる実体コードのダイヤモンド網。
+            設計書 docs/plans/2026-08-01-net-geometry-and-physics.md §3 */}
+        <group position={[RING_OFFSET.x, RING_OFFSET.y, RING_OFFSET.z]}>
+          <BasketNet />
+        </group>
       </group>
       {/* バスケットボールの静的メッシュはPhase 5-3で撤去(クリスタル球がキャッチ→フリースローで通過する) */}
       <SectionTitle text="SKILLS" accent="#ffb300" position={[0, TITLE_Y, 0]} fontSize={TITLE_FONT_SIZE} />
