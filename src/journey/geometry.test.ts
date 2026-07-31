@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { COURT_SIZES, VENUES, STRUCTURE_GROUND_LIFT } from './path'
-import { HOOP_GROUP_OFFSET, RING_OFFSET } from './ball/anchors'
+import { HOOP_GROUP_OFFSET, RING_OFFSET, RING_RADIUS } from './ball/anchors'
 import { BALL_RADIUS } from './ball/roll'
 import { getBallPose } from './ball/ballPath'
 import { DRIBBLE_START, DRIBBLE_END, RING_U, FALL_END, SPIKE_END } from './ball/beats'
@@ -13,8 +13,7 @@ const RING_CENTER = VENUES.skills.center.clone().add(HOOP_GROUP_OFFSET).add(RING
 
 describe('ボール-構造物整合(PR-3スケール調整)', () => {
   it('リング開口がボール通過可能(開口直径 > 球直径×1.15)', () => {
-    const ringRadius = 3.0
-    const ringOpeningDiameter = ringRadius * 2
+    const ringOpeningDiameter = RING_RADIUS * 2
     const ballDiameter = BALL_RADIUS * 2
     expect(ringOpeningDiameter, `リング開口${ringOpeningDiameter} > 球直径${ballDiameter}×1.15`).toBeGreaterThan(
       ballDiameter * 1.15
