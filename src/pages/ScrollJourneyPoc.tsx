@@ -23,6 +23,14 @@ import { SUN_POSITION, KEY_LIGHT_POSITION } from '../journey/skyConfig'
 import { createGroundHoleMaterial } from '../journey/groundHole'
 import { useGroundHole } from '../journey/useGroundHole'
 import { ToonPreview } from '../journey/toonPreview'
+import { DepthOutline } from '../journey/DepthOutline'
+import { HullOutline } from '../journey/HullOutline'
+import { currentSearch, getLightingPreset } from '../journey/nprPreview'
+
+// 【検証用・Issue #345 段階2】`?contrast=1|2` でライティングのコントラストを上げる。
+// 未指定なら現行の実測値がそのまま入るので、スイッチ無しでは絵は1ピクセルも変わらない。
+// モジュールスコープで1回だけ読むのは、クエリが実行中に変わらない前提を明示するため
+const LIGHTING = getLightingPreset(currentSearch())
 
 // 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)。
 // Phase 5-5の世界3倍化(全長約200→253.5)に合わせてzを新全長へほぼ等間隔に再配分(x/y/scaleは踏襲)
@@ -116,13 +124,13 @@ export default function ScrollJourneyPoc() {
         {/* フォグは空の地平線色に合わせる → 遠くのヴェニューが夕靄から現れる。
             Phase 5-2でヴェニュー間隔が広がった(66→約200)ため、次のヴェニューが早めに滲み始めるよう46→65に再検証 */}
         <fog attach="fog" args={['#f2b8a0', 14, 65]} />
-        <ambientLight intensity={0.55} color="#ffe0cf" />
+        <ambientLight intensity={LIGHTING.ambientIntensity} color="#ffe0cf" />
         {/* 夕日: Skyの太陽位置と同方向の暖色キーライト(skyConfig.tsの共有定数) */}
-        <directionalLight position={KEY_LIGHT_POSITION} intensity={1.6} color="#ffb185" />
+        <directionalLight position={KEY_LIGHT_POSITION} intensity={LIGHTING.keyIntensity} color="#ffb185" />
         {/* 逆光のリムライト: 薄紫でシルエットを立てる(球の輪郭が背景ピーチに溶けるのを防ぐ) */}
-        <directionalLight position={[5, 8, -10]} intensity={0.6} color="#c3b0ff" />
+        <directionalLight position={[5, 8, -10]} intensity={LIGHTING.rimIntensity} color="#c3b0ff" />
         <Suspense fallback={null}>
-          <Environment preset="sunset" environmentIntensity={0.7} />
+          <Environment preset="sunset" environmentIntensity={LIGHTING.environmentIntensity} />
           <ScrollControls pages={PAGES} damping={0.25}>
             {/* 夕焼けの雲: 奥にゆっくり流れるパステルの雲塊。DiveCloudVeilがuseScroll()を
                 使うためScrollControls内へ移動した(ScrollControlsはプレーンな子要素を
@@ -193,9 +201,16 @@ export default function ScrollJourneyPoc() {
             {/* 【検証用・Issue #345】?toon=1 のときだけシーンをトゥーンへ差し替える。
                 最後の子に置くのは、effectが兄弟のマウント後に走るようにするため */}
             <ToonPreview />
+            {/* 【検証用・Issue #345 段階2】?hull=1 で逆ハルの輪郭線。ToonPreviewの後に置くのは、
+                トゥーン差し替え後のマテリアルに対して skip 判定を効かせるため */}
+            <HullOutline />
           </ScrollControls>
           {/* 明るいシーン用: 閾値0.9で空の暴発を防ぎつつ、太陽と白熱コアの縁を柔らかく滲ませる */}
           <EffectComposer>
+            {/* 【検証用・Issue #345 段階2】?outline=1 で深度エッジの輪郭線。
+                Bloomより前に置くと線も「絵の一部」としてグレーディングを通る。
+                線は暗色なので luminanceThreshold 0.9 のBloomには拾われない */}
+            <DepthOutline />
             <Bloom
               ref={setBloomRef}
               intensity={BLOOM_BASE_INTENSITY}

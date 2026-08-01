@@ -13,6 +13,7 @@
 import { useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { currentSearch, getLightingPreset } from './nprPreview'
 
 /** QA用クエリパラメータ。`/scroll-poc?toon=1` でトゥーン化して開く */
 export const TOON_QUERY = 'toon'
@@ -27,12 +28,16 @@ export function isToonPreview(): boolean {
  *
  * `NearestFilter` にすることで陰影が連続でなく**段**になる(これがトゥーンの肝)。
  * 段数を増やすほどPBRに近づくので、参考例のセル画らしさを狙って4段にした
+ *
+ * 段階2で `floor` を可変にした。段階1の検証で「4段のうち上位1〜2段に大半の面が収まる」
+ * と分かったが、原因は段数ではなく**最暗段の底上げ量**と `ambientLight` の2つ。
+ * 底が90(=35%)で固定だと、ambientをいくら下げても影がそれ以上深くならない
  */
-function createGradientMap(steps: number): THREE.DataTexture {
+function createGradientMap(steps: number, floor: number): THREE.DataTexture {
   const data = new Uint8Array(steps)
   for (let i = 0; i < steps; i++) {
     // 最暗部を0にすると影が黒く潰れて夕景のパレットが死ぬので、下限を持ち上げる
-    data[i] = Math.round(THREE.MathUtils.lerp(90, 255, i / (steps - 1)))
+    data[i] = Math.round(THREE.MathUtils.lerp(floor, 255, i / (steps - 1)))
   }
   const texture = new THREE.DataTexture(data, steps, 1, THREE.RedFormat)
   texture.magFilter = THREE.NearestFilter
@@ -82,7 +87,9 @@ export function ToonPreview() {
 
   useEffect(() => {
     if (!isToonPreview()) return
-    const gradientMap = createGradientMap(TOON_STEPS)
+    // 影の底は `?contrast` と連動させる。ライティングだけ・gradientMapだけを
+    // 動かしても段は増えないので、2つを1つのプリセットに束ねてある(nprPreview.ts)
+    const gradientMap = createGradientMap(TOON_STEPS, getLightingPreset(currentSearch()).toonFloor)
     const created: THREE.Material[] = []
     // 差し替え前のマテリアルを覚えておき、アンマウント時に必ず戻す
     const restore: Array<{ mesh: THREE.Mesh; material: THREE.Material }> = []

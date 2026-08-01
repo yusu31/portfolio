@@ -29,6 +29,9 @@ importers:
       lottie-web:
         specifier: ^5.13.0
         version: 5.13.0
+      postprocessing:
+        specifier: 6.39.1
+        version: 6.39.1(three@0.184.0)
       react:
         specifier: ^19.2.7
         version: 19.2.7
