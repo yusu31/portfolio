@@ -52,10 +52,53 @@ export const VENUES = {
 export const SOCCER_GOAL_GROUP_OFFSET = new THREE.Vector3(-13.2, STRUCTURE_GROUND_LIFT, 0)
 /** サッカーゴールポストのグループ相対z(旧±1.1×3) */
 export const SOCCER_GOAL_POST_Z = 3.3
+
+// ---- サッカーゴールの骨格寸法(venues.tsxの描画とnets/goalNets.tsのネットが共有) ----
+// Phase6(#335)でネットを実体化するにあたり、venues.tsxにベタ書きだった値をここへ移した。
+// ネットはこの骨格の面に張るので、片方だけ動くとネットがフレームから外れる
+
+/** ゴール枠の管半径 */
+export const SOCCER_GOAL_POST_RADIUS = 0.15
+/** ゴール枠の足元y(グループ相対)。地面(world -0.4)に接地する */
+export const SOCCER_GOAL_BOTTOM_Y = -1.2
+/** クロスバーのy(グループ相対)。支柱の天 */
+export const SOCCER_GOAL_CROSSBAR_Y = 3.9
+/** 支柱の長さ(足元→クロスバー)。旧venues.tsxのcylinderGeometry高さ5.1と一致 */
+export const SOCCER_GOAL_POST_HEIGHT = SOCCER_GOAL_CROSSBAR_Y - SOCCER_GOAL_BOTTOM_Y
+/** クロスバーの長さ。支柱間(6.6)+両端に管半径ぶんの張り出し */
+export const SOCCER_GOAL_CROSSBAR_LENGTH = SOCCER_GOAL_POST_Z * 2 + SOCCER_GOAL_POST_RADIUS * 2
+/**
+ * ネットケージの天面の奥行き(-x方向)。ゴール前面はKICK_POINT側(+x)なのでネットは-xへ張る。
+ * 実物の規格(上部2m/ゴール幅7.32m)をこのゴール幅6.6へ当てると1.80だが、このゴールは
+ * 実物比で2.3倍縦長(#328)なので浅すぎて窮屈に見える。縦長ぶんを少し補って2.1にした
+ */
+export const SOCCER_NET_DEPTH_TOP = 2.1
+/** ネットケージの地面側の奥行き。背面が後方へ倒れる実物のシルエットを作る */
+export const SOCCER_NET_DEPTH_BOTTOM = 3.6
+
 /** バレーネットグループのvenue相対オフセット(接地補正のみ) */
 export const VOLLEY_NET_GROUP_OFFSET = new THREE.Vector3(0, STRUCTURE_GROUND_LIFT, 0)
 /** バレーネット支柱のグループ相対z(旧±2.4×3) */
 export const VOLLEY_NET_POST_Z = 7.2
+
+// ---- バレーネットの寸法(venues.tsxの描画とnets/goalNets.tsのネットが共有) ----
+
+/** 支柱の半径 */
+export const VOLLEY_NET_POST_RADIUS = 0.18
+/** 支柱の長さ。足元-1.2(接地)〜天4.8 */
+export const VOLLEY_NET_POST_HEIGHT = 6.0
+/** 白帯の中心y(グループ相対)。ワールドではy≈5.15でTOSS_PEAK(8.5)がその上を越える */
+export const VOLLEY_NET_BAND_Y = 4.35
+/** 白帯の厚み(y方向) */
+export const VOLLEY_NET_BAND_THICKNESS = 0.42
+/** ネット面のz方向の長さ。支柱間にちょうど張る */
+export const VOLLEY_NET_LENGTH = VOLLEY_NET_POST_Z * 2
+/** ネット面の上端y。白帯の下辺に一致させる */
+export const VOLLEY_NET_TOP_Y = VOLLEY_NET_BAND_Y - VOLLEY_NET_BAND_THICKNESS / 2
+/** ネット面の高さ */
+export const VOLLEY_NET_HEIGHT = 2.28
+/** ネット面の下端y */
+export const VOLLEY_NET_BOTTOM_Y = VOLLEY_NET_TOP_Y - VOLLEY_NET_HEIGHT
 /** フィニッシュゲートグループのvenue相対z(プラザ1x据え置きのため不変) */
 export const FINISH_GATE_OFFSET_Z = 3.6
 /** フィニッシュゲートポールのグループ相対x(不変) */
