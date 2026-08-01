@@ -1,12 +1,15 @@
 // バスケットネットの描画。リング中心をローカル原点として吊り下がる。
 //
-// 設計書: docs/plans/2026-08-01-net-geometry-and-physics.md §3.3
-// 実装順序①(静止ジオメトリのみ)の段階。物理(u軸ベイクVerlet)と風は後続で
-// `positions` の供給元を差し替えるだけで載る構造にしてある。
+// 設計書: docs/plans/2026-08-01-net-geometry-and-physics.md §3.3 / §3.4
+// 実装順序④でu軸ベイクVerlet(basketNetBake.ts)を載せた。結び目位置の供給元が
+// 静止形状から「ベイクテーブルの補間 + 風の加算」に変わっただけで、
+// 行列を組む部分(writeInstanceMatrices)は①のまま無変更で動いている。
 //
 // コードをLineSegmentsではなくInstancedMeshの円柱にするのは、厚みゼロの線が確実に
 // チープに見えるため。結び目の球は円柱の継ぎ目を埋めつつ実物のディテールにもなる。
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { useScroll } from '@react-three/drei'
 import * as THREE from 'three'
 import {
   NET_CORD_COUNT,
@@ -18,25 +21,33 @@ import {
   netCords,
   netRestPositions,
 } from './basketNetGeometry'
+import { applyNetWind, ensureNetBake, sampleNetBake } from './basketNetBake'
+import { advanceWindTime, isWindFrozen } from './netWind'
+import { useReducedMotion } from '../useReducedMotion'
 
 /** 円柱の軸(+Y)を線分方向へ向けるための基準ベクトル */
 const CYLINDER_AXIS = new THREE.Vector3(0, 1, 0)
 
 /**
  * 結び目位置の配列からコード(円柱)と結び目(球)のインスタンス行列を書き込む。
- * 物理を載せたあとも毎フレームこの関数を呼ぶだけで済むよう、副作用を行列書き込みに限定している
+ * `positions` は段0(ピン留め12個)を含む全結び目。`cords` のインデックスもそれ基準
  */
 function writeInstanceMatrices(
   positions: THREE.Vector3[],
   cords: readonly [number, number][],
   cordMesh: THREE.InstancedMesh,
-  knotMesh: THREE.InstancedMesh
+  knotMesh: THREE.InstancedMesh,
+  scratch: {
+    matrix: THREE.Matrix4
+    mid: THREE.Vector3
+    dir: THREE.Vector3
+    quat: THREE.Quaternion
+    scale: THREE.Vector3
+    identityQuat: THREE.Quaternion
+    unitScale: THREE.Vector3
+  }
 ) {
-  const matrix = new THREE.Matrix4()
-  const mid = new THREE.Vector3()
-  const dir = new THREE.Vector3()
-  const quat = new THREE.Quaternion()
-  const scale = new THREE.Vector3()
+  const { matrix, mid, dir, quat, scale, identityQuat, unitScale } = scratch
 
   for (let i = 0; i < cords.length; i++) {
     const a = positions[cords[i][0]]
@@ -52,8 +63,6 @@ function writeInstanceMatrices(
   cordMesh.instanceMatrix.needsUpdate = true
 
   // 結び目は段1以降のみ(段0はリングに隠れるため描かない)。positionsの先頭NET_COLUMNS個が段0
-  const identityQuat = new THREE.Quaternion()
-  const unitScale = new THREE.Vector3(1, 1, 1)
   for (let i = 0; i < NET_SIMULATED_COUNT; i++) {
     knotMesh.setMatrixAt(i, matrix.compose(positions[NET_COLUMNS + i], identityQuat, unitScale))
   }
@@ -63,13 +72,45 @@ function writeInstanceMatrices(
 export function BasketNet() {
   const cordRef = useRef<THREE.InstancedMesh>(null)
   const knotRef = useRef<THREE.InstancedMesh>(null)
+  const scroll = useScroll()
+  const motion = useReducedMotion()
 
-  const { positions, cords } = useMemo(() => ({ positions: netRestPositions(), cords: netCords() }), [])
+  const { rest, cords, live, simulated, scratch } = useMemo(() => {
+    // ベイク(実測約96ms)はここで済ませる。マウントはローダーが出ている間に起きるので
+    // 体感ゼロだが、スクロールが窓に差しかかってから遅延ベイクすると見せ場でフレームが落ちる
+    ensureNetBake()
+    const restPositions = netRestPositions()
+    return {
+      rest: restPositions,
+      cords: netCords(),
+      // 描画に渡す全結び目(段0はrestのまま固定、段1以降を毎フレーム書き換える)
+      live: restPositions.map((p) => p.clone()),
+      // ベイクテーブルの読み出し先(段1〜5の60個)。毎フレーム再利用してアロケーションを避ける
+      simulated: Array.from({ length: NET_SIMULATED_COUNT }, () => new THREE.Vector3()),
+      scratch: {
+        matrix: new THREE.Matrix4(),
+        mid: new THREE.Vector3(),
+        dir: new THREE.Vector3(),
+        quat: new THREE.Quaternion(),
+        scale: new THREE.Vector3(),
+        identityQuat: new THREE.Quaternion(),
+        unitScale: new THREE.Vector3(1, 1, 1),
+      },
+    }
+  }, [])
 
-  useLayoutEffect(() => {
+  const windTimeRef = useRef(0)
+
+  useFrame((_, delta) => {
     if (!cordRef.current || !knotRef.current) return
-    writeInstanceMatrices(positions, cords, cordRef.current, knotRef.current)
-  }, [positions, cords])
+    // ベイクは u の純関数。スクロールを止めればネットも止まり、逆再生も対称になる
+    sampleNetBake(scroll.offset, simulated, rest)
+    const frozen = motion === 0 || isWindFrozen()
+    windTimeRef.current = advanceWindTime(windTimeRef.current, delta, frozen)
+    applyNetWind(simulated, rest, windTimeRef.current)
+    for (let i = 0; i < NET_SIMULATED_COUNT; i++) live[NET_COLUMNS + i].copy(simulated[i])
+    writeInstanceMatrices(live, cords, cordRef.current, knotRef.current, scratch)
+  })
 
   return (
     <group>
