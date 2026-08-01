@@ -102,7 +102,7 @@ export const SHOOTER_SQUARE_WIDTH = 0.59 * REAL_SCALE
 export const SHOOTER_SQUARE_HEIGHT = 0.45 * REAL_SCALE
 /** 支柱とバックボード背面を繋ぐアームのy(hoopグループ相対)。ネットより後方なので干渉しない */
 export const HOOP_ARM_Y = 6.0
-/** リング中心のワールド座標(5.4, 7.4, -109.65)。フリースローの通過判定点でfallビートの起点 */
+/** リング中心のワールド座標(14.85, 7.4, -109.65)。フリースローの通過判定点でswishビートの起点 */
 export const RING_CENTER = VENUES.skills.center.clone().add(HOOP_GROUP_OFFSET).add(RING_OFFSET)
 
 /**
@@ -111,6 +111,34 @@ export const RING_CENTER = VENUES.skills.center.clone().add(HOOP_GROUP_OFFSET).a
  * 球は拡大しないためスケールしない
  */
 export const FALL_LANDING = VENUES.about.center.clone().add(new THREE.Vector3(8.0, 0.55, 12))
+
+// ---- スイッシュ(Phase6・設計書§6.3) ----
+// 旧fall軌道はRING_Uからほぼ水平(退出角0.1°)に飛び去るため、リング半径3.0を出るまでに
+// 0.020しか落下しない。ネット(全長5.25)を吊った瞬間に「ボールが網を真横に突き抜ける」
+// という破綻が生まれるので、リング直下に短い落下区間を挟む
+
+/**
+ * スイッシュ終端の高さ。ネット下端(RING_CENTER.y - NET_LENGTH = 2.15)より下まで抜けきる。
+ * ここから先はfallビートが低空を滑空してFALL_LANDINGへ向かう
+ */
+export const SWISH_EXIT_Y = 1.6
+/**
+ * スイッシュ中の水平ドリフト量。ネット下端半径1.25 + ボール半径1.5 の内側に収まるので、
+ * ボールはネットを押し広げながら**内側を**通り抜ける(設計書§6.3)
+ */
+export const SWISH_DRIFT = 1.5
+/**
+ * スイッシュ終端(fallビートの新しい起点)。RING_CENTERからFALL_LANDING方向へ
+ * 水平にSWISH_DRIFTだけ進み、y=SWISH_EXIT_Yまで落ちた点
+ */
+export const SWISH_EXIT = (() => {
+  const horizontal = FALL_LANDING.clone().sub(RING_CENTER)
+  horizontal.y = 0
+  horizontal.normalize().multiplyScalar(SWISH_DRIFT)
+  const exit = RING_CENTER.clone().add(horizontal)
+  exit.y = SWISH_EXIT_Y
+  return exit
+})()
 /** レシーブで持ち上げた後の頂点(setTossへの受け渡し位置)。ネット手前・コート中央寄り */
 export const RECEIVE_PEAK = VENUES.about.center.clone().add(new THREE.Vector3(4.0, 1.4, 7))
 /**
