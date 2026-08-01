@@ -22,6 +22,7 @@ import { PAGES, type SectionId } from '../journey/path'
 import { SUN_POSITION, KEY_LIGHT_POSITION } from '../journey/skyConfig'
 import { createGroundHoleMaterial } from '../journey/groundHole'
 import { useGroundHole } from '../journey/useGroundHole'
+import { ToonPreview } from '../journey/toonPreview'
 
 // 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)。
 // Phase 5-5の世界3倍化(全長約200→253.5)に合わせてzを新全長へほぼ等間隔に再配分(x/y/scaleは踏襲)
@@ -189,6 +190,9 @@ export default function ScrollJourneyPoc() {
             <BasketVenue />
             <VolleyVenue />
             <ContactVenue />
+            {/* 【検証用・Issue #345】?toon=1 のときだけシーンをトゥーンへ差し替える。
+                最後の子に置くのは、effectが兄弟のマウント後に走るようにするため */}
+            <ToonPreview />
           </ScrollControls>
           {/* 明るいシーン用: 閾値0.9で空の暴発を防ぎつつ、太陽と白熱コアの縁を柔らかく滲ませる */}
           <EffectComposer>
