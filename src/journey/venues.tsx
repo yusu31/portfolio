@@ -13,8 +13,20 @@ import {
   COURT_SIZES,
   SOCCER_GOAL_GROUP_OFFSET,
   SOCCER_GOAL_POST_Z,
+  SOCCER_GOAL_POST_RADIUS,
+  SOCCER_GOAL_BOTTOM_Y,
+  SOCCER_GOAL_CROSSBAR_Y,
+  SOCCER_GOAL_POST_HEIGHT,
+  SOCCER_GOAL_CROSSBAR_LENGTH,
+  SOCCER_NET_DEPTH_TOP,
+  SOCCER_NET_DEPTH_BOTTOM,
   VOLLEY_NET_GROUP_OFFSET,
   VOLLEY_NET_POST_Z,
+  VOLLEY_NET_POST_RADIUS,
+  VOLLEY_NET_POST_HEIGHT,
+  VOLLEY_NET_BAND_Y,
+  VOLLEY_NET_BAND_THICKNESS,
+  VOLLEY_NET_LENGTH,
   FINISH_GATE_OFFSET_Z,
   FINISH_GATE_POLE_X,
 } from './path'
@@ -36,6 +48,14 @@ import {
   CONTACT_REST_OFFSET,
 } from './ball/anchors'
 import { BasketNet } from './nets/BasketNet'
+import { CordNet } from './nets/CordNet'
+import {
+  GOAL_NET_COLOR,
+  SOCCER_NET_SPEC,
+  SOCCER_WIND_AMPLITUDE,
+  VOLLEY_NET_SPEC,
+  VOLLEY_WIND_AMPLITUDE,
+} from './nets/goalNets'
 
 const TITLE_COLOR = '#fffaf5'
 const CHALK = '#f7f0ea'
@@ -102,6 +122,21 @@ function ShooterSquare() {
   )
 }
 
+/** ゴール枠・バックステーの中心y(足元とクロスバーの中点)。cylinderは中心基準のため */
+const GOAL_MID_Y = (SOCCER_GOAL_BOTTOM_Y + SOCCER_GOAL_CROSSBAR_Y) / 2
+/** 背面フレームの管半径。前面の枠(0.15)より細くして主役を前面に残す */
+const GOAL_BACK_BAR_RADIUS = 0.12
+/** バックステーの長さ(背面上端 → 地面) */
+const GOAL_STAY_LENGTH = Math.hypot(
+  SOCCER_NET_DEPTH_BOTTOM - SOCCER_NET_DEPTH_TOP,
+  SOCCER_GOAL_CROSSBAR_Y - SOCCER_GOAL_BOTTOM_Y
+)
+/** バックステーの傾き(鉛直からの角度)。cylinderの軸(+Y)をz軸まわりに -この角度 回すと後傾する */
+const GOAL_STAY_TILT = Math.atan2(
+  SOCCER_NET_DEPTH_BOTTOM - SOCCER_NET_DEPTH_TOP,
+  SOCCER_GOAL_CROSSBAR_Y - SOCCER_GOAL_BOTTOM_Y
+)
+
 // サッカー: 芝のピッチ + チョークライン + ゴール(Projects)
 export function SoccerVenue() {
   const c = VENUES.projects.center
@@ -130,18 +165,41 @@ export function SoccerVenue() {
       {/* ゴール: 左奥(遠サイド)に白いフレーム。位置はpath/venues.tsの構造物定数と単一ソース
           (構造物クリアランステストとズレないため)。寸法は旧値×3 */}
       <group position={[SOCCER_GOAL_GROUP_OFFSET.x, SOCCER_GOAL_GROUP_OFFSET.y, SOCCER_GOAL_GROUP_OFFSET.z]}>
-        <mesh position={[0, 1.35, -SOCCER_GOAL_POST_Z]}>
-          <cylinderGeometry args={[0.15, 0.15, 5.1, 8]} />
+        {/* ゴール枠(前面): 支柱2本 + クロスバー。寸法はpath/venues.tsと単一ソース */}
+        {[-SOCCER_GOAL_POST_Z, SOCCER_GOAL_POST_Z].map((z) => (
+          <mesh key={z} position={[0, GOAL_MID_Y, z]}>
+            <cylinderGeometry
+              args={[SOCCER_GOAL_POST_RADIUS, SOCCER_GOAL_POST_RADIUS, SOCCER_GOAL_POST_HEIGHT, 8]}
+            />
+            <meshStandardMaterial color={CHALK} roughness={0.6} />
+          </mesh>
+        ))}
+        <mesh position={[0, SOCCER_GOAL_CROSSBAR_Y, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry
+            args={[SOCCER_GOAL_POST_RADIUS, SOCCER_GOAL_POST_RADIUS, SOCCER_GOAL_CROSSBAR_LENGTH, 8]}
+          />
           <meshStandardMaterial color={CHALK} roughness={0.6} />
         </mesh>
-        <mesh position={[0, 1.35, SOCCER_GOAL_POST_Z]}>
-          <cylinderGeometry args={[0.15, 0.15, 5.1, 8]} />
+        {/* 背面フレーム(Phase6 #335で追加): 上端バー + バックステー2本。
+            ネットをケージ状に張るには吊る先が要る。旧実装は前面の枠しか無く、ネットを足すと
+            天面と背面が空中に浮いてしまう。実物のゴールと同じ骨格を最小構成で足す */}
+        <mesh position={[-SOCCER_NET_DEPTH_TOP, SOCCER_GOAL_CROSSBAR_Y, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[GOAL_BACK_BAR_RADIUS, GOAL_BACK_BAR_RADIUS, SOCCER_GOAL_CROSSBAR_LENGTH, 8]} />
           <meshStandardMaterial color={CHALK} roughness={0.6} />
         </mesh>
-        <mesh position={[0, 3.9, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.15, 0.15, 6.9, 8]} />
-          <meshStandardMaterial color={CHALK} roughness={0.6} />
-        </mesh>
+        {[-SOCCER_GOAL_POST_Z, SOCCER_GOAL_POST_Z].map((z) => (
+          <mesh
+            key={z}
+            position={[-(SOCCER_NET_DEPTH_TOP + SOCCER_NET_DEPTH_BOTTOM) / 2, GOAL_MID_Y, z]}
+            rotation={[0, 0, -GOAL_STAY_TILT]}
+          >
+            <cylinderGeometry args={[GOAL_BACK_BAR_RADIUS, GOAL_BACK_BAR_RADIUS, GOAL_STAY_LENGTH, 8]} />
+            <meshStandardMaterial color={CHALK} roughness={0.6} />
+          </mesh>
+        ))}
+        {/* ネット(Phase6 #335): 天面・背面・側面2枚のコード実体ケージ。風は頂点シェーダー。
+            設計書 docs/plans/2026-08-01-net-geometry-and-physics.md §4 */}
+        <CordNet spec={SOCCER_NET_SPEC} color={GOAL_NET_COLOR} windAmplitude={SOCCER_WIND_AMPLITUDE} />
       </group>
       {/* サッカーボールの静的メッシュはPhase 5-3で撤去(旅の主人公=クリスタル球がドリブルして通過する) */}
       <SectionTitle text="PROJECTS" accent="#4fc3f7" position={[0, TITLE_Y, 0]} fontSize={TITLE_FONT_SIZE} />
@@ -212,6 +270,9 @@ export function BasketVenue() {
   )
 }
 
+/** バレー支柱の中心y。足元は地面(グループ相対-1.2)、天はy=4.8 */
+const VOLLEY_POST_MID_Y = -1.2 + VOLLEY_NET_POST_HEIGHT / 2
+
 // バレーボール: コート + ネット(About)
 export function VolleyVenue() {
   const c = VENUES.about.center
@@ -227,27 +288,23 @@ export function VolleyVenue() {
           支柱位置はpath/venues.tsのVOLLEY_NET_POST_Zと単一ソース(構造物クリアランステスト共有)。
           寸法は旧値×3(ネット上帯はワールドy≈5.15になり、TOSS_PEAK(y8.5)が上を越える) */}
       <group position={[VOLLEY_NET_GROUP_OFFSET.x, VOLLEY_NET_GROUP_OFFSET.y, VOLLEY_NET_GROUP_OFFSET.z]}>
-        <mesh position={[0, 1.8, -VOLLEY_NET_POST_Z]}>
-          <cylinderGeometry args={[0.18, 0.18, 6.0, 8]} />
-          <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
-        </mesh>
-        <mesh position={[0, 1.8, VOLLEY_NET_POST_Z]}>
-          <cylinderGeometry args={[0.18, 0.18, 6.0, 8]} />
-          <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
-        </mesh>
-        {/* 白帯(上端)と半透明ネット面 */}
-        <mesh position={[0, 4.35, 0]}>
-          <boxGeometry args={[0.09, 0.42, 14.4]} />
+        {[-VOLLEY_NET_POST_Z, VOLLEY_NET_POST_Z].map((z) => (
+          <mesh key={z} position={[0, VOLLEY_POST_MID_Y, z]}>
+            <cylinderGeometry
+              args={[VOLLEY_NET_POST_RADIUS, VOLLEY_NET_POST_RADIUS, VOLLEY_NET_POST_HEIGHT, 8]}
+            />
+            <meshStandardMaterial color="#8d8d94" roughness={0.5} metalness={0.4} />
+          </mesh>
+        ))}
+        {/* 白帯(上端) */}
+        <mesh position={[0, VOLLEY_NET_BAND_Y, 0]}>
+          <boxGeometry args={[0.09, VOLLEY_NET_BAND_THICKNESS, VOLLEY_NET_LENGTH]} />
           <meshStandardMaterial color={CHALK} roughness={0.7} />
         </mesh>
-        <mesh position={[0, 3.0, 0]}>
-          <planeGeometry args={[0.03, 2.28]} />
-          <meshStandardMaterial color="#f2ece6" transparent opacity={0.35} side={2} />
-        </mesh>
-        <mesh position={[0, 3.0, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <planeGeometry args={[14.4, 2.28]} />
-          <meshStandardMaterial color="#f2ece6" transparent opacity={0.3} side={2} />
-        </mesh>
+        {/* ネット面(Phase6 #335): 半透明の板2枚からコード実体の網へ置き換えた。
+            板のままだとバスケネットだけが実体でネット3種の質がちぐはぐになる。
+            設計書 docs/plans/2026-08-01-net-geometry-and-physics.md §4 */}
+        <CordNet spec={VOLLEY_NET_SPEC} color={GOAL_NET_COLOR} windAmplitude={VOLLEY_WIND_AMPLITUDE} />
       </group>
       {/* バレーボールの静的メッシュはPhase 5-4で撤去(クリスタル球がレシーブ→トス→アタックで通過する) */}
       <SectionTitle text="ABOUT" accent="#69f0ae" position={[0, TITLE_Y, 0]} fontSize={TITLE_FONT_SIZE} />
