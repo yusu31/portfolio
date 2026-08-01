@@ -24,7 +24,6 @@ import { createGroundHoleMaterial } from '../journey/groundHole'
 import { useGroundHole } from '../journey/useGroundHole'
 import { ToonPreview } from '../journey/toonPreview'
 import { DepthOutline } from '../journey/DepthOutline'
-import { HullOutline } from '../journey/HullOutline'
 import { currentSearch, getLightingPreset } from '../journey/nprPreview'
 
 // 【検証用・Issue #345 段階2】`?contrast=1|2` でライティングのコントラストを上げる。
@@ -201,9 +200,6 @@ export default function ScrollJourneyPoc() {
             {/* 【検証用・Issue #345】?toon=1 のときだけシーンをトゥーンへ差し替える。
                 最後の子に置くのは、effectが兄弟のマウント後に走るようにするため */}
             <ToonPreview />
-            {/* 【検証用・Issue #345 段階2】?hull=1 で逆ハルの輪郭線。ToonPreviewの後に置くのは、
-                トゥーン差し替え後のマテリアルに対して skip 判定を効かせるため */}
-            <HullOutline />
           </ScrollControls>
           {/* 明るいシーン用: 閾値0.9で空の暴発を防ぎつつ、太陽と白熱コアの縁を柔らかく滲ませる */}
           <EffectComposer>

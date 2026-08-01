@@ -3,11 +3,8 @@ import {
   LIGHTING_PRESETS,
   MAX_CONTRAST_LEVEL,
   OUTLINE_DEFAULTS,
-  HULL_DEFAULTS,
-  getHullTuning,
   getLightingPreset,
   getOutlineTuning,
-  isHullPreview,
   isOutlinePreview,
   parseContrastLevel,
 } from './nprPreview'
@@ -79,15 +76,13 @@ describe('スイッチの有無判定', () => {
   it('値が0でもキーがあれば有効(?toon=1 と同じ idiom)', () => {
     expect(isOutlinePreview('?outline=1')).toBe(true)
     expect(isOutlinePreview('?outline')).toBe(true)
-    expect(isOutlinePreview('?hull=1')).toBe(false)
-    expect(isHullPreview('?hull=1')).toBe(true)
-    expect(isHullPreview('')).toBe(false)
+    expect(isOutlinePreview('?toon=1')).toBe(false)
+    expect(isOutlinePreview('')).toBe(false)
   })
 
   it('他のQAスイッチと併用できる', () => {
-    const search = '?freezeWind=1&hideVeil=1&toon=1&outline=1&hull=1&contrast=2'
+    const search = '?freezeWind=1&hideVeil=1&toon=1&outline=1&contrast=2'
     expect(isOutlinePreview(search)).toBe(true)
-    expect(isHullPreview(search)).toBe(true)
     expect(parseContrastLevel(search)).toBe(2)
   })
 })
@@ -116,17 +111,5 @@ describe('getOutlineTuning', () => {
     expect(getOutlineTuning('?olColor=ff0000').color).toBe('#ff0000')
     expect(getOutlineTuning('?olColor=%23ff0000').color).toBe('#ff0000')
     expect(getOutlineTuning('?olColor=zzz').color).toBe(OUTLINE_DEFAULTS.color)
-  })
-})
-
-describe('getHullTuning', () => {
-  it('未指定なら既定値', () => {
-    expect(getHullTuning('?hull=1')).toEqual(HULL_DEFAULTS)
-  })
-
-  it('線幅と色を上書きできる', () => {
-    const tuning = getHullTuning('?hull=1&hullWidth=0.2&hullColor=112233')
-    expect(tuning.width).toBe(0.2)
-    expect(tuning.color).toBe('#112233')
   })
 })

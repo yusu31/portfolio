@@ -2,16 +2,19 @@
 //
 // 段階1(`?toon=1`)で「トゥーン化**だけ**では画が暖色に寄ってフラットになるだけ」と分かった。
 // 段階2では欠けていた2つを足して撮り直す:
-//   ① 輪郭線 — 参考4例の魅力の本体。**方式が2つあるので両方スイッチにして撮り比べる**
+//   ① 輪郭線 — 参考4例の魅力の本体
 //   ② ライティングのコントラスト — 段階トーンが出ない原因(後述)
 //
+// ①は方式A(深度エッジ)と方式B(逆ハル)を両方実装して撮り比べ、**方式Bは却下した**(#350)。
+// 逆ハルは平面主体のこのシーンでは輪郭でなく二重像になり、transmissionのクリスタル球を
+// 不透明にしてしまう。方式Aだけが残っている理由がこれ。
+//
 // このファイルはクエリ解析とプリセットだけを持つ純関数群。描画は DepthOutline.tsx /
-// HullOutline.tsx / toonPreview.tsx が読む。恒久採用が決まるまで既存の見た目は
+// toonPreview.tsx が読む。恒久採用が決まるまで既存の見た目は
 // **スイッチ無しでは1ピクセルも変わらない**(BASE がこれまでの実測値そのもの)
 
 /** QA用クエリパラメータ */
 export const OUTLINE_QUERY = 'outline'
-export const HULL_QUERY = 'hull'
 export const CONTRAST_QUERY = 'contrast'
 
 /**
@@ -108,18 +111,6 @@ export const OUTLINE_DEFAULTS: OutlineTuning = {
   color: '#2b1a20',
 }
 
-/** 逆ハル輪郭線のパラメータ */
-export type HullTuning = {
-  /** 法線方向への押し出し量(ワールド単位)。深度エッジと違い遠近が付く */
-  width: number
-  color: string
-}
-
-export const HULL_DEFAULTS: HullTuning = {
-  width: 0.02,
-  color: '#2b1a20',
-}
-
 /** クエリの数値を読む。未指定・不正値は fallback */
 function readNumber(params: URLSearchParams, key: string, fallback: number): number {
   const raw = params.get(key)
@@ -139,10 +130,6 @@ export function isOutlinePreview(search: string): boolean {
   return new URLSearchParams(search).get(OUTLINE_QUERY) !== null
 }
 
-export function isHullPreview(search: string): boolean {
-  return new URLSearchParams(search).get(HULL_QUERY) !== null
-}
-
 export function getOutlineTuning(search: string): OutlineTuning {
   const params = new URLSearchParams(search)
   return {
@@ -153,14 +140,6 @@ export function getOutlineTuning(search: string): OutlineTuning {
     fadeNear: readNumber(params, 'olFadeNear', OUTLINE_DEFAULTS.fadeNear),
     fadeFar: readNumber(params, 'olFadeFar', OUTLINE_DEFAULTS.fadeFar),
     color: readColor(params, 'olColor', OUTLINE_DEFAULTS.color),
-  }
-}
-
-export function getHullTuning(search: string): HullTuning {
-  const params = new URLSearchParams(search)
-  return {
-    width: readNumber(params, 'hullWidth', HULL_DEFAULTS.width),
-    color: readColor(params, 'hullColor', HULL_DEFAULTS.color),
   }
 }
 
