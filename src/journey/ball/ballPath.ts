@@ -1,13 +1,14 @@
 // クリスタル球の位置と視線ブレンド強度(focusWeight)をoffsetから導く純粋関数。
 // カメラ(CameraRig)・カード(SectionCards)と同じ「offsetが唯一の真実」原則に従う。
 import * as THREE from 'three'
-import { CATCH_POINT, KICK_POINT, RING_CENTER, FALL_LANDING, RECEIVE_PEAK, TOSS_PEAK, SPIKE_LANDING, CONTACT_REST } from './anchors'
+import { CATCH_POINT, KICK_POINT, RING_CENTER, SWISH_EXIT, FALL_LANDING, RECEIVE_PEAK, TOSS_PEAK, SPIKE_LANDING, CONTACT_REST } from './anchors'
 import {
   DRIBBLE_START,
   DRIBBLE_END,
   CATCH_START,
   CATCH_END,
   RING_U,
+  SWISH_END,
   FALL_END,
   RECEIVE_END,
   TOSS_END,
@@ -19,6 +20,7 @@ import {
 import { dribblePosition } from './beats/dribble'
 import { passPosition } from './beats/pass'
 import { freeThrowPosition } from './beats/freeThrow'
+import { swishPosition } from './beats/swish'
 import { fallPosition } from './beats/fall'
 import { receivePosition } from './beats/receive'
 import { setTossPosition } from './beats/setToss'
@@ -47,10 +49,16 @@ export function getBallPose(u: number): BallPose {
     const t = (u - CATCH_END) / (RING_U - CATCH_END)
     return { position: freeThrowPosition(CATCH_POINT, RING_CENTER, t), focusWeight: 0.8 }
   }
+  if (u < SWISH_END) {
+    // スイッシュ(Phase6・設計書§6.3): ネットの内側を垂直に抜ける短い見せ場。
+    // 旧実装はここからいきなりfallで、退出角0.1°の実質水平発射だった
+    const t = (u - RING_U) / (SWISH_END - RING_U)
+    return { position: swishPosition(RING_CENTER, SWISH_EXIT, t), focusWeight: 0.8 }
+  }
   if (u < FALL_END) {
     // 落下直後は見せ場ではないため注視を弱める(Phase 5-3のidle→dribble遷移と同じ扱い)
-    const t = (u - RING_U) / (FALL_END - RING_U)
-    return { position: fallPosition(RING_CENTER, FALL_LANDING, t), focusWeight: 0.2 }
+    const t = (u - SWISH_END) / (FALL_END - SWISH_END)
+    return { position: fallPosition(SWISH_EXIT, FALL_LANDING, t), focusWeight: 0.2 }
   }
   if (u < RECEIVE_END) {
     const t = (u - FALL_END) / (RECEIVE_END - FALL_END)

@@ -29,6 +29,17 @@ export const CATCH_END = CATCH_START + 0.025
  */
 export const RING_U = skillsRange.end - 0.0065 // ≈0.4575
 
+/**
+ * スイッシュ区間の長さ(設計書§6.3)。RING_Uの直後に挟む短いビートで、
+ * ボールがネットを抜けきる(y 7.40 → SWISH_EXIT_Y)。
+ *
+ * `freeThrow`が`RING_U`で`RING_CENTER`に厳密一致する構造保証は壊さない。
+ * 挿入先はfallの先頭であって、リング通過判定そのものには触れていない
+ */
+export const SWISH_SPAN = 0.02
+/** スイッシュ終端u(≈0.4775)。ここからfallビートが低空滑空でバレーコートへ向かう */
+export const SWISH_END = RING_U + SWISH_SPAN
+
 // 以下Phase 5-4(ボールリレー後半)で導入した境界。Phase 5-5(世界の3倍化)で
 // スクラッチパッドの使い捨てスクリプトにより再実測し、全境界でカメラ-ボール間距離が
 // 4ユニット以上(Phase 5-3の教訓で危険域とわかった2〜3ユニットから十分離れている)に
