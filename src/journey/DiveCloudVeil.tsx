@@ -14,7 +14,22 @@ import { useScroll, Cloud } from '@react-three/drei'
 import * as THREE from 'three'
 import { getBallPose } from './ball/ballPath'
 import { getCameraOffset } from './camera'
-import { diveVeilScale } from './diveVeilEnvelope'
+import { diveVeilScale, VEIL_MIN_SCALE } from './diveVeilEnvelope'
+
+/**
+ * QA用クエリパラメータ。`/scroll-poc?hideVeil=1` で雲ヴェールだけを畳む。
+ *
+ * ダイブ区間はこの雲が画面を埋め尽くすため、**その裏側にある地面の穴(#327)や
+ * ネットの挙動をスクリーンショットで検証できない**。netWind.tsの`?freezeWind=1`と
+ * 同じ「QAのために決定論・可視性を作るスイッチ」(HANDOFF「決定論スイッチはQAの精度
+ * そのものを上げる」)。演出そのものには一切影響しない(既定はfalse)
+ */
+export const VEIL_HIDE_QUERY = 'hideVeil'
+
+function isVeilHidden(): boolean {
+  if (typeof window === 'undefined') return false
+  return new URLSearchParams(window.location.search).get(VEIL_HIDE_QUERY) !== null
+}
 
 export default function DiveCloudVeil() {
   const groupRef = useRef<THREE.Group>(null)
@@ -27,7 +42,7 @@ export default function DiveCloudVeil() {
     const { dUp } = getCameraOffset(u)
     groupRef.current.position.copy(ballPos)
     groupRef.current.position.y += dUp / 2 // カメラとボールのちょうど中間に雲の重心を置く
-    groupRef.current.scale.setScalar(diveVeilScale(u))
+    groupRef.current.scale.setScalar(isVeilHidden() ? VEIL_MIN_SCALE : diveVeilScale(u))
   })
 
   return (

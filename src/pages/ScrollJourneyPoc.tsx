@@ -2,7 +2,7 @@
 // Home(クリスタル球) → Projects(サッカー) → Skills(バスケ) → About(バレー) → Contact(プラザ) を
 // 1本のスクロール空間として実装(設計書§4〜§8)。
 // シーンの色支配: Lempens風の明るいパステル夕景(Phase 2で確立・ユーザー承認済み)。
-import { Suspense, useCallback, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { ScrollControls, Environment, Sky, Clouds, Cloud } from '@react-three/drei'
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing'
@@ -20,6 +20,8 @@ import { SoccerVenue, BasketVenue, VolleyVenue, ContactVenue } from '../journey/
 import { Transit1, Transit2, Transit3 } from '../journey/Transit'
 import { PAGES, type SectionId } from '../journey/path'
 import { SUN_POSITION, KEY_LIGHT_POSITION } from '../journey/skyConfig'
+import { createGroundHoleMaterial } from '../journey/groundHole'
+import { useGroundHole } from '../journey/useGroundHole'
 
 // 道中に散らす淡い発光オーブ(ブランドの暖色のみ。青系はトーン支配を崩すため不使用)。
 // Phase 5-5の世界3倍化(全長約200→253.5)に合わせてzを新全長へほぼ等間隔に再配分(x/y/scaleは踏襲)
@@ -57,11 +59,24 @@ function WarmOrbs() {
 // (配列[0,0]を渡すと実体がplain arrayのままになり、WarpFlash.tsxの.offset.set()が壊れる)
 const CA_INITIAL_OFFSET = new THREE.Vector2(0, 0)
 
+// ダイブ演出(#6)でボールの真下がくり抜かれる(Issue #327)。地面はこの穴を持つ唯一の
+// 「全区間を貫く面」で、穴が最も大きく開くu≈0.55の直下はコートの無い素の地面
 function Ground() {
+  const uniforms = useGroundHole()
+  const material = useMemo(
+    () =>
+      createGroundHoleMaterial(
+        { color: '#c8a9a3', roughness: 0.9, metalness: 0, envMapIntensity: 0.28 },
+        uniforms
+      ),
+    [uniforms]
+  )
+  // useMemoで作った資源はR3Fの自動disposeの対象外(CordNet.tsxと同じ作法)
+  useEffect(() => () => material.dispose(), [material])
+
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -100]}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, -100]} material={material}>
       <planeGeometry args={[70, 330]} />
-      <meshStandardMaterial color="#c8a9a3" roughness={0.9} metalness={0} envMapIntensity={0.28} />
     </mesh>
   )
 }

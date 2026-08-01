@@ -7,6 +7,7 @@
 // - 構造物グループのy: STRUCTURE_GROUND_LIFT(0.8)で持ち上げて接地を保つ
 // - 描画イプシロン(コート面y=-0.38/チョークy=-0.365): スケールしない(z-fighting回避の最小差分)
 // - <group scale={3}>の一括スケールは不採用(イプシロンが地面下に沈む・単一ソース計算が監査不能)
+import { useEffect, useMemo } from 'react'
 import { Text } from '@react-three/drei'
 import {
   VENUES,
@@ -56,6 +57,8 @@ import {
   VOLLEY_NET_SPEC,
   VOLLEY_WIND_AMPLITUDE,
 } from './nets/goalNets'
+import { createGroundHoleMaterial } from './groundHole'
+import { useGroundHole } from './useGroundHole'
 
 const TITLE_COLOR = '#fffaf5'
 const CHALK = '#f7f0ea'
@@ -211,12 +214,23 @@ export function SoccerVenue() {
 export function BasketVenue() {
   const c = VENUES.skills.center
   const { width, depth } = COURT_SIZES.skills // 21 × 15
+  const holeUniforms = useGroundHole()
+  const courtMaterial = useMemo(
+    () => createGroundHoleMaterial({ color: BASKET_COURT_COLOR, roughness: 0.95 }, holeUniforms),
+    [holeUniforms]
+  )
+  // useMemoで作った資源はR3Fの自動disposeの対象外(CordNet.tsxと同じ作法)
+  useEffect(() => () => courtMaterial.dispose(), [courtMaterial])
+
   return (
     <group position={[c.x, c.y, c.z]}>
-      {/* コート(乾いたアンバー) + センターサークル(無地の床だとコートに見えないQA指摘対応) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0]}>
+      {/* コート(乾いたアンバー) + センターサークル(無地の床だとコートに見えないQA指摘対応)。
+          コート面はダイブ演出(#6)の穴を持つ(Issue #327): swish直後(u≈0.458〜0.533)はボールが
+          まだこのコートの上にいるため、地面(ScrollJourneyPoc.tsxのGround)だけをくり抜くと
+          コートが蓋になって穴が見えない。センターサークルは穴の到達範囲外なので素のまま
+          (最接近16.9 > 穴の半径7.0。groundHole.test.tsで担保) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.38, 0]} material={courtMaterial}>
         <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial color={BASKET_COURT_COLOR} roughness={0.95} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.365, 0]}>
         <ringGeometry args={[1.65, 1.89, 32]} />
