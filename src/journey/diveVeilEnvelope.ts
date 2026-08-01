@@ -22,7 +22,8 @@ export function diveVeilEnvelope(u: number): number {
 }
 
 /** 完全な0だとCloudのbillboard法線が特異点になるリスクを避ける下限スケール */
-const MIN_SCALE = 0.001
+export const VEIL_MIN_SCALE = 0.001
+const MIN_SCALE = VEIL_MIN_SCALE
 
 /** 雲ヴェールのグループscale(MIN_SCALE〜1)。DiveCloudVeil.tsxで使用 */
 export function diveVeilScale(u: number): number {
