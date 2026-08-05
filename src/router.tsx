@@ -7,8 +7,9 @@ const BasketballScene = lazy(() => import('./pages/BasketballScene'))
 const VolleyballScene = lazy(() => import('./pages/VolleyballScene'))
 const ContactScene = lazy(() => import('./pages/ContactScene'))
 const ScrollJourneyPoc = lazy(() => import('./pages/ScrollJourneyPoc'))
-// ビジュアル方向の比較用プロトタイプ(Issue #353)。現行シーンとは独立している
+// ビジュアル方向の比較用プロトタイプ(Issue #353 / #355)。現行シーンとは独立している
 const ProtoA = lazy(() => import('./pages/ProtoA'))
+const ProtoB = lazy(() => import('./pages/ProtoB'))
 
 export default function AppRoutes() {
   return (
@@ -21,6 +22,7 @@ export default function AppRoutes() {
         <Route path="/contact" element={<ContactScene />} />
         <Route path="/scroll-poc" element={<ScrollJourneyPoc />} />
         <Route path="/proto/a" element={<ProtoA />} />
+        <Route path="/proto/b" element={<ProtoB />} />
       </Routes>
     </Suspense>
   )
