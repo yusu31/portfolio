@@ -43,8 +43,80 @@ export const LANE_COLUMN = (GRID - 1) / 2
  */
 export const LANE_CLEAR_COLUMN = LANE_COLUMN + 1
 
+/**
+ * 低いモジュールしか置かない列。**走路の両隣**。
+ *
+ * カメラ側(`LANE_CLEAR_COLUMN`)は「球体が隠れないように」空けているが、
+ * 反対側を空けている理由は別で、**走路が蛇行して入り込むから**。
+ * 建物が走路の進路上に立っていると、球体が壁に突っ込むことになる。
+ * 走路 + 両隣の3列で「回廊」を作り、蛇行の振幅はこの中に収める(`LANE_WEAVE_MAX`)
+ */
+export const LANE_CLEAR_COLUMNS: readonly number[] = [LANE_COLUMN - 1, LANE_COLUMN + 1]
+
 /** 開けた列に置いてよいモジュール。すべて背が低く、球体の手前に来ても視界を塞がない */
 export const LANE_CLEAR_KINDS: readonly ModuleKind[] = ['court', 'fence', 'gear', 'empty']
+
+// --- 走路の蛇行(A案) -------------------------------------------------------
+//
+// 「球体がまっすぐしか進まない」への答え。**球体ではなく走路のほうを曲げる**。
+//
+// 球体はカメラの注視点に釘付けにしてあるので、球体だけを勝手に動かすと構図から外れる。
+// 走路を曲げて球体がそれを追う形にすれば、動く理由が世界の側にあることになり、
+// 振れ幅も走路の回廊に収まる。
+//
+// **カードの前後端では必ず 0 に戻す。** カードは独立した世界だが、走路だけは
+// 全カードを貫いて1本に見えているのが C の背骨なので、そこは壊さない。
+// 章ごとに違うのは「カードの中でどう曲がるか」だけ。
+
+/**
+ * 蛇行の最大振幅。走路の回廊(3列 = ±4.8)から、走路の実幅と路肩(1.63)を引いた残り。
+ * ここを超えると走路が隣の建物の列へ食い込む
+ */
+export const LANE_WEAVE_MAX = 3.0
+
+/** カードごとの蛇行のクセ(振幅と向き)。同じシードなら常に同じ */
+function weaveShape(seed: number): { amp: number; dir: number } {
+  const rand = mulberry32(seed ^ 0x27d4eb2f)
+  const amp = LANE_WEAVE_MAX * (0.62 + rand() * 0.38)
+  return { amp, dir: rand() < 0.5 ? -1 : 1 }
+}
+
+/**
+ * 島ローカルZにおける走路の横ずれ。
+ *
+ * `sin(2πt)` を使っているのは、**t=0 と t=1(= カードの前後端)で厳密に 0 になる**から。
+ * 途中で1回だけ左右に振れて戻ってくるので、1枚のカードの中で S 字を描く。
+ * 条件分岐で端を 0 にするのではなく式で保証しているのは、境界に不連続を作らないため
+ */
+export function laneWeaveAt(zLocal: number, seed: number, enabled = true): number {
+  if (!enabled) return 0
+  const t = (zLocal + ISLAND_SPAN / 2) / ISLAND_SPAN
+  // カードの外(カード間の空白)では横ずれ無し
+  if (t < 0 || t > 1) return 0
+  const { amp, dir } = weaveShape(seed)
+  return dir * amp * Math.sin(2 * Math.PI * t)
+}
+
+/**
+ * その地点で走路が向いている角度(Y軸まわり)。
+ *
+ * **これが無いと曲げたときに走路が階段状になる。** 箱をZ方向に分割しても、
+ * 各セグメントを接線方向へ回さないと継ぎ目が角ばって「折れ線」に見える
+ */
+export function laneHeadingAt(zLocal: number, seed: number, enabled = true): number {
+  if (!enabled) return 0
+  const t = (zLocal + ISLAND_SPAN / 2) / ISLAND_SPAN
+  if (t < 0 || t > 1) return 0
+  const { amp, dir } = weaveShape(seed)
+  // laneWeaveAt の zLocal 微分。Z方向へ1進むあいだに X がどれだけ動くか
+  const slope = ((dir * amp * 2 * Math.PI) / ISLAND_SPAN) * Math.cos(2 * Math.PI * t)
+  return Math.atan(slope)
+}
+
+/** モジュールに渡す形。`buildIsland` がこれを作って `lane` へ配る */
+export function laneWeaveFn(seed: number, enabled = true): (z: number) => { x: number; rotY: number } {
+  return (z) => ({ x: laneWeaveAt(z, seed, enabled), rotY: laneHeadingAt(z, seed, enabled) })
+}
 
 /** 開けた列の物の高さの上限。球体の中心(半径ぶん)より低いことをテストで縛る */
 export const LANE_CLEAR_HEIGHT = 1.7
@@ -236,7 +308,7 @@ export function tileCenter(index: number): number {
  * 島を組み立てる。**タイルを1枚ずつ舐めるだけ**で、特別扱いは中央列(走路)と
  * 主役のタイル(空ける)の2つしかない。この単純さが②のモジュラー思想そのもの
  */
-export function buildIsland(spec: IslandSpec, skyway = true): IslandLayout {
+export function buildIsland(spec: IslandSpec, skyway = true, weave = true): IslandLayout {
   const pieces: Piece[] = []
   const half = ISLAND_SPAN / 2
 
@@ -277,6 +349,9 @@ export function buildIsland(spec: IslandSpec, skyway = true): IslandLayout {
   // --- タイルごとのモジュール -------------------------------------------
   const tileKinds: ModuleKind[] = []
   let filledTiles = 0
+  // 走路の蛇行。**島が持っている情報から作ってモジュールへ配る**ので、
+  // モジュール側はカードのシードも島の一辺も知らないまま曲がった走路を作れる
+  const weaveFn = laneWeaveFn(spec.seed, weave)
 
   for (let tz = 0; tz < GRID; tz++) {
     for (let tx = 0; tx < GRID; tx++) {
@@ -291,8 +366,8 @@ export function buildIsland(spec: IslandSpec, skyway = true): IslandLayout {
         ? 'empty'
         : tx === LANE_COLUMN
           ? 'lane'
-          : tx === LANE_CLEAR_COLUMN
-            ? // 走路の手前側は低い物だけ。カードの重みは尊重しつつ、対象を絞って引き直す
+          : LANE_CLEAR_COLUMNS.includes(tx)
+            ? // 走路の両隣は低い物だけ。カードの重みは尊重しつつ、対象を絞って引き直す
               pickModule(
                 spec.weights.filter((x) => LANE_CLEAR_KINDS.includes(x.kind)),
                 rand()
@@ -311,7 +386,7 @@ export function buildIsland(spec: IslandSpec, skyway = true): IslandLayout {
         groundMarkCount++
       }
 
-      const built = MODULES[kind]({ cx, cz, tile: TILE, rand })
+      const built = MODULES[kind]({ cx, cz, tile: TILE, rand, weave: weaveFn })
       pieces.push(...built)
       tileKinds.push(kind)
       if (built.length > 0) filledTiles++

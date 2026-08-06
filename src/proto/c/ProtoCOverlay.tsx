@@ -53,11 +53,15 @@ export default function ProtoCOverlay({
   paletteOverride,
   chain,
   skyway,
+  weave,
+  hop,
 }: {
   index: number
   paletteOverride: number | null
   chain: boolean
   skyway: boolean
+  weave: boolean
+  hop: boolean
 }) {
   const active = Math.min(Math.max(index, 0), CARDS.length - 1)
   const card = CARDS[active]
@@ -75,6 +79,8 @@ export default function ProtoCOverlay({
         {paletteOverride !== null && <span style={{ marginLeft: 12 }}>PALETTE FORCED</span>}
         {!chain && <span style={{ marginLeft: 12 }}>CHAIN OFF</span>}
         {!skyway && <span style={{ marginLeft: 12 }}>SKYWAY OFF</span>}
+        {!weave && <span style={{ marginLeft: 12 }}>WEAVE OFF</span>}
+        {!hop && <span style={{ marginLeft: 12 }}>HOP OFF</span>}
       </div>
 
       <div style={titleBlock}>

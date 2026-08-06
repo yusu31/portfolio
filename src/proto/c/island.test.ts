@@ -6,6 +6,8 @@ import {
   LANE_CLEAR_COLUMN,
   LANE_CLEAR_HEIGHT,
   LANE_CLEAR_KINDS,
+  LANE_CLEAR_COLUMNS,
+  LANE_WEAVE_MAX,
   LANE_COLUMN,
   TILE,
   TOP_THICKNESS,
@@ -13,6 +15,8 @@ import {
   buildIsland,
   buildSkyway,
   islandDepth,
+  laneHeadingAt,
+  laneWeaveAt,
   paintIsland,
   skywayPose,
   tileCenter,
@@ -307,10 +311,12 @@ describe('パレット非依存(②のモジュラー思想)', () => {
 // 変わらないが、行列を焼くコストとメモリは枚数に比例する。青天井にしないための見張り
 describe('壁の情報を足した後のピース数', () => {
   it('島1枚が上限内に収まる', () => {
-    // 実測の最大は gym の 592。窓を裏面(-X / -Z)にも貼ると倍近くになるが、
-    // カメラが固定で裏面は一度も映らないので貼っていない(modules.ts の windowsOn)
+    // 実測の最大は gym の 730。窓を入れて 592 になり、走路を曲げるために
+    // Z方向へ5分割したぶん(走路1タイルあたり 6 × 5)がさらに乗っている。
+    // **1カード = 1つの InstancedMesh なので描画回数は変わらない**ので、
+    // 増えるのは行列を焼くコストとメモリだけ
     for (const card of CARDS) {
-      expect(buildIsland(card).pieces.length, card.id).toBeLessThan(700)
+      expect(buildIsland(card).pieces.length, card.id).toBeLessThan(850)
     }
   })
 })
@@ -416,6 +422,105 @@ describe('上部を横切る構造(空中歩廊)', () => {
       const withSky = buildIsland(card).pieces.length
       const without = buildIsland(card, false).pieces.length
       expect(withSky - without, card.id).toBe(buildSkyway(card.seed).length)
+    }
+  })
+})
+
+// 「球体がまっすぐしか進まない」への答え(A案)。**球体ではなく走路のほうを曲げる**。
+// 球体はカメラの注視点に釘付けなので、球体だけ動かすと構図から外れる
+describe('走路の蛇行(A案)', () => {
+  it('カードの前後端では必ず 0(通しの1本の道が保たれる)', () => {
+    const half = ISLAND_SPAN / 2
+    for (const card of CARDS) {
+      expect(laneWeaveAt(-half, card.seed), `${card.id} 手前端`).toBeCloseTo(0, 10)
+      expect(laneWeaveAt(half, card.seed), `${card.id} 奥端`).toBeCloseTo(0, 10)
+    }
+  })
+
+  it('カードの外(カード間の空白)でも 0', () => {
+    for (const card of CARDS) {
+      expect(laneWeaveAt(-ISLAND_SPAN, card.seed), card.id).toBe(0)
+      expect(laneWeaveAt(ISLAND_SPAN, card.seed), card.id).toBe(0)
+    }
+  })
+
+  // 走路 + 両隣の3列が回廊。ここを超えると走路が建物の列へ食い込む
+  it('振幅が走路の回廊に収まる', () => {
+    for (const card of CARDS) {
+      for (let z = -ISLAND_SPAN / 2; z <= ISLAND_SPAN / 2; z += 0.1) {
+        expect(Math.abs(laneWeaveAt(z, card.seed)), card.id).toBeLessThanOrEqual(LANE_WEAVE_MAX + 1e-9)
+      }
+    }
+  })
+
+  it('カードの中では実際に左右へ振れる(振幅が死んでいない)', () => {
+    for (const card of CARDS) {
+      const samples = []
+      for (let z = -ISLAND_SPAN / 2; z <= ISLAND_SPAN / 2; z += 0.1) samples.push(laneWeaveAt(z, card.seed))
+      // 片側だけでなく両側へ振れる = S字になっている
+      expect(Math.max(...samples), `${card.id} 右`).toBeGreaterThan(1.5)
+      expect(Math.min(...samples), `${card.id} 左`).toBeLessThan(-1.5)
+    }
+  })
+
+  it('カードごとに蛇行のクセが違う', () => {
+    const shapes = CARDS.map((c) => laneWeaveAt(-ISLAND_SPAN / 4, c.seed).toFixed(4))
+    expect(new Set(shapes).size).toBeGreaterThan(1)
+  })
+
+  it('同じシードなら常に同じ形(カードが画面外へ抜けて戻っても変わらない)', () => {
+    for (const card of CARDS) {
+      for (const z of [-8, -3, 0, 3, 8]) {
+        expect(laneWeaveAt(z, card.seed)).toBe(laneWeaveAt(z, card.seed))
+      }
+    }
+  })
+
+  // 向きが無いと、分割した箱が接線を向かず走路が折れ線に見える
+  it('向きが横ずれの傾きと一致する(走路が階段状にならない)', () => {
+    for (const card of CARDS) {
+      for (const z of [-9, -5, 0, 5, 9]) {
+        const d = 0.001
+        const numeric = (laneWeaveAt(z + d, card.seed) - laneWeaveAt(z - d, card.seed)) / (2 * d)
+        expect(laneHeadingAt(z, card.seed), `${card.id}/z=${z}`).toBeCloseTo(Math.atan(numeric), 4)
+      }
+    }
+  })
+
+  it('?weave=0 相当で真っ直ぐに戻る', () => {
+    for (const card of CARDS) {
+      for (const z of [-9, -5, 0, 5, 9]) {
+        expect(laneWeaveAt(z, card.seed, false)).toBe(0)
+        expect(laneHeadingAt(z, card.seed, false)).toBe(0)
+      }
+    }
+  })
+
+  it('走路のセグメントが蛇行に追従する(舗装だけが取り残されない)', () => {
+    for (const card of CARDS) {
+      const weaved = buildIsland(card).pieces.filter((p) => p.slot === 'lane')
+      const straight = buildIsland(card, true, false).pieces.filter((p) => p.slot === 'lane')
+      expect(weaved.length, card.id).toBe(straight.length)
+      // 舗装の中心Xが、その地点の横ずれぶんだけ動いている
+      for (let i = 0; i < weaved.length; i++) {
+        const z = weaved[i].center[2]
+        expect(weaved[i].center[0] - straight[i].center[0], `${card.id}/z=${z}`).toBeCloseTo(
+          laneWeaveAt(z, card.seed),
+          3
+        )
+      }
+    }
+  })
+
+  // 走路が曲がって入り込む先に建物が立っていると、球体が壁に突っ込むことになる
+  it('走路の両隣は低いモジュールだけ', () => {
+    for (const card of CARDS) {
+      const l = buildIsland(card)
+      for (const tx of LANE_CLEAR_COLUMNS) {
+        for (let tz = 0; tz < GRID; tz++) {
+          expect(LANE_CLEAR_KINDS, `${card.id}/tx=${tx},tz=${tz}`).toContain(l.tileKinds[tz * GRID + tx])
+        }
+      }
     }
   })
 })
