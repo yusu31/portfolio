@@ -74,6 +74,132 @@ const ROCK_LAYERS: ReadonlyArray<{ scale: number; height: number; deep: boolean 
   { scale: 0.14, height: 1.5, deep: true },
 ]
 
+// --- 上部を横切る構造(空中歩廊) ------------------------------------------
+//
+// C は固定カメラの俯瞰なので島が画面の中央〜下に収まり、**その上が最後まで空**になる。
+// 列の最後のカードでは奥に次の島も無いので、画面の上半分が丸ごと空いてしまう。
+//
+// B の「囲む構図」(道の上を高架が横切ってフレームの上端を締める)から持ってくるのは、
+// **高架という題材ではなく「上を横切らせて画面を締める」という作り方のほう**。
+//
+// 作りの要点:
+//   - **カードに属する**。カードと一緒に流れてくるので「章 = 独立した小さな世界」が壊れない
+//   - **X方向に横切る**。カメラの方位が26度なので、X方向の桁は画面をほぼ水平に横切る
+//   - **島より長くして両端を島の外へ出す**。島の幅のままだと画面の左右まで届かない
+//   - **地面から支柱を立てない**。島そのものが浮いている世界なので空中構造も浮いていて筋が通るし、
+//     天面に支柱を降ろすとモジュールと食い合って、そのぶんタイルを潰すことになる
+
+/**
+ * 島の天面から桁までの高さ。**カメラの仰角34度でこの高さが画面の上部に来る**(cards.test.ts で確認)。
+ *
+ * 上下の両側から挟まれていて、動かせる幅が狭い:
+ *   - 低すぎる → 吊り下げた board が**照明塔の頭(島の最高点 7.74)と食い合う**(11.6 で実際に起きた)
+ *   - 高すぎる → 桁の遠い側が**画面の上端を突き抜ける**(14.0 で card1 が NDC 1.0016 まで出た)
+ * カードごとの振れ幅も、その範囲に収まるように ±1.0 まで詰めてある
+ */
+export const SKYWAY_HEIGHT = 13.4
+
+/** 桁の長さ。島の一辺(22.4)より長くして両端を島の外へ出す */
+export const SKYWAY_SPAN = ISLAND_SPAN * 1.7
+
+/** 上弦と下弦の間隔。ここが薄いとトラスではなく1本の棒に見える */
+const SKYWAY_TRUSS_DEPTH = 0.85
+
+/**
+ * 空中歩廊の姿勢(高さと Z)。**カードごとにずらす**ので、
+ * 4枚が並んだときに歩廊が定規のように揃って人工的に見えるのを避けられる。
+ *
+ * 組み立てから分けてあるのは、**構図の判定(画面のどこを横切るか)を
+ * ジオメトリを組まずに測れるようにする**ため(A / B で確立した進め方)
+ */
+export function skywayPose(seed: number): { y: number; z: number } {
+  const rand = mulberry32(seed ^ 0x9e3779b9)
+  return { y: SKYWAY_HEIGHT + (rand() - 0.5) * 2.0, z: (rand() - 0.5) * TILE * 3 }
+}
+
+/**
+ * 空中歩廊を組む。**島ローカル座標**で、他のモジュールと同じ `Piece` を返す
+ * (島まるごと1つの InstancedMesh に畳むという C の作りを崩さない)。
+ *
+ * 色は既存のスロットしか使わない。ただし**島に乗っている物とは選び方が違う**:
+ * 空を背にするので、どのパレットでも空から読める色でなければならない
+ * (`island.test.ts` で全パレット × 全ピースを ΔE で縛る)
+ */
+export function buildSkyway(seed: number): Piece[] {
+  const out: Piece[] = []
+  const { y, z } = skywayPose(seed)
+  // 吊り物の位置だけ別の乱数列から引く。姿勢の乱数と混ぜると、
+  // `skywayPose` を単独で呼んだときと結果がずれる
+  const rand = mulberry32(seed ^ 0x85ebca6b)
+  const half = SKYWAY_SPAN / 2
+
+  // 上弦(歩廊の床)。**画面上でいちばん面積を持つのがこれ**。
+  //
+  // 断面は意図的に薄い。**歩廊は島より 13 上にある = カメラにそのぶん近い**ので、
+  // 島と同じ感覚で寸法を取ると遠近で拡大されて、画面上部を占領する巨大なスラブになる
+  // (最初 [幅0.5 × 奥行2.2] で組んで高速道路の高架に見えた)。
+  //
+  // 島の柵や支柱と同じ `post` を使っていたら、**夜のパレットで空と ΔE 17.3 まで近づいて溶けた**。
+  // 島に乗っている物は島を背にするので `post` で足りるが、
+  // **空中の構造は空を背にする**ので、空から読めることが保証されている色でないといけない
+  out.push({ center: [0, y, z], size: [SKYWAY_SPAN, 0.3, 1.35], rotY: 0, slot: 'structure3' })
+
+  // 下弦。上弦より暗くして厚みを出す
+  out.push({ center: [0, y - SKYWAY_TRUSS_DEPTH, z], size: [SKYWAY_SPAN, 0.2, 0.8], rotY: 0, slot: 'roof' })
+
+  // 斜材のかわりの垂直材。**これが無いと上下2本の平行な棒にしか見えない**。
+  // 箱だけで組む縛りがあるので斜めは張れず、等間隔の縦材でトラスを表す
+  const webs = 13
+  for (let i = 0; i < webs; i++) {
+    const x = -half + (SKYWAY_SPAN / (webs - 1)) * i
+    out.push({
+      center: [x, y - SKYWAY_TRUSS_DEPTH / 2, z],
+      size: [0.14, SKYWAY_TRUSS_DEPTH, 0.6],
+      rotY: 0,
+      slot: 'roof',
+    })
+  }
+
+  // 手すり。歩廊の両縁に細い線を走らせると、桁が「通路」として読める
+  for (const side of [-1, 1]) {
+    out.push({ center: [0, y + 0.34, z + side * 0.62], size: [SKYWAY_SPAN, 0.38, 0.09], rotY: 0, slot: 'structure3' })
+  }
+
+  // 吊り下げた灯り。**夜のパレットではここが光る**ので、上部にも差し色の点列ができる
+  for (let i = 0; i < 6; i++) {
+    const x = -half + (SKYWAY_SPAN / 6) * (i + 0.5)
+    out.push({ center: [x, y - SKYWAY_TRUSS_DEPTH - 0.24, z], size: [0.26, 0.2, 0.26], rotY: 0, slot: 'accent' })
+  }
+
+  // 吊り下げた board(スコアボード / 横断幕)。**上の構造と下の島を視覚的につなぐ**。
+  // これが無いと歩廊が画面上部に浮いているだけで、島と関係が無いものに見える
+  const boardX = (rand() - 0.5) * SKYWAY_SPAN * 0.4
+  const boardTop = y - SKYWAY_TRUSS_DEPTH - 0.3
+  const boardH = 1.7
+  for (const side of [-1, 1]) {
+    out.push({
+      center: [boardX + side * 1.1, boardTop - 0.45, z],
+      size: [0.1, 0.9, 0.1],
+      rotY: 0,
+      slot: 'roof',
+    })
+  }
+  out.push({
+    center: [boardX, boardTop - 0.9 - boardH / 2, z],
+    size: [2.5, boardH, 0.12],
+    rotY: 0,
+    slot: 'structure3',
+  })
+  // 板の縁の差し色。無地だと island の建物と同じ調子の面がもう1枚増えるだけになる
+  out.push({
+    center: [boardX, boardTop - 0.9 - boardH + 0.18, z],
+    size: [2.5, 0.24, 0.16],
+    rotY: 0,
+    slot: 'accent',
+  })
+  return out
+}
+
 /** 島の形を決めるもの。**パレットは含まない**(それが C の設計) */
 export type IslandSpec = {
   id: string
@@ -110,7 +236,7 @@ export function tileCenter(index: number): number {
  * 島を組み立てる。**タイルを1枚ずつ舐めるだけ**で、特別扱いは中央列(走路)と
  * 主役のタイル(空ける)の2つしかない。この単純さが②のモジュラー思想そのもの
  */
-export function buildIsland(spec: IslandSpec): IslandLayout {
+export function buildIsland(spec: IslandSpec, skyway = true): IslandLayout {
   const pieces: Piece[] = []
   const half = ISLAND_SPAN / 2
 
@@ -215,6 +341,10 @@ export function buildIsland(spec: IslandSpec): IslandLayout {
     })
     depth += layer.height
   }
+
+  // --- 上部を横切る構造 -------------------------------------------------
+  // 最後に足すのは、それまでの「島の外形」を測るテストの対象を分けやすくするため
+  if (skyway) pieces.push(...buildSkyway(spec.seed))
 
   return {
     id: spec.id,

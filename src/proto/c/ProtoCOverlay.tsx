@@ -52,10 +52,12 @@ export default function ProtoCOverlay({
   index,
   paletteOverride,
   chain,
+  skyway,
 }: {
   index: number
   paletteOverride: number | null
   chain: boolean
+  skyway: boolean
 }) {
   const active = Math.min(Math.max(index, 0), CARDS.length - 1)
   const card = CARDS[active]
@@ -72,6 +74,7 @@ export default function ProtoCOverlay({
         {/* どの検証条件で見ているかを必ず画面に残す */}
         {paletteOverride !== null && <span style={{ marginLeft: 12 }}>PALETTE FORCED</span>}
         {!chain && <span style={{ marginLeft: 12 }}>CHAIN OFF</span>}
+        {!skyway && <span style={{ marginLeft: 12 }}>SKYWAY OFF</span>}
       </div>
 
       <div style={titleBlock}>

@@ -16,7 +16,15 @@
 //
 // 構図の指標はすべてここに関数として置き、`cards.test.ts` で数値で縛る(A / B で確立したやり方)。
 
-import { ISLAND_SPAN, HERO_HEIGHT, islandDepth, tileCenter, type IslandSpec } from './island'
+import {
+  ISLAND_SPAN,
+  HERO_HEIGHT,
+  SKYWAY_SPAN,
+  islandDepth,
+  skywayPose,
+  tileCenter,
+  type IslandSpec,
+} from './island'
 import type { ModuleWeight } from './modules'
 import { ATMOSPHERE_HOLD, getPalette, lerpPalette, type Palette } from './palette'
 
@@ -335,6 +343,20 @@ export function islandTopCorners(index: number, p: number): Array<[number, numbe
   ]
 }
 
+/**
+ * カード i の空中歩廊の両端(進み `p` のとき)。
+ * **上部を横切る構造が本当に画面の上部を横切っているか**を測るのに使う
+ */
+export function skywayEnds(index: number, p: number): [[number, number, number], [number, number, number]] {
+  const card = CARDS[Math.min(Math.max(index, 0), CARDS.length - 1)]
+  const { y, z } = skywayPose(card.seed)
+  const zw = z + cardZ(index, p)
+  return [
+    [-SKYWAY_SPAN / 2, y, zw],
+    [SKYWAY_SPAN / 2, y, zw],
+  ]
+}
+
 /** カード i の最下点(岩の先端)。フレーム下端の余裕を測るのに使う */
 export function islandBottom(index: number, p: number): [number, number, number] {
   return [0, -islandDepth(), cardZ(index, p)]
@@ -366,6 +388,7 @@ export const CARD_QUERY = 'card'
 export const AT_QUERY = 'at'
 export const PALETTE_QUERY = 'pal'
 export const CHAIN_QUERY = 'chain'
+export const SKYWAY_QUERY = 'sky'
 
 /** `?card=2` → 2。未指定・不正値は null(スクロール駆動のまま) */
 export function parseCardOverride(search: string): number | null {
@@ -412,6 +435,18 @@ export function parsePaletteOverride(search: string): number | null {
  */
 export function parseChainEnabled(search: string): boolean {
   const raw = new URLSearchParams(search).get(CHAIN_QUERY)
+  if (raw === null || raw === '') return true
+  return raw !== '0' && raw !== 'false'
+}
+
+/**
+ * `?sky=0` で**上部を横切る構造を切る**。既定は有り。
+ *
+ * 「島の上が空きすぎている」という問題に効いているかを**同じ構図の有無で比べる**ためのノブ。
+ * B の `?ol=0`(輪郭線)があったから輪郭線の価値を実測で言えたのと同じ役割
+ */
+export function parseSkywayEnabled(search: string): boolean {
+  const raw = new URLSearchParams(search).get(SKYWAY_QUERY)
   if (raw === null || raw === '') return true
   return raw !== '0' && raw !== 'false'
 }

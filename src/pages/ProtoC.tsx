@@ -31,6 +31,7 @@ import {
   parseCardOverride,
   parseChainEnabled,
   parsePaletteOverride,
+  parseSkywayEnabled,
 } from '../proto/c/cards'
 
 /** スクロール1ページあたり1枚。カードの数だけページを用意する */
@@ -130,6 +131,8 @@ export default function ProtoC() {
   const search = useMemo(() => currentSearch(), [])
   const paletteOverride = useMemo(() => parsePaletteOverride(search), [search])
   const chain = useMemo(() => parseChainEnabled(search), [search])
+  // `?sky=0` で上部を横切る構造を切る。有無を同じ構図で撮り比べるためのノブ
+  const skyway = useMemo(() => parseSkywayEnabled(search), [search])
   // `?card=N` 指定時は浮島の揺れも止める。**動きが残るとQAの絵が収束しない**
   const frozen = useMemo(() => parseCardOverride(search) !== null, [search])
 
@@ -157,12 +160,13 @@ export default function ProtoC() {
               progressRef={progressRef}
               paletteOverride={paletteOverride}
               chain={chain}
+              skyway={skyway}
               frozen={frozen}
             />
           </ScrollControls>
         </Suspense>
       </Canvas>
-      <ProtoCOverlay index={cardIndex} paletteOverride={paletteOverride} chain={chain} />
+      <ProtoCOverlay index={cardIndex} paletteOverride={paletteOverride} chain={chain} skyway={skyway} />
     </div>
   )
 }
