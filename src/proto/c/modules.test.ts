@@ -125,25 +125,45 @@ describe('モジュールカタログ', () => {
 describe('lane(C の背骨 = 球体が走る道)', () => {
   const pieces = build('lane')
 
-  it('白線はZ軸に沿ってタイルを全長ぶん貫く(隣のタイルと途切れない)', () => {
-    const lines = pieces.filter((p) => p.slot === 'laneMark' && p.size[2] >= TILE)
-    // 3本のレーンライン
-    expect(lines.length).toBeGreaterThanOrEqual(3)
-    for (const r of lines) {
-      expect(r.center[2] - r.size[2] / 2).toBeLessThanOrEqual(-TILE / 2 + 1e-9)
-      expect(r.center[2] + r.size[2] / 2).toBeGreaterThanOrEqual(TILE / 2 - 1e-9)
+  // 走路は曲げられるようにZ方向へ分割してあるので、**1本の白線は複数のセグメント**になる。
+  // 「途切れない」という不変条件はそのままだが、測り方が「1個の箱の長さ」から
+  // 「セグメント群がタイル全長を隙間なく覆っているか」に変わる
+  const laneLines = () => {
+    const marks = pieces.filter((p) => p.slot === 'laneMark' && p.size[2] > p.size[0])
+    const byX = new Map<string, typeof marks>()
+    for (const m of marks) {
+      const key = m.center[0].toFixed(4)
+      byX.set(key, [...(byX.get(key) ?? []), m])
+    }
+    return byX
+  }
+
+  it('白線は3本あり、それぞれタイル全長を隙間なく覆う(隣のタイルと途切れない)', () => {
+    const lines = laneLines()
+    expect(lines.size).toBe(3)
+    for (const [x, segs] of lines) {
+      const sorted = [...segs].sort((a, b) => a.center[2] - b.center[2])
+      // 端はタイルの縁まで届く
+      expect(sorted[0].center[2] - sorted[0].size[2] / 2, `x=${x} 手前端`).toBeLessThanOrEqual(-TILE / 2 + 1e-9)
+      const last = sorted[sorted.length - 1]
+      expect(last.center[2] + last.size[2] / 2, `x=${x} 奥端`).toBeGreaterThanOrEqual(TILE / 2 - 1e-9)
+      // セグメント間に隙間が無い(前のセグメントの奥端が次の手前端以上)
+      for (let i = 1; i < sorted.length; i++) {
+        const prevEnd = sorted[i - 1].center[2] + sorted[i - 1].size[2] / 2
+        const nextStart = sorted[i].center[2] - sorted[i].size[2] / 2
+        expect(prevEnd, `x=${x} seg${i}`).toBeGreaterThanOrEqual(nextStart - 1e-9)
+      }
       // Z方向に長く、X方向に細い = 線として読める
-      expect(r.size[2]).toBeGreaterThan(r.size[0] * 10)
+      for (const r of segs) expect(r.size[2]).toBeGreaterThan(r.size[0] * 5)
     }
   })
 
   it('白線は走路の中心について左右対称に並ぶ', () => {
-    const xs = pieces
-      .filter((p) => p.slot === 'laneMark' && p.size[2] >= TILE)
-      .map((r) => r.center[0])
-      .sort((a, b) => a - b)
+    const xs = [...laneLines().keys()].map(Number).sort((a, b) => a - b)
+    expect(xs).toHaveLength(3)
     expect(xs[0]).toBeCloseTo(-xs[xs.length - 1], 6)
     expect(xs[0]).toBeLessThan(0)
+    expect(xs[1]).toBeCloseTo(0, 6)
   })
 
   it('舗装と路肩が敷かれている(走路が地面に溶けない)', () => {

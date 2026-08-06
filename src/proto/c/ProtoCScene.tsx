@@ -19,6 +19,8 @@ import {
   BALL_EMISSIVE,
   BALL_RADIUS,
   CARDS,
+  ballHop,
+  ballLaneX,
   ballSpin,
   cardBob,
   cardPalette,
@@ -76,6 +78,8 @@ export default function ProtoCScene({
   paletteOverride,
   chain,
   skyway,
+  weave,
+  hop,
   frozen,
 }: {
   /** 進み `p` の共有先。ProtoCCamera が毎フレーム書く */
@@ -86,12 +90,16 @@ export default function ProtoCScene({
   chain: boolean
   /** `?sky=0` で false。上部を横切る構造を組まない */
   skyway: boolean
+  /** `?weave=0` で false。走路を曲げず、球体も原点に固定する */
+  weave: boolean
+  /** `?hop=0` で false。球体を跳ねさせない */
+  hop: boolean
   /** `?card=N` 指定時。揺れを止めてスクリーンショットを収束させる */
   frozen: boolean
 }) {
   // 4枚とも最初に1回だけ組む。**カードが画面外へ抜けても作り直さない**
   const layouts = useMemo(() => {
-    const built = CARDS.map((card) => buildIsland(card, skyway))
+    const built = CARDS.map((card) => buildIsland(card, skyway, weave))
     if (import.meta.env.DEV) {
       console.debug(
         `[proto/c] ${built
@@ -100,7 +108,7 @@ export default function ProtoCScene({
       )
     }
     return built
-  }, [skyway])
+  }, [skyway, weave])
 
   const groups = useRef<Array<THREE.Group | null>>([])
   const ball = useRef<THREE.Mesh>(null)
@@ -121,8 +129,13 @@ export default function ProtoCScene({
     }
 
     if (ball.current) {
-      // 球体はステージから動かない。上下だけステージの島の揺れに乗せて接地させる
-      ball.current.position.set(0, stageBob(p, time) + BALL_RADIUS, 0)
+      // 球体は Z 方向には動かない(ステージに釘付け)。動くのは
+      //   X = ステージのカードの走路の蛇行(A案) / Y = 島の揺れ + バウンド(B案)
+      ball.current.position.set(
+        ballLaneX(p, weave),
+        stageBob(p, time) + BALL_RADIUS + ballHop(p, hop),
+        0
+      )
       // 進んだ距離に噛み合った転がり。**島が流れるのと同じ量だけ回る**ので空回りしない
       ball.current.rotation.x = ballSpin(p)
     }

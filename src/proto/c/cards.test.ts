@@ -33,9 +33,15 @@ import {
   projectToScreen,
   resolveCard,
   parseSkywayEnabled,
+  parseWeaveEnabled,
+  parseHopEnabled,
+  ballLaneX,
+  ballHop,
+  BALL_HOP_HEIGHT,
+  BALL_HOP_PERIOD,
   skywayEnds,
 } from './cards'
-import { ISLAND_SPAN } from './island'
+import { ISLAND_SPAN, laneWeaveAt } from './island'
 import { PALETTES } from './palette'
 
 describe('CARDS', () => {
@@ -468,5 +474,97 @@ describe('上部を横切る構造の構図', () => {
     expect(parseSkywayEnabled('?sky=false')).toBe(false)
     // 他のノブと併用できる
     expect(parseSkywayEnabled('?card=2&pal=3&sky=0')).toBe(false)
+  })
+})
+
+// 「球体がまっすぐしか進まない」への答え。2案を独立に入れてあり、どちらを採るかは撮って決める
+describe('球体の動き(A案: 走路の蛇行 / B案: バウンド)', () => {
+  it('A: 球体の横位置がステージのカードの走路と一致する(走路の上を走っている)', () => {
+    for (let i = 0; i < CARDS.length; i++) {
+      for (const d of [-0.25, -0.1, 0, 0.1, 0.25]) {
+        const p = Math.min(Math.max(i + d, 0), maxProgress())
+        const index = Math.min(Math.round(p), CARDS.length - 1)
+        const localZ = -cardZ(index, p)
+        expect(ballLaneX(p), `card=${i} d=${d}`).toBeCloseTo(laneWeaveAt(localZ, CARDS[index].seed), 10)
+      }
+    }
+  })
+
+  it('A: カードがステージにぴったり乗っているとき球体は島の中央にいる', () => {
+    // 島ローカル z=0 は sin(2π·0.5)=0 なので走路も中央を通る
+    for (let i = 0; i < CARDS.length; i++) expect(ballLaneX(i), CARDS[i].id).toBeCloseTo(0, 10)
+  })
+
+  it('A: カード間の空白では真っ直ぐに戻る', () => {
+    // p が2枚のカードのちょうど中間だと、球体の下に島が無い
+    for (let i = 0; i < CARDS.length - 1; i++) {
+      expect(ballLaneX(i + 0.5), `${i}→${i + 1}`).toBe(0)
+    }
+  })
+
+  it('A: 途中では実際に左右へ振れる(動きが死んでいない)', () => {
+    const samples: number[] = []
+    for (let p = 0; p <= maxProgress(); p += 0.01) samples.push(ballLaneX(p))
+    expect(Math.max(...samples), '右').toBeGreaterThan(1.5)
+    expect(Math.min(...samples), '左').toBeLessThan(-1.5)
+  })
+
+  it('A: 横位置が連続している(カードが切り替わる瞬間に飛ばない)', () => {
+    let prev = ballLaneX(0)
+    for (let p = 0.005; p <= maxProgress(); p += 0.005) {
+      const next = ballLaneX(p)
+      expect(Math.abs(next - prev), `p=${p.toFixed(3)}`).toBeLessThan(0.35)
+      prev = next
+    }
+  })
+
+  it('A: 振れ幅が構図を壊さない(球体が画面の中央付近に留まる)', () => {
+    for (let p = 0; p <= maxProgress(); p += 0.01) {
+      const s = projectToScreen([ballLaneX(p), BALL_RADIUS, 0])
+      expect(Math.abs(s.x), `p=${p.toFixed(2)}`).toBeLessThan(0.35)
+    }
+  })
+
+  it('B: バウンドは非負で、球体が地面にめり込まない', () => {
+    for (let p = 0; p <= maxProgress(); p += 0.003) {
+      expect(ballHop(p), `p=${p.toFixed(3)}`).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  it('B: バウンドの高さが上限に収まる(跳ねているのであって飛んでいない)', () => {
+    for (let p = 0; p <= maxProgress(); p += 0.003) {
+      expect(ballHop(p)).toBeLessThanOrEqual(BALL_HOP_HEIGHT + 1e-9)
+    }
+    // 実際に上限近くまで跳ねる
+    const peak = Math.max(...Array.from({ length: 2000 }, (_, i) => ballHop((i / 1999) * maxProgress())))
+    expect(peak).toBeGreaterThan(BALL_HOP_HEIGHT * 0.98)
+  })
+
+  it('B: 接地の瞬間に厳密に 0 を通る(浮いたまま跳ねない)', () => {
+    // 1周期ぶん進んだところで必ず接地する
+    const perCycle = BALL_HOP_PERIOD / CARD_SPACING
+    for (let n = 0; n * perCycle <= maxProgress(); n++) {
+      expect(ballHop(n * perCycle), `n=${n}`).toBeCloseTo(0, 10)
+    }
+  })
+
+  // 時刻で駆動すると逆スクロールで位相が飛び、QAのスクリーンショットも収束しない
+  it('B: 進んだ距離だけで決まる(offset が唯一の真実であり続ける)', () => {
+    for (const p of [0, 0.37, 1.2, 2.85, 3]) expect(ballHop(p)).toBe(ballHop(p))
+  })
+
+  it('?weave=0 / ?hop=0 でそれぞれ切れる', () => {
+    expect(parseWeaveEnabled('')).toBe(true)
+    expect(parseWeaveEnabled('?weave=0')).toBe(false)
+    expect(parseHopEnabled('')).toBe(true)
+    expect(parseHopEnabled('?hop=0')).toBe(false)
+    // 切ったら元の「まっすぐ」に戻る
+    for (const p of [0.2, 1.4, 2.7]) {
+      expect(ballLaneX(p, false)).toBe(0)
+      expect(ballHop(p, false)).toBe(0)
+    }
+    // 独立に効く(片方だけ切れる)
+    expect(parseWeaveEnabled('?weave=0&hop=1')).toBe(false)
+    expect(parseHopEnabled('?weave=0&hop=1')).toBe(true)
   })
 })

@@ -21,6 +21,7 @@ import {
   HERO_HEIGHT,
   SKYWAY_SPAN,
   islandDepth,
+  laneWeaveAt,
   skywayPose,
   tileCenter,
   type IslandSpec,
@@ -163,6 +164,52 @@ export function stageBob(p: number, time: number): number {
   const j = Math.min(i + 1, CARDS.length - 1)
   const u = clamped - i
   return cardBob(i, time) * (1 - u) + cardBob(j, time) * u
+}
+
+// --- 球体の動き -----------------------------------------------------------
+//
+// **「球体がまっすぐしか進まない」への答え。** 元は原点に完全固定で、動いていたのは
+// 上下(島の揺れ)と転がりだけだった。動かなかったのは意図というより、
+// 「カメラを動かさない」と「走路を全カード同じ列に敷く」の2つから自動的にそうなっていた。
+//
+// 2つの案を独立に入れてある。**どちらが良いかは撮って決める**ので、
+// `?weave=0` / `?hop=0` でそれぞれ切れる。
+
+/**
+ * A案: 球体の横位置。**ステージにいるカードの走路の蛇行をそのまま追う**。
+ *
+ * 球体が勝手に動くのではなく、走路が曲がっていて球体はその上を走っているだけ、
+ * という関係にしてある。動く理由が世界の側にあるので、
+ * 振れ幅も走路の回廊(`LANE_WEAVE_MAX`)を超えない
+ */
+export function ballLaneX(p: number, enabled = true): number {
+  if (!enabled) return 0
+  const clamped = Math.min(Math.max(p, 0), maxProgress())
+  const index = Math.min(Math.round(clamped), CARDS.length - 1)
+  // 球体はワールド原点にいる。カード i はワールド z = cardZ(i,p) にあるので、
+  // 球体の真下にあたる島ローカルZ はその符号を反転したもの
+  const localZ = -cardZ(index, clamped)
+  // カード間の空白では `laneWeaveAt` が 0 を返すので、そこは真っ直ぐに戻る
+  return laneWeaveAt(localZ, CARDS[index].seed)
+}
+
+/** バウンド1往復あたりに進む距離。短くすると刻みすぎて跳ねているように見えない */
+export const BALL_HOP_PERIOD = 9.0
+
+/** バウンドの高さ。球体の直径(2.3)を超えると跳ねるというより飛んでいるように見える */
+export const BALL_HOP_HEIGHT = 1.05
+
+/**
+ * B案: 球体のバウンド。**進んだ距離の関数**なので `offset` が唯一の真実であり続ける
+ * (時刻で駆動すると逆スクロールで位相が飛び、QAのスクリーンショットも収束しない)。
+ *
+ * `abs(sin)` にしているのは、接地の瞬間に厳密に 0 を通るから。
+ * 素の sin だと球体が地面にめり込む
+ */
+export function ballHop(p: number, enabled = true): number {
+  if (!enabled) return 0
+  const travelled = Math.min(Math.max(p, 0), maxProgress()) * CARD_SPACING
+  return BALL_HOP_HEIGHT * Math.abs(Math.sin((Math.PI * travelled) / BALL_HOP_PERIOD))
 }
 
 /**
@@ -389,6 +436,8 @@ export const AT_QUERY = 'at'
 export const PALETTE_QUERY = 'pal'
 export const CHAIN_QUERY = 'chain'
 export const SKYWAY_QUERY = 'sky'
+export const WEAVE_QUERY = 'weave'
+export const HOP_QUERY = 'hop'
 
 /** `?card=2` → 2。未指定・不正値は null(スクロール駆動のまま) */
 export function parseCardOverride(search: string): number | null {
@@ -447,6 +496,23 @@ export function parseChainEnabled(search: string): boolean {
  */
 export function parseSkywayEnabled(search: string): boolean {
   const raw = new URLSearchParams(search).get(SKYWAY_QUERY)
+  if (raw === null || raw === '') return true
+  return raw !== '0' && raw !== 'false'
+}
+
+/**
+ * `?weave=0` で**走路の蛇行(A案)を切る**。既定は有り。
+ * 走路が真っ直ぐに戻り、球体も原点に固定される
+ */
+export function parseWeaveEnabled(search: string): boolean {
+  const raw = new URLSearchParams(search).get(WEAVE_QUERY)
+  if (raw === null || raw === '') return true
+  return raw !== '0' && raw !== 'false'
+}
+
+/** `?hop=0` で**球体のバウンド(B案)を切る**。既定は有り */
+export function parseHopEnabled(search: string): boolean {
+  const raw = new URLSearchParams(search).get(HOP_QUERY)
   if (raw === null || raw === '') return true
   return raw !== '0' && raw !== 'false'
 }

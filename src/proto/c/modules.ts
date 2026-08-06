@@ -46,6 +46,14 @@ export type ModuleContext = {
   tile: number
   /** 決定的乱数。同じカード・同じタイルなら常に同じ結果になる */
   rand: () => number
+  /**
+   * 走路の蛇行。島ローカルZを渡すと、その地点の横ずれと向きが返る。
+   *
+   * **島の側が持っている情報**(カードのシード・島の一辺)から作られるので、
+   * モジュールはこれを受け取るだけで自分では何も知らない。
+   * 未指定なら真っ直ぐ(既存のテストや単体呼び出しはこちら)
+   */
+  weave?: (z: number) => { x: number; rotY: number }
 }
 
 /**
@@ -98,6 +106,14 @@ export function mulberry32(seed: number): () => number {
 
 /** `[min, max)` の一様乱数 */
 const range = (rand: () => number, min: number, max: number) => min + rand() * (max - min)
+
+/**
+ * 走路をZ方向に何分割するか。**曲げるには分割が要る**（箱1個では曲がらない）。
+ *
+ * 増やすほど曲線がなめらかになるが、そのぶんピース数が線形に増える
+ * （走路の1タイルあたり 6 × この数）。5で継ぎ目が目視で分からなくなった
+ */
+const LANE_SEGMENTS = 5
 
 /** 構造物の色スロットを4つのうちから引く。**パレット外の色が入らない唯一の入口** */
 const structureSlot = (rand: () => number): ColorSlot =>
@@ -267,45 +283,55 @@ export function signsOn(
  * 全カードの走路が1本につながって奥の消失点へ収束する。
  * タイル全長ぶん敷くので、隣のタイルの走路と途切れずに接続する
  */
-function lane({ cx, cz, tile, rand }: ModuleContext): Piece[] {
+function lane({ cx, cz, tile, rand, weave }: ModuleContext): Piece[] {
   const out: Piece[] = []
   const width = tile * 0.82
+  const segLen = tile / LANE_SEGMENTS
+  // セグメントを少しだけ長く取って隣と重ねる。ぴったりの長さだと、
+  // 曲がっているところで**外側に楔形の隙間が開く**(回転させたぶん端が離れる)
+  const segDepth = segLen * 1.14
+  const flat = { x: 0, rotY: 0 }
 
-  // 舗装。地面より一段沈めた色にして「踏み固められた道」にする
-  out.push({ center: [cx, 0.04, cz], size: [width, 0.08, tile], rotY: 0, slot: 'lane' })
+  for (let s = 0; s < LANE_SEGMENTS; s++) {
+    const z = cz - tile / 2 + segLen * (s + 0.5)
+    const w = weave ? weave(z) : flat
+    const bx = cx + w.x
+    // 走路の断面方向(セグメントのローカルX)へのオフセットは、**向きに合わせて回す**。
+    // 回さないと、曲がっているところで路肩と白線だけが舗装からずれる
+    const put = (dx: number, y: number, sx: number, sy: number, slot: ColorSlot) => {
+      const [ox, oz] = rotateXZ(dx, 0, w.rotY)
+      out.push({ center: [bx + ox, y, z + oz], size: [sx, sy, segDepth], rotY: w.rotY, slot })
+    }
 
-  // 路肩の土。走路の縁が地面に溶けないように挟む
-  for (const side of [-1, 1]) {
-    out.push({
-      center: [cx + side * (width / 2 + tile * 0.05), 0.03, cz],
-      size: [tile * 0.1, 0.06, tile],
-      rotY: 0,
-      slot: 'soil',
-    })
-  }
+    // 舗装。地面より一段沈めた色にして「踏み固められた道」にする
+    put(0, 0.04, width, 0.08, 'lane')
 
-  // レーンを分ける白線。**これが「地面に情報を乗せる」の主役**(共通原則3)。
-  // 3本の実線が奥まで途切れずに伸びるので、走路がトラックとして読める
-  for (const offset of [-width * 0.3, 0, width * 0.3]) {
-    out.push({
-      center: [cx + offset, 0.09, cz],
-      size: [0.11, 0.04, tile],
-      rotY: 0,
-      slot: 'laneMark',
-    })
+    // 路肩の土。走路の縁が地面に溶けないように挟む
+    for (const side of [-1, 1]) put(side * (width / 2 + tile * 0.05), 0.03, tile * 0.1, 0.06, 'soil')
+
+    // レーンを分ける白線。**これが「地面に情報を乗せる」の主役**(共通原則3)。
+    // 3本の実線が途切れずに伸びるので、走路がトラックとして読める
+    for (const offset of [-width * 0.3, 0, width * 0.3]) put(offset, 0.09, 0.11, 0.04, 'laneMark')
   }
 
   // 横切る距離マークはタイルに1本だけ。
   // **本数を増やすと横棒が枕木の間隔になり、走路が線路の梯子に見える**(QAで実測)。
   // 縦の3本を主、横を従にしておくと「奥へ伸びるレーン」として読める
-  out.push({ center: [cx, 0.09, cz], size: [width * 0.86, 0.04, 0.1], rotY: 0, slot: 'laneMark' })
+  const wc = weave ? weave(cz) : flat
+  out.push({
+    center: [cx + wc.x, 0.09, cz],
+    size: [width * 0.86, 0.04, 0.1],
+    rotY: wc.rotY,
+    slot: 'laneMark',
+  })
 
   // まれにコースを示すコーンや旗。差し色が走路沿いに点在すると視線が奥へ誘導される
   if (rand() < 0.32) {
     const side = rand() < 0.5 ? -1 : 1
-    const x = cx + side * tile * 0.44
-    out.push({ center: [x, 0.5, cz], size: [0.1, 1.0, 0.1], rotY: 0, slot: 'post' })
-    out.push({ center: [x + side * 0.16, 1.02, cz], size: [0.34, 0.24, 0.06], rotY: 0, slot: 'accent' })
+    const [ox, oz] = rotateXZ(side * tile * 0.44, 0, wc.rotY)
+    const x = cx + wc.x + ox
+    out.push({ center: [x, 0.5, cz + oz], size: [0.1, 1.0, 0.1], rotY: 0, slot: 'post' })
+    out.push({ center: [x + side * 0.16, 1.02, cz + oz], size: [0.34, 0.24, 0.06], rotY: 0, slot: 'accent' })
   }
   return out
 }
