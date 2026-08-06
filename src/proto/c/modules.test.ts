@@ -5,10 +5,12 @@ import {
   heroFigure,
   mulberry32,
   pickModule,
+  signsOn,
+  windowsOn,
   type ModuleKind,
   type Piece,
 } from './modules'
-import { PALETTES, parseHex, slotColor } from './palette'
+import { MIN_WINDOW_STRUCTURE_DELTA_E, PALETTES, brightness, deltaE, parseHex, slotColor } from './palette'
 
 const TILE = 3.2
 
@@ -204,10 +206,12 @@ describe('密度を担当するモジュール', () => {
     expect(new Set(tiers.map((p) => p.size[1].toFixed(3))).size).toBe(3)
   })
 
+  // 見るのは**建物の躯体だけ**。窓・看板は壁に貼る薄い板なので、
+  // 厚み(0.06)に対して縦横が何倍あろうと「柱に見える」の話には関係しない
   it('block は幅に対して高すぎない(柱ではなく建物に見える)', () => {
     for (const seed of [7, 77, 777, 7777]) {
       for (const p of build('block', seed)) {
-        if (p.slot === 'roof' || p.slot === 'post') continue
+        if (!p.slot.startsWith('structure')) continue
         expect(p.size[1] / Math.min(p.size[0], p.size[2]), `seed=${seed}`).toBeLessThanOrEqual(3)
       }
     }
@@ -306,5 +310,177 @@ describe('heroFigure', () => {
     // rotY=90度 なら左右の開きはZ方向に出る
     expect(Math.abs(legs[0].center[2] - legs[1].center[2])).toBeGreaterThan(0.1)
     expect(Math.abs(legs[0].center[0] - legs[1].center[0])).toBeLessThan(1e-6)
+  })
+})
+
+// 建物が無地の板だったのが A / B / C を通した最大の弱点で、その直接の答えが窓と看板。
+// **壁に貼る板は少しでもずれると「宙に浮いた板」に見える**ので、位置と寸法を数値で縛る
+describe('壁の情報(窓・看板)', () => {
+  /** 建物の代表寸法。block() が実際に作る範囲(幅1.05〜1.9 / 高さ1.4〜4.9)の真ん中あたり */
+  const W = 1.6
+  const H = 3.4
+  const D = 1.4
+
+  it('窓は必ず窓のスロットしか使わない(壁に別の色を持ち込まない)', () => {
+    for (const seed of [1, 22, 333, 4444]) {
+      for (const p of windowsOn(0, 0, W, H, D, 0, mulberry32(seed))) {
+        expect(['window', 'windowAlt']).toContain(p.slot)
+      }
+    }
+  })
+
+  it('窓は抽選で一部だけ灯る(全部同じだと壁が1枚の面に戻る)', () => {
+    // 十分な枚数を集めて、両方のスロットが出ることを確かめる
+    const slots = new Set<string>()
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      for (const p of windowsOn(0, 0, W, H, D, 0, mulberry32(seed))) slots.add(p.slot)
+    }
+    expect(slots).toEqual(new Set(['window', 'windowAlt']))
+  })
+
+  // **カメラは +X+Z 側に固定**なので、-X / -Z の面は最後まで一度も映らない。
+  // 4面に貼ると箱の数が倍になるのに絵は1ピクセルも変わらない
+  it('窓は見える2面(+X / +Z)にしか貼らない', () => {
+    for (const p of windowsOn(0, 0, W, H, D, 0, mulberry32(11))) {
+      const onXFace = p.center[0] > W / 2 - 1e-6
+      const onZFace = p.center[2] > D / 2 - 1e-6
+      expect(onXFace || onZFace, `${p.center}`).toBe(true)
+    }
+  })
+
+  it('窓は壁から浮かせてあり、壁と同一平面ではない(Zファイティングを起こさない)', () => {
+    for (const p of windowsOn(0, 0, W, H, D, 0, mulberry32(11))) {
+      const onXFace = p.center[0] > W / 2 - 1e-6
+      // 板の中心が壁面より外にあること。0だと壁と重なって描画がちらつく
+      if (onXFace) expect(p.center[0]).toBeGreaterThan(W / 2)
+      else expect(p.center[2]).toBeGreaterThan(D / 2)
+    }
+  })
+
+  it('窓は建物の縦の範囲に収まる(足元と屋根際は空ける)', () => {
+    for (const seed of [1, 22, 333]) {
+      for (const p of windowsOn(0, 0, W, H, D, 0, mulberry32(seed))) {
+        expect(p.center[1] - p.size[1] / 2, 'below ground').toBeGreaterThan(0.1)
+        expect(p.center[1] + p.size[1] / 2, 'above roof').toBeLessThan(H)
+      }
+    }
+  })
+
+  it('窓は建物の横幅からはみ出さない', () => {
+    for (const w of [1.05, 1.3, 1.6, 1.9]) {
+      for (const p of windowsOn(0, 0, w, H, w, 0, mulberry32(5))) {
+        const onXFace = p.center[0] > w / 2 - 1e-6
+        // 面に沿った方向の位置が、その面の幅の内側にあること
+        const along = onXFace ? Math.abs(p.center[2]) + p.size[2] / 2 : Math.abs(p.center[0]) + p.size[0] / 2
+        expect(along, `w=${w}`).toBeLessThan(w / 2)
+      }
+    }
+  })
+
+  // 建物は ±0.25 rad 傾いている。**回さずに貼ると窓だけ壁からずれて宙に浮く**
+  it('窓は建物の傾きに追従する', () => {
+    const rotY = 0.4
+    const pieces = windowsOn(0, 0, W, H, D, rotY, mulberry32(11))
+    expect(pieces.length).toBeGreaterThan(0)
+    for (const p of pieces) {
+      expect(p.rotY).toBeCloseTo(rotY, 10)
+      // 傾けた建物のローカル座標に戻すと、傾き0のときと同じ「面の上」に乗る
+      const [c, s] = [Math.cos(rotY), Math.sin(rotY)]
+      const localX = p.center[0] * c - p.center[2] * s
+      const localZ = p.center[0] * s + p.center[2] * c
+      const onXFace = Math.abs(localX - W / 2) < 0.1
+      const onZFace = Math.abs(localZ - D / 2) < 0.1
+      expect(onXFace || onZFace, `local=${localX},${localZ}`).toBe(true)
+    }
+  })
+
+  it('低すぎる建物には窓を貼らない(1行も入らないため)', () => {
+    expect(windowsOn(0, 0, W, 1.0, D, 0, mulberry32(1))).toHaveLength(0)
+  })
+
+  // 窓が2〜3列入ることが要点。1列だと窓ではなくエレベーターシャフトの縦帯に見える
+  it('窓は横に2列以上並ぶ', () => {
+    for (const w of [1.05, 1.4, 1.9]) {
+      const pieces = windowsOn(0, 0, w, H, w, 0, mulberry32(3))
+      const zFace = pieces.filter((p) => p.center[2] > w / 2 - 1e-6)
+      const columns = new Set(zFace.map((p) => p.center[0].toFixed(4)))
+      expect(columns.size, `w=${w}`).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it('看板は差し色を使い回す(新しい色を持ち込まない)', () => {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+      for (const p of signsOn(0, 0, W, H, D, 0, mulberry32(seed))) {
+        expect(['accent', 'post']).toContain(p.slot)
+      }
+    }
+  })
+
+  it('看板は壁と屋上の2種類が出る', () => {
+    const wall: Piece[] = []
+    const roof: Piece[] = []
+    for (let seed = 0; seed < 40; seed++) {
+      for (const p of signsOn(0, 0, W, H, D, 0, mulberry32(seed))) {
+        if (p.slot !== 'accent') continue
+        // 屋上看板は屋根(y = H)より上に出る。壁看板は壁の中
+        if (p.center[1] > H) roof.push(p)
+        else wall.push(p)
+      }
+    }
+    expect(wall.length, '壁看板').toBeGreaterThan(0)
+    expect(roof.length, '屋上看板').toBeGreaterThan(0)
+  })
+
+  it('背の低い建物に屋上看板を立てない(看板のほうが大きくなる)', () => {
+    for (let seed = 0; seed < 40; seed++) {
+      for (const p of signsOn(0, 0, W, 2.0, D, 0, mulberry32(seed))) {
+        expect(p.center[1], `seed=${seed}`).toBeLessThan(2.0)
+      }
+    }
+  })
+
+  // 窓が壁に沈むと壁が無地の板に戻り、窓を入れた意味そのものが消える
+  it('どのパレットでも窓が壁から読める', () => {
+    for (const p of PALETTES) {
+      for (const slot of ['window', 'windowAlt'] as const) {
+        for (let i = 0; i < p.structures.length; i++) {
+          expect(
+            deltaE(slotColor(p, slot), p.structures[i]),
+            `${p.id}: ${slot} vs structures[${i}]`
+          ).toBeGreaterThanOrEqual(MIN_WINDOW_STRUCTURE_DELTA_E)
+        }
+      }
+    }
+  })
+
+  // `windowAlt` を単純に「明るいほう」にすると、昼のパレットでは必ず4色の建物のどれかに
+  // 着地して窓が消える(実測: Misty で ΔE 3.1)。**建物の明度帯から離れる向きへ振る**のが規則で、
+  // その結果として夜だけが「もっと明るい部屋」になる
+  it('もう1種類の窓は建物の明度帯から離れる向きへ振れる', () => {
+    for (const p of PALETTES) {
+      const structAvg = p.structures.reduce((s, c) => s + brightness(c), 0) / p.structures.length
+      const base = brightness(slotColor(p, 'window'))
+      const alt = brightness(slotColor(p, 'windowAlt'))
+      // 建物より暗い窓はさらに暗く、明るい窓はさらに明るく
+      if (base >= structAvg) expect(alt, `${p.id}: 明るい側`).toBeGreaterThan(base)
+      else expect(alt, `${p.id}: 暗い側`).toBeLessThan(base)
+      // どちらに振っても建物から遠ざかっていること
+      expect(Math.abs(alt - structAvg), p.id).toBeGreaterThan(Math.abs(base - structAvg))
+    }
+  })
+
+  it('夜だけが「もっと明るい部屋」になる(灯りが点く側)', () => {
+    const night = PALETTES.find((p) => p.id === 'night')!
+    expect(brightness(slotColor(night, 'windowAlt'))).toBeGreaterThan(brightness(slotColor(night, 'window')))
+    for (const p of PALETTES) {
+      if (p.id === 'night') continue
+      expect(brightness(slotColor(p, 'windowAlt')), p.id).toBeLessThan(brightness(slotColor(p, 'window')))
+    }
+  })
+
+  it('2種類の窓どうしも見分けがつく(壁が1枚の平らな面に見えない)', () => {
+    for (const p of PALETTES) {
+      expect(deltaE(slotColor(p, 'window'), slotColor(p, 'windowAlt')), p.id).toBeGreaterThan(10)
+    }
   })
 })

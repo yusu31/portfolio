@@ -39,6 +39,8 @@ const ALL_SLOTS: readonly ColorSlot[] = [
   'structure2',
   'structure3',
   'roof',
+  'window',
+  'windowAlt',
   'accent',
   'heroBody',
   'heroLimb',

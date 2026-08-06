@@ -274,10 +274,27 @@ describe('パレット非依存(②のモジュラー思想)', () => {
 
   // 共通原則1「パレットを絞る」が結果としても効いていること。
   // スロットは18種あるが、実際に使われる色数はそれ以下に収まる
-  it('1つの島に出る色数は20色以下に収まる', () => {
+  // 共通原則1「情報を足しても1画面の色数が増えない」の見張り。
+  //
+  // 上限は元は 20 だった。**窓を入れたときに `window` と `windowAlt` のちょうど2色だけ増えた**ので
+  // 22 に上げてある。この2色は建物が無地の板でなくなるのと引き換えで、
+  // ここを緩めるのは「壁の情報」と同格の投資に限る(看板は `accent` を使い回していて増やしていない)
+  it('1つの島に出る色数は22色以下に収まる', () => {
     for (const card of CARDS) {
       const painted = paintIsland(buildIsland(card), PALETTES[card.paletteIndex])
-      expect(new Set(painted.map((p) => p.color)).size, card.id).toBeLessThanOrEqual(20)
+      expect(new Set(painted.map((p) => p.color)).size, card.id).toBeLessThanOrEqual(22)
+    }
+  })
+})
+
+// 窓を入れたぶんピース数が跳ねる。**1カード = 1つの InstancedMesh** なので描画回数は
+// 変わらないが、行列を焼くコストとメモリは枚数に比例する。青天井にしないための見張り
+describe('壁の情報を足した後のピース数', () => {
+  it('島1枚が上限内に収まる', () => {
+    // 実測の最大は gym の 592。窓を裏面(-X / -Z)にも貼ると倍近くになるが、
+    // カメラが固定で裏面は一度も映らないので貼っていない(modules.ts の windowsOn)
+    for (const card of CARDS) {
+      expect(buildIsland(card).pieces.length, card.id).toBeLessThan(700)
     }
   })
 })
