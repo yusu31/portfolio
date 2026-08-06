@@ -92,7 +92,7 @@ export const CARDS: readonly Card[] = [
     caption: '走らせて、走っていた',
     paletteIndex: 1,
     seed: 6142,
-    // 開けた土地。コートのラインと木立を厚くして、Golden の長い影が乗る面を広く取る
+    // 開けた土地。コートのラインと木立を厚くして、Dusk の長い影が乗る面を広く取る
     weights: [w('court', 3.4), w('grove', 2.6), w('fence', 2.0), w('block', 1.2), w('gear', 1.0), w('stand', 0.9), w('floodlight', 0.5), w('empty', 1.6)],
     patchRatio: 0.55,
     heroTile: [5, 4],
