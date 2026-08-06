@@ -40,6 +40,8 @@ export type ColorSlot =
   | 'structure2'
   | 'structure3'
   | 'roof'
+  | 'window'
+  | 'windowAlt'
   | 'accent'
   | 'heroBody'
   | 'heroLimb'
@@ -65,6 +67,15 @@ export type Palette = {
   rock: string
   /** 構造物。**建物・箱・塔はこの4色からしか取らない** */
   structures: readonly [string, string, string, string]
+  /**
+   * 窓。**このパレットが昼か夜かを決めているのは実質ここ**。
+   *
+   * 昼のパレットでは壁より暗いガラス、夜のパレットでは灯り。
+   * `windowAlt`(抽選で一部の窓だけ使うもう1種類)はこの色から導出するので、
+   * **同じコードが昼では「ガラスの色ムラ」になり、夜では「点いている部屋」になる**。
+   * ②の「同じアセットにパレットを差し替えると別の世界になる」が一番はっきり出る場所
+   */
+  window: string
   /** 差し色。看板・信号・主役の胴。少量だけ */
   accent: string
   /** 影の色 = 陰面に残る間接光の色。three.js では **ambientLight の色 = 影の色**(A で確立) */
@@ -110,6 +121,8 @@ export const PALETTES: readonly Palette[] = [
     grout: '#8f8a7c',
     rock: '#8d8272',
     structures: ['#e4ddd0', '#d9b5a6', '#b8c4c9', '#c8b98f'],
+    // 昼のガラスは暗い。空を映すので壁の暖色に対して青へ振る
+    window: '#5c6b78',
     accent: '#e0663c',
     shadowColor: '#7f95a8',
     skyColor: '#eaf5fb',
@@ -134,6 +147,8 @@ export const PALETTES: readonly Palette[] = [
     grout: '#8a7a63',
     rock: '#6f5c4c',
     structures: ['#efd8b6', '#d9a58a', '#a8b0c4', '#c0a374'],
+    // 夕方のガラス。まだ灯りは点いていないが空の紫を映している
+    window: '#645a70',
     // 主役の橙とは別の赤に寄せる。同じ橙にすると差し色が主役の役を食う
     accent: '#e8574e',
     // 夕方の影は寒色。暖色の光と対にすることで時間帯が読める
@@ -160,6 +175,9 @@ export const PALETTES: readonly Palette[] = [
     grout: '#7d8583',
     rock: '#6f7674',
     structures: ['#e4e8e2', '#bdc4c5', '#98a4a5', '#79858a'],
+    // 霧のパレットは建物の明度が全体に高いので、窓は逆に一番深く落とす。
+    // 浅くすると一番暗い建物(structures[3])の壁に沈んで、そこだけ無地の板に戻る
+    window: '#454e51',
     accent: '#3f938c',
     shadowColor: '#77848a',
     skyColor: '#e2e9e8',
@@ -190,6 +208,10 @@ export const PALETTES: readonly Palette[] = [
     rock: '#454b66',
     // ② 明度だけでなく色相も4方向へ散らす(青灰・紫・青緑・藍)。ΔE 7.0 → 11.9
     structures: ['#9ba3be', '#8c7fa0', '#6f8899', '#646d92'],
+    // **夜のパレットで唯一の暖色**。青い街に橙の窓が点いていることで「人がいる」が出る。
+    // 主役の球体(橙)と色相が近いが、窓は1枚が数ピクセルなので競合しない。
+    // むしろ球体の橙が街の灯りと同じ側の色になり、主役が世界に属して見える
+    window: '#e8b45c',
     accent: '#5fe0c0',
     // 影も真っ黒にしない。夜の影に残るのは月と街灯の青
     shadowColor: '#39456d',
@@ -311,6 +333,26 @@ export const MIN_ROOF_SKY_DELTA_E = 20
 export const MIN_ACCENT_STRUCTURE_DELTA_E = 18
 
 /**
+ * 窓と建物の壁。**窓が壁に沈むと壁が無地の板に戻る**ので、窓を入れた意味が消える。
+ * Misty の初手が 13.6 でその状態だった(一番暗い建物でだけ窓が消えていた)。現行は最低 22.3
+ */
+export const MIN_WINDOW_STRUCTURE_DELTA_E = 20
+
+/**
+ * 知覚上の明るさ(0〜255)。ΔE は「離れているか」しか言わないので、
+ * **どちら向きに離れているか**が要るところではこちらを使う
+ */
+export function brightness(hex: string): number {
+  const [r, g, b] = parseHex(hex)
+  return (r * 299 + g * 587 + b * 114) / 1000
+}
+
+/** 建物4色の平均の明るさ。窓をどちら向きに振れば建物から離れるかを決めるのに使う */
+function structureBrightness(palette: Palette): number {
+  return palette.structures.reduce((sum, c) => sum + brightness(c), 0) / palette.structures.length
+}
+
+/**
  * 塗り分けの口 → 実際の色。**モジュール側とパレット側をつなぐ唯一の関数**。
  *
  * 半分近くが導出色なのは意図的で、レール・枕木・バラスト・屋根まで固有色にすると
@@ -364,6 +406,17 @@ export function slotColor(palette: Palette, slot: ColorSlot): string {
     // 屋根は必ず壁より暗い。俯瞰なので屋根の面積が大きく、壁と同色だと箱が平らに見える
     case 'roof':
       return shadeHex(palette.structures[3], -0.22)
+    case 'window':
+      return palette.window
+    // もう1種類の窓。抽選で一部の窓だけこちらになり、壁が1枚の平らな面に見えるのを防ぐ。
+    //
+    // **振る向きは「建物の明度帯から離れるほう」**。
+    // 単純に明るくすると、昼のパレットでは必ず4色の建物のどれかに着地して窓が消える
+    // (実測: Misty で ΔE 3.1 まで落ちて、明るい建物の窓が完全に見えなくなった)。
+    // この規則にすると同じ1行が、昼では「深く沈んだガラス」に、
+    // 夜では「もっと明るい部屋」になる —— どちらも建物から離れたまま
+    case 'windowAlt':
+      return shadeHex(palette.window, brightness(palette.window) >= structureBrightness(palette) ? 0.35 : -0.42)
     case 'accent':
       return palette.accent
     // 主役は画面の1/4以下なので、差し色を当てて視線が見つけられるようにする
@@ -404,6 +457,7 @@ export function lerpPalette(a: Palette, b: Palette, t: number): Palette {
       c(a.structures[2], b.structures[2]),
       c(a.structures[3], b.structures[3]),
     ],
+    window: c(a.window, b.window),
     accent: c(a.accent, b.accent),
     shadowColor: c(a.shadowColor, b.shadowColor),
     skyColor: c(a.skyColor, b.skyColor),

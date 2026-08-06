@@ -103,6 +103,159 @@ const range = (rand: () => number, min: number, max: number) => min + rand() * (
 const structureSlot = (rand: () => number): ColorSlot =>
   (['structure0', 'structure1', 'structure2', 'structure3'] as const)[Math.floor(rand() * 4)]
 
+// --- 壁の情報(窓・看板) ---------------------------------------------------
+//
+// **建物が無地の板**というのが A / B / C を通した最大の弱点だった。
+// 俯瞰なので壁の面積は屋根に次いで大きく、ここが単色だと
+// 「地面に情報を乗せる」「密度を上げる」の投資が壁で止まる。
+//
+// 窓も看板も**箱を壁からわずかに浮かせて貼るだけ**。曲面を持ち込まないので
+// 島まるごと1つの InstancedMesh に畳むという C の作りが崩れない。
+//
+// 色は `window` / `windowAlt` / `accent` のスロットしか触らない。**モジュールは何色かを知らない**ので、
+// パレットを差し替えると同じ形のまま昼のビルが夜の街になる(②のモジュラー思想の実体)。
+
+/** 壁に貼る板の厚み。0 だと壁と同一平面で Z ファイティングするので必ず浮かせる */
+const PANEL_T = 0.06
+
+/**
+ * 窓の1枚の目安寸法。これで割って何行何列取れるかを決める。
+ *
+ * 建物の幅は 1.05〜1.9 しかないので、**ここを大きく取ると全部の建物が1列**になり、
+ * 窓ではなくエレベーターシャフトのような縦の帯に見える。2〜3列入る寸法にしてある
+ */
+const WINDOW_W = 0.28
+const WINDOW_H = 0.36
+/** 窓の間隔(枠のぶん)。**詰めすぎると格子ではなく1枚の面に見える** */
+const WINDOW_GAP_X = 0.16
+const WINDOW_GAP_Y = 0.24
+
+/** もう1種類の窓が出る割合。昼では「深く沈んだガラス」、夜では「もっと明るい部屋」になる */
+const WINDOW_ALT_RATIO = 0.3
+
+/**
+ * 建物ローカルの (ox, oz) を rotY で回してワールド(島ローカル)のオフセットにする。
+ * 建物は ±0.25 rad 傾いているので、**回さずに貼ると窓が壁からずれて宙に浮く**
+ */
+function rotateXZ(ox: number, oz: number, rotY: number): [number, number] {
+  const s = Math.sin(rotY)
+  const c = Math.cos(rotY)
+  return [ox * c + oz * s, -ox * s + oz * c]
+}
+
+/**
+ * 建物の壁に窓を貼る。
+ *
+ * **カメラから見える2面(+X / +Z)にしか貼らない**。カメラは +X+Z 側の高い位置に固定なので、
+ * -X / -Z の面は最後まで一度も映らない。裏に貼るぶんは丸ごと無駄な箱になる
+ * (4面に貼ると箱の数が倍になるが、絵は1ピクセルも変わらない)。
+ *
+ * 行数・列数は建物の寸法から決める。**固定にすると細い建物で窓がはみ出す**
+ */
+export function windowsOn(
+  x: number,
+  z: number,
+  w: number,
+  h: number,
+  d: number,
+  rotY: number,
+  rand: () => number
+): Piece[] {
+  const out: Piece[] = []
+  // 足元と屋根際は空ける。ここまで窓を詰めると壁が窓だけになって建物の面が消える
+  const usableH = h - 0.7
+  const rows = Math.min(Math.floor(usableH / (WINDOW_H + WINDOW_GAP_Y)), 4)
+  if (rows < 1) return out
+
+  // 面ごとに [面の幅, 面の法線方向のローカルオフセット] が変わるだけで、あとは共通
+  for (const face of ['x', 'z'] as const) {
+    const faceW = face === 'x' ? d : w
+    const cols = Math.min(Math.max(Math.floor((faceW - WINDOW_GAP_X) / (WINDOW_W + WINDOW_GAP_X)), 1), 3)
+    const spanX = cols * WINDOW_W + (cols - 1) * WINDOW_GAP_X
+    const spanY = rows * WINDOW_H + (rows - 1) * WINDOW_GAP_Y
+    // 壁の中に収まらない場合は貼らない(はみ出した窓は「浮いた板」に見える)
+    if (spanX > faceW - 0.16) continue
+
+    const depth = face === 'x' ? w / 2 + PANEL_T / 2 : d / 2 + PANEL_T / 2
+    // 縦は中央よりやや上に寄せる。足元に寄ると1階が窓だらけの妙な建物になる
+    const baseY = h / 2 - spanY / 2 + 0.12
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const u = -spanX / 2 + WINDOW_W / 2 + c * (WINDOW_W + WINDOW_GAP_X)
+        const [ox, oz] = face === 'x' ? rotateXZ(depth, u, rotY) : rotateXZ(u, depth, rotY)
+        out.push({
+          center: [x + ox, baseY + r * (WINDOW_H + WINDOW_GAP_Y), z + oz],
+          size: face === 'x' ? [PANEL_T, WINDOW_H, WINDOW_W] : [WINDOW_W, WINDOW_H, PANEL_T],
+          rotY,
+          slot: rand() < WINDOW_ALT_RATIO ? 'windowAlt' : 'window',
+        })
+      }
+    }
+  }
+  return out
+}
+
+/**
+ * 看板。**壁看板と屋上看板の2種類**で、どちらも `accent` を使う。
+ *
+ * 新しい色を持ち込まないので、情報を足しても1画面の色数が増えない(共通原則1)。
+ * 差し色が壁の高い位置に点在すると、無地だった壁面に視線の止まりどころができる
+ */
+export function signsOn(
+  x: number,
+  z: number,
+  w: number,
+  h: number,
+  d: number,
+  rotY: number,
+  rand: () => number
+): Piece[] {
+  const out: Piece[] = []
+
+  // 壁看板。見える2面のどちらかに1枚だけ。両面に貼ると看板だらけの街になる
+  if (rand() < 0.45) {
+    const onX = rand() < 0.5
+    const faceW = onX ? d : w
+    const boardW = faceW * 0.62
+    const depth = onX ? w / 2 + PANEL_T / 2 : d / 2 + PANEL_T / 2
+    const [ox, oz] = onX ? rotateXZ(depth, 0, rotY) : rotateXZ(0, depth, rotY)
+    // 上寄りに貼る。俯瞰なので下に貼ると手前の物に隠れる
+    const y = h * 0.78
+    out.push({
+      center: [x + ox, y, z + oz],
+      size: onX ? [PANEL_T, 0.38, boardW] : [boardW, 0.38, PANEL_T],
+      rotY,
+      slot: 'accent',
+    })
+  }
+
+  // 屋上看板。**建物の輪郭を屋根の上へ伸ばす**ので、低い箱が並ぶ俯瞰に垂直の変化が出る。
+  // 背の低い建物に立てると看板のほうが大きくなるので、高さのある建物にだけ立てる
+  if (h > 2.2 && rand() < 0.3) {
+    const boardW = w * 0.7
+    const boardH = 0.75
+    const baseY = h + 0.16
+    // 支柱。板だけだと屋根から浮いて見える
+    for (const side of [-1, 1]) {
+      const [px, pz] = rotateXZ(side * boardW * 0.32, 0, rotY)
+      out.push({
+        center: [x + px, baseY + boardH * 0.3, z + pz],
+        size: [0.08, boardH * 0.6, 0.08],
+        rotY,
+        slot: 'post',
+      })
+    }
+    out.push({
+      center: [x, baseY + boardH * 0.72, z],
+      size: [boardW, boardH * 0.56, 0.1],
+      rotY,
+      slot: 'accent',
+    })
+  }
+  return out
+}
+
 /**
  * 走路(レーン)。**C の背骨**で、球体が転がっていく道。
  *
@@ -209,7 +362,10 @@ function stand({ cx, cz, tile, rand }: ModuleContext): Piece[] {
 
 /**
  * 建物。1〜3棟。**屋根を必ず一回り小さい別スロットで乗せる**。
- * 俯瞰では屋根の面積が大きいので、壁と同色だと箱がただの平面に見えてしまう
+ * 俯瞰では屋根の面積が大きいので、壁と同色だと箱がただの平面に見えてしまう。
+ *
+ * 壁には窓と看板を貼る。**ここが「建物が無地の板」への直接の答え**で、
+ * 壁の情報だけはパレット側(`window` の色)が昼か夜かを決めている
  */
 function block({ cx, cz, tile, rand }: ModuleContext): Piece[] {
   const out: Piece[] = []
@@ -225,6 +381,9 @@ function block({ cx, cz, tile, rand }: ModuleContext): Piece[] {
     const rotY = range(rand, -0.25, 0.25)
     out.push({ center: [x, h / 2, z], size: [w, h, d], rotY, slot: structureSlot(rand) })
     out.push({ center: [x, h + 0.08, z], size: [w * 1.12, 0.16, d * 1.12], rotY, slot: 'roof' })
+    // 壁の情報。屋根を乗せた後に貼るのは、屋上看板が屋根の上に立つため
+    out.push(...windowsOn(x, z, w, h, d, rotY, rand))
+    out.push(...signsOn(x, z, w, h, d, rotY, rand))
     // 屋上の設備。小さい箱が1つ乗るだけで密度が上がって見える
     if (rand() < 0.55) {
       out.push({
