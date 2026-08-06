@@ -32,6 +32,8 @@ import {
   progressAt,
   projectToScreen,
   resolveCard,
+  parseSkywayEnabled,
+  skywayEnds,
 } from './cards'
 import { ISLAND_SPAN } from './island'
 import { PALETTES } from './palette'
@@ -410,4 +412,61 @@ describe('QAクエリ', () => {
 
 it('QAのビューポート比はスクリプトのビューポート(1280x800)と一致する', () => {
   expect(QA_ASPECT).toBeCloseTo(1.6, 9)
+})
+
+// 「島の天面より上が空きすぎている」への答えが本当に効いているかは、
+// **ジオメトリではなく画面座標で測るしかない**。
+// 語彙を「上部を横切る構造」に変えただけでは絵は変わらないので、
+// 実際に画面の上部を横切っていることを NDC で縛る(A / B で確立した進め方)
+describe('上部を横切る構造の構図', () => {
+  it('4枚とも画面の上部に入る(空いていた領域を埋める)', () => {
+    for (let i = 0; i < CARDS.length; i++) {
+      // そのカードがステージに乗っている瞬間 = 代表的な絵
+      for (const end of skywayEnds(i, i)) {
+        const s = projectToScreen(end)
+        expect(s.depth, `${CARDS[i].id}: カメラの前`).toBeGreaterThan(0)
+        // 画面の上半分(NDC y > 0)より上
+        expect(s.y, `${CARDS[i].id}: 上部`).toBeGreaterThan(0.3)
+      }
+    }
+  })
+
+  it('島の天面より確実に上に出る(島に重なって埋もれない)', () => {
+    for (let i = 0; i < CARDS.length; i++) {
+      const islandTop = Math.max(...islandTopCorners(i, i).map((c) => projectToScreen(c).y))
+      for (const end of skywayEnds(i, i)) {
+        expect(projectToScreen(end).y, CARDS[i].id).toBeGreaterThan(islandTop)
+      }
+    }
+  })
+
+  it('画面をしっかり横切る(端に寄った短い棒にならない)', () => {
+    for (let i = 0; i < CARDS.length; i++) {
+      const [left, right] = skywayEnds(i, i).map((e) => projectToScreen(e).x)
+      // 画面幅(NDC で 2.0)の6割以上を渡る
+      expect(Math.abs(right - left), CARDS[i].id).toBeGreaterThan(1.2)
+      // 左右に振り分かれている(片側だけで完結しない)
+      expect(Math.min(left, right), `${CARDS[i].id}: 左`).toBeLessThan(0)
+      expect(Math.max(left, right), `${CARDS[i].id}: 右`).toBeGreaterThan(0)
+    }
+  })
+
+  it('画面の外へ出きらない(構造が両端で切れて画面を締める)', () => {
+    for (let i = 0; i < CARDS.length; i++) {
+      for (const end of skywayEnds(i, i)) {
+        const s = projectToScreen(end)
+        // 上端を突き抜けると「横切っている」ではなく「見切れている」になる
+        expect(s.y, `${CARDS[i].id}: 上端`).toBeLessThan(1)
+      }
+    }
+  })
+
+  it('?sky=0 で切れる(有無を同じ構図で撮り比べられる)', () => {
+    expect(parseSkywayEnabled('')).toBe(true)
+    expect(parseSkywayEnabled('?sky=1')).toBe(true)
+    expect(parseSkywayEnabled('?sky=0')).toBe(false)
+    expect(parseSkywayEnabled('?sky=false')).toBe(false)
+    // 他のノブと併用できる
+    expect(parseSkywayEnabled('?card=2&pal=3&sky=0')).toBe(false)
+  })
 })

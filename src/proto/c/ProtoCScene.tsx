@@ -75,6 +75,7 @@ export default function ProtoCScene({
   progressRef,
   paletteOverride,
   chain,
+  skyway,
   frozen,
 }: {
   /** 進み `p` の共有先。ProtoCCamera が毎フレーム書く */
@@ -83,12 +84,14 @@ export default function ProtoCScene({
   paletteOverride: number | null
   /** `?chain=0` で false。ステージのカードだけを描く */
   chain: boolean
+  /** `?sky=0` で false。上部を横切る構造を組まない */
+  skyway: boolean
   /** `?card=N` 指定時。揺れを止めてスクリーンショットを収束させる */
   frozen: boolean
 }) {
   // 4枚とも最初に1回だけ組む。**カードが画面外へ抜けても作り直さない**
   const layouts = useMemo(() => {
-    const built = CARDS.map((card) => buildIsland(card))
+    const built = CARDS.map((card) => buildIsland(card, skyway))
     if (import.meta.env.DEV) {
       console.debug(
         `[proto/c] ${built
@@ -97,7 +100,7 @@ export default function ProtoCScene({
       )
     }
     return built
-  }, [])
+  }, [skyway])
 
   const groups = useRef<Array<THREE.Group | null>>([])
   const ball = useRef<THREE.Mesh>(null)

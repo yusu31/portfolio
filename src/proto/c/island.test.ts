@@ -9,15 +9,18 @@ import {
   LANE_COLUMN,
   TILE,
   TOP_THICKNESS,
+  SKYWAY_SPAN,
   buildIsland,
+  buildSkyway,
   islandDepth,
   paintIsland,
+  skywayPose,
   tileCenter,
   type IslandLayout,
   type IslandSpec,
 } from './island'
-import { PALETTES } from './palette'
-import { CARDS } from './cards'
+import { MIN_ROOF_SKY_DELTA_E, PALETTES, deltaE, slotColor } from './palette'
+import { BALL_RADIUS, CARDS } from './cards'
 
 const SPEC: IslandSpec = {
   id: 'test',
@@ -107,11 +110,13 @@ describe('buildIsland', () => {
     }
   })
 
+  // 対象は**島に乗っているモジュールだけ**。上部を横切る構造は同じ列の上を通るが、
+  // 天面から10以上離れているので球体とは screen 上でも重ならない(下の専用テストで縛る)
   it('開けた列の物は球体を隠さない高さに収まる', () => {
     const xMin = tileCenter(LANE_CLEAR_COLUMN) - TILE / 2
     const xMax = tileCenter(LANE_CLEAR_COLUMN) + TILE / 2
     for (const card of CARDS) {
-      for (const p of buildIsland(card).pieces) {
+      for (const p of buildIsland(card, false).pieces) {
         if (p.center[0] < xMin || p.center[0] > xMax) continue
         // 島の天面・目地・岩はこの判定の対象外(平らか、下に伸びる物)
         if (p.center[1] <= 0.2) continue
@@ -227,12 +232,23 @@ describe('浮島の岩', () => {
 })
 
 describe('島の外形', () => {
-  it('どの物も島の足元から大きくはみ出さない(隣のカードに侵入しない)', () => {
-    const limit = ISLAND_SPAN / 2 + 1.2
+  const limit = ISLAND_SPAN / 2 + 1.2
+
+  // **カードが並ぶのは Z 方向**なので、隣に侵入しうるのは Z のはみ出しだけ。
+  // 上部を横切る構造は X に大きく伸びるが、その先には何も無いので侵入は起きない
+  it('Z方向は島の枠から出ない(隣のカードに侵入しない)', () => {
     for (const card of CARDS) {
       for (const p of buildIsland(card).pieces) {
-        expect(Math.abs(p.center[0]) + p.size[0] / 2, `${card.id}/x`).toBeLessThanOrEqual(limit)
         expect(Math.abs(p.center[2]) + p.size[2] / 2, `${card.id}/z`).toBeLessThanOrEqual(limit)
+      }
+    }
+  })
+
+  it('島に乗っている物は X方向にも島の枠から出ない', () => {
+    for (const card of CARDS) {
+      // 上部を横切る構造だけは意図的に島の外へ出すので、ここでは組まない
+      for (const p of buildIsland(card, false).pieces) {
+        expect(Math.abs(p.center[0]) + p.size[0] / 2, `${card.id}/x`).toBeLessThanOrEqual(limit)
       }
     }
   })
@@ -295,6 +311,111 @@ describe('壁の情報を足した後のピース数', () => {
     // カメラが固定で裏面は一度も映らないので貼っていない(modules.ts の windowsOn)
     for (const card of CARDS) {
       expect(buildIsland(card).pieces.length, card.id).toBeLessThan(700)
+    }
+  })
+})
+
+// C は固定カメラの俯瞰なので島が画面の中央〜下に収まり、その上が最後まで空になる。
+// **B の「囲む構図」から借りるのは高架という題材ではなく「上を横切らせて画面を締める」作り方**。
+// 構図に効いているかどうかは cards.test.ts で画面座標に落として測る。
+// ここではジオメトリとして成立しているかを見る
+describe('上部を横切る構造(空中歩廊)', () => {
+  it('カードごとに高さと Z がずれる(4枚が定規のように揃わない)', () => {
+    const poses = CARDS.map((c) => skywayPose(c.seed))
+    expect(new Set(poses.map((p) => p.y.toFixed(4))).size).toBe(CARDS.length)
+    expect(new Set(poses.map((p) => p.z.toFixed(4))).size).toBe(CARDS.length)
+  })
+
+  it('同じシードなら常に同じ姿勢(カードが画面外へ抜けて戻っても動かない)', () => {
+    for (const card of CARDS) {
+      expect(skywayPose(card.seed)).toEqual(skywayPose(card.seed))
+    }
+  })
+
+  it('島の一辺より長く、両端が島の外へ出る', () => {
+    expect(SKYWAY_SPAN).toBeGreaterThan(ISLAND_SPAN)
+    for (const p of buildSkyway(CARDS[0].seed)) {
+      // 端の縦材が半分だけ出るぶんは許す(0.08)
+      expect(Math.abs(p.center[0]) + p.size[0] / 2).toBeLessThanOrEqual(SKYWAY_SPAN / 2 + 0.1)
+    }
+    const widest = buildSkyway(CARDS[0].seed).reduce((a, b) => (a.size[0] > b.size[0] ? a : b))
+    expect(widest.size[0]).toBeCloseTo(SKYWAY_SPAN, 6)
+  })
+
+  it('島の天面から十分離れて浮く(下のモジュールと食い合わない)', () => {
+    for (const card of CARDS) {
+      for (const p of buildSkyway(card.seed)) {
+        // 一番下に垂れる board を含めても天面から5以上ある
+        expect(p.center[1] - p.size[1] / 2, card.id).toBeGreaterThan(8)
+      }
+    }
+  })
+
+  // **島の上に立つ物の最高点は照明塔の 7.74**。吊り下げた board がここに触れると
+  // 歩廊と島の物が刺さって見える(最初 SKYWAY_HEIGHT=11.6 で実際に食い合った)
+  it('島の一番高い物より上を通る(照明塔と食い合わない)', () => {
+    for (const card of CARDS) {
+      const islandTop = Math.max(...buildIsland(card, false).pieces.map((p) => p.center[1] + p.size[1] / 2))
+      expect(islandTop, `${card.id}: 島の最高点`).toBeLessThan(8)
+      const lowest = Math.min(...buildSkyway(card.seed).map((p) => p.center[1] - p.size[1] / 2))
+      expect(lowest, card.id).toBeGreaterThan(islandTop)
+    }
+  })
+
+  it('球体の高さとは大きく離れている(主役を隠さない)', () => {
+    for (const card of CARDS) {
+      const lowest = Math.min(...buildSkyway(card.seed).map((p) => p.center[1] - p.size[1] / 2))
+      expect(lowest - BALL_RADIUS * 2, card.id).toBeGreaterThan(4)
+    }
+  })
+
+  // 上下2本の平行な棒だと「構造」ではなく「線」に見える。
+  // 箱だけで組む縛りがあるので斜材は張れず、等間隔の縦材でトラスを表している
+  it('上弦と下弦を縦材でつないでいる(1本の棒に見えない)', () => {
+    const pieces = buildSkyway(CARDS[0].seed)
+    // 吊り物のハンガーも細い縦材なので、奥行き(0.9)で縦材だけを選び分ける
+    const webs = pieces.filter((p) => p.slot === 'roof' && p.size[0] < 0.3 && p.size[1] > 0.5 && p.size[2] > 0.5)
+    expect(webs.length).toBeGreaterThanOrEqual(10)
+    // 縦材が X 方向に等間隔で並ぶ
+    const xs = webs.map((p) => p.center[0]).sort((a, b) => a - b)
+    const gaps = xs.slice(1).map((x, i) => x - xs[i])
+    for (const g of gaps) expect(g).toBeCloseTo(gaps[0], 6)
+  })
+
+  it('島へ向けて board を吊っている(上の構造と下の島がつながって見える)', () => {
+    for (const card of CARDS) {
+      const board = buildSkyway(card.seed).find((p) => p.slot === 'structure3' && p.size[1] > 1.5 && p.size[0] < 4)
+      expect(board, card.id).toBeDefined()
+    }
+  })
+
+  it('新しい色を持ち込まない(既存のスロットしか使わない)', () => {
+    // **`post` は入れない**。島の柵と同じ色にすると夜のパレットで空に溶ける(ΔE 17.3)
+    const allowed = ['roof', 'structure3', 'accent']
+    for (const card of CARDS) {
+      for (const p of buildSkyway(card.seed)) expect(allowed, card.id).toContain(p.slot)
+    }
+  })
+
+  // 歩廊は空を背にするので、空に溶けるとフレームを締める役に立たない
+  it('どのパレットでも構造の色が空から読める', () => {
+    for (const palette of PALETTES) {
+      for (const card of CARDS) {
+        for (const p of buildSkyway(card.seed)) {
+          expect(
+            deltaE(slotColor(palette, p.slot), palette.sky),
+            `${palette.id}/${p.slot}`
+          ).toBeGreaterThanOrEqual(MIN_ROOF_SKY_DELTA_E)
+        }
+      }
+    }
+  })
+
+  it('?sky=0 相当で組まないと、ジオメトリが歩廊のぶんだけ減る', () => {
+    for (const card of CARDS) {
+      const withSky = buildIsland(card).pieces.length
+      const without = buildIsland(card, false).pieces.length
+      expect(withSky - without, card.id).toBe(buildSkyway(card.seed).length)
     }
   })
 })
