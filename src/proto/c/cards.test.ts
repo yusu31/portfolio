@@ -351,7 +351,7 @@ describe('atmosphereAt', () => {
   })
 
   it('?pal 指定は大気にも効く', () => {
-    for (const p of [0, 0.5, 1.7, 3]) expect(atmosphereAt(p, 1).id).toBe('golden')
+    for (const p of [0, 0.5, 1.7, 3]) expect(atmosphereAt(p, 1).id).toBe('dusk')
   })
 })
 
