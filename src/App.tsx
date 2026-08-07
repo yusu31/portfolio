@@ -10,16 +10,18 @@ import GlobalNav from './components/ui/GlobalNav'
 import RouteTransition from './components/ui/RouteTransition'
 import GlobalCanvas from './components/canvas/GlobalCanvas'
 
-// Phase 1 POC (/scroll-poc) と Phase 6 のプロトタイプ (/proto/*) は
+// Phase 1 POC (/scroll-poc)、Phase 6 のプロトタイプ (/proto/*)、リビルド本体 (/city) は
 // ゼロベースの独立ページとして検証するため、既存の固定オーバーレイ
 // (GlobalCanvas/Cursor/GlobalNav)は重ねない。
 //
-// プロトタイプでは除外が必須。Loader は drei の useProgress が 100 に達したときだけ
-// 消えるが、プロトタイプは非同期ロードする資源を持たないので progress が 0 のままになり、
+// 除外が必須。Loader は drei の useProgress が 100 に達したときだけ
+// 消えるが、これらは非同期ロードする資源を持たないので progress が 0 のままになり、
 // **ローダーが永久に画面を覆う**(実際にこれで最初のQAが真っ暗な絵になった)
+const STANDALONE_ROUTES = ['/scroll-poc', '/city']
+
 function LegacyChrome() {
   const location = useLocation()
-  if (location.pathname === '/scroll-poc' || location.pathname.startsWith('/proto/')) return null
+  if (STANDALONE_ROUTES.includes(location.pathname) || location.pathname.startsWith('/proto/')) return null
 
   return (
     <>

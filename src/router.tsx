@@ -11,6 +11,9 @@ const ScrollJourneyPoc = lazy(() => import('./pages/ScrollJourneyPoc'))
 const ProtoA = lazy(() => import('./pages/ProtoA'))
 const ProtoB = lazy(() => import('./pages/ProtoB'))
 const ProtoC = lazy(() => import('./pages/ProtoC'))
+// リビルド本体(Issue #375 / 設計書 docs/plans/2026-08-07-rebuild-city-journey.md)。
+// /scroll-poc と並走させ、超えたと確認できるまで現行シーンを壊さない
+const City = lazy(() => import('./pages/City'))
 
 export default function AppRoutes() {
   return (
@@ -25,6 +28,7 @@ export default function AppRoutes() {
         <Route path="/proto/a" element={<ProtoA />} />
         <Route path="/proto/b" element={<ProtoB />} />
         <Route path="/proto/c" element={<ProtoC />} />
+        <Route path="/city" element={<City />} />
       </Routes>
     </Suspense>
   )
