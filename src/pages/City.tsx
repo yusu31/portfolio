@@ -1,8 +1,9 @@
 // `/city` — 街を貫く1本道とスポーツ施設(リビルド)。
 // 設計書: docs/plans/2026-08-07-rebuild-city-journey.md
 //
-// **PR 1 = 骨格**。道 + カメラ + パレットだけで、街も施設もまだ無い。
-// この時点で見えるのは「何もない下り坂を球が進む」ところまで。
+// **PR 2 まで完了**。道 + カメラ + パレット(PR 1)に**街**が乗った状態で、施設はまだ無い。
+// この時点で見えるのは「B と同じ街を球が下っていき、各章の敷地で街の壁だけが途切れる」ところまで。
+// 縁石の消滅・フェンス・上部構造の差し替え(§1.2 装置2〜4)は PR 3。
 //
 // 現行シーン `/scroll-poc` と並走させ、**超えたと確認できるまで ② を壊さない**(§5.1)。
 import { Suspense, useCallback, useMemo, useRef, useState } from 'react'
@@ -14,6 +15,7 @@ import CityCamera from '../city/CityCamera'
 import type { CityLocation } from '../city/CityCamera'
 import CityOverlay from '../city/CityOverlay'
 import CityRoad from '../city/CityRoad'
+import CityStreet from '../city/CityStreet'
 import { paletteAt } from '../city/palette'
 import {
   CAMERA_FOV,
@@ -30,8 +32,9 @@ export default function City() {
   // 進んだ距離。Canvas の中だけで共有する(state にすると毎フレーム再レンダリングになる)
   const distanceRef = useRef(0)
 
-  // QA ノブ。`?ol=0` は PR 5(輪郭線の判定)、`?warp=0` は PR 10、`?land=0` は PR 6 で
-  // 実際の描画に効くようになる。**ノブ自体は最初から入れておく**のが A/B/C で確立した運用(§11)
+  // QA ノブ。`?ol=0` は PR 2 で実際に効くようになった(輪郭線の**採否**を決めるのは PR 5)。
+  // `?warp=0` は PR 10、`?land=0` は PR 6 で効く。
+  // **ノブ自体は最初から入れておく**のが A/B/C で確立した運用(§11)
   const flags = useMemo(() => {
     const search = currentSearch()
     return {
@@ -66,6 +69,7 @@ export default function City() {
             />
             {/* 世界は静的。位置ごとに色を焼いてあるので毎フレームの更新が要らない */}
             <CityRoad />
+            <CityStreet outline={flags.outline} />
             <CityBall distanceRef={distanceRef} />
           </ScrollControls>
         </Suspense>
