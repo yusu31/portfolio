@@ -184,6 +184,31 @@ export type Phase = {
   length: number
 }
 
+/** 道に沿った区間 `[start, end)`。フェーズ範囲・建物の除外区間がこの型で流れる */
+export type Span = { start: number; end: number }
+
+/**
+ * 街区の性格。**B の `Leg` が持っていた沿道生成パラメータ**をそのまま引き継いだもの(§2.1 の表)。
+ * 章が進むほど建物が高く密になり、街が深くなっていく = そのまま時間の経過になる
+ */
+export type StreetProfile = {
+  /** 小物の散らばりのシード。章ごとに分けておくと1章の密度を触っても他章の配置が動かない */
+  seed: number
+  /** 建物の高さレンジ。**下限が「囲む構図」の成立条件**(street.test.ts で縛る) */
+  buildingHeight: readonly [number, number]
+  /**
+   * 建物の幅の下敷き。ここから引いた値に 1.5〜4 を足したものが幅になる。
+   *
+   * ⚠ B ではこれが `buildingGap`(間隔)という名前だったが、**実際に使われていたのは幅**で、
+   *   建物どうしの間隔は別に 0.2〜1.4 で入る。値は B のまま・名前だけ実態に合わせた
+   */
+  buildingWidth: readonly [number, number]
+  /** 上部を横切る構造(歩道橋・梁・電線・横断幕)の間隔 */
+  overheadSpacing: number
+  /** 1ユニットあたりの小物の数。**密度が「街の圧」の実体** */
+  propDensity: number
+}
+
 /**
  * 章。**二層構造**を1つの型で持つ(§2.1):
  * `story` が街区フェーズで語られる物語、`section` が敷地フェーズで見せるセクション。
@@ -200,6 +225,8 @@ export type Chapter = {
   /** PALETTES のインデックス */
   paletteIndex: number
   phases: readonly Phase[]
+  /** 街区フェーズに立つ街の性格。値は B の対応する区間からそのまま持ってきている */
+  street: StreetProfile
 }
 
 /** 標準の4フェーズ。1章 = 45 + 10 + 28 + 9 = 92(§1.1) */
@@ -224,6 +251,13 @@ export const CHAPTERS: readonly Chapter[] = [
     verb: '蹴り込む',
     paletteIndex: 0,
     phases: STANDARD_PHASES,
+    street: {
+      seed: 2207,
+      buildingHeight: [7, 12],
+      buildingWidth: [6, 9],
+      overheadSpacing: 26,
+      propDensity: 1.9,
+    },
   },
   {
     id: 'skills',
@@ -232,6 +266,13 @@ export const CHAPTERS: readonly Chapter[] = [
     verb: '撃ち上げる',
     paletteIndex: 1,
     phases: STANDARD_PHASES,
+    street: {
+      seed: 5531,
+      buildingHeight: [7, 14],
+      buildingWidth: [5.5, 8.5],
+      overheadSpacing: 24,
+      propDensity: 2.1,
+    },
   },
   {
     id: 'about',
@@ -240,6 +281,14 @@ export const CHAPTERS: readonly Chapter[] = [
     verb: '受けて、上げる',
     paletteIndex: 2,
     phases: STANDARD_PHASES,
+    street: {
+      seed: 9902,
+      // 参考例①に一番近い街。建物を高く・間隔を詰めて、左右から挟む圧を最大にする
+      buildingHeight: [9, 17],
+      buildingWidth: [4.5, 7],
+      overheadSpacing: 21,
+      propDensity: 2.5,
+    },
   },
   {
     id: 'contact',
@@ -253,6 +302,13 @@ export const CHAPTERS: readonly Chapter[] = [
       { id: 'open', length: 10 },
       { id: 'venue', length: 37 },
     ],
+    street: {
+      seed: 7619,
+      buildingHeight: [10, 18],
+      buildingWidth: [4.5, 7],
+      overheadSpacing: 20,
+      propDensity: 2.4,
+    },
   },
 ]
 
@@ -277,7 +333,7 @@ export function totalChapterLength(): number {
 }
 
 /** フェーズの絶対区間 `[start, end)`。存在しないフェーズ(第4章の exit)は null */
-export function phaseRange(chapterIndex: number, phase: PhaseId): { start: number; end: number } | null {
+export function phaseRange(chapterIndex: number, phase: PhaseId): Span | null {
   const c = CHAPTERS[chapterIndex]
   if (!c) return null
   let acc = chapterStart(chapterIndex)
@@ -286,6 +342,27 @@ export function phaseRange(chapterIndex: number, phase: PhaseId): { start: numbe
     acc += p.length
   }
   return null
+}
+
+/**
+ * **街の建物を置かない区間**(= 開口)。§1.2 装置1 の本体。
+ *
+ * 導入(open)の始まりから章の終わりまで。第1〜3章は 導入10 + 敷地28 + 退出9 = **47**、
+ * 第4章は 導入10 + プラザ37 = **47** で揃う。
+ * 設計書 §1.2 は「開口フェーズの合計 ≥ 45」を出発値としていて、47 はその条件を満たす。
+ *
+ * ⚠ **これを「街を区間ごとに生成する」に使ってはいけない。** 生成は道の端から端まで
+ *   一本のカーソルで通し、この区間に落ちた建物を**後からフィルタで抜く**
+ *   (`street.ts` の `buildStreet`)。区間で切るとシード連鎖が切れて境界で建物が食い合う
+ */
+export function openingRanges(): Span[] {
+  const out: Span[] = []
+  for (let i = 0; i < CHAPTERS.length; i++) {
+    const open = phaseRange(i, 'open')
+    if (!open) continue
+    out.push({ start: open.start, end: chapterStart(i) + chapterLength(i) })
+  }
+  return out
 }
 
 export type ChapterState = {

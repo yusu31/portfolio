@@ -1,104 +1,148 @@
-// 道そのもの。**PR 1 の暫定実装**で、B の `roadSurface.ts`(白線・マンホール・横断歩道を
-// 150件以上置く本体)は PR 2 で移植する。ここでは「下り坂が読めること」だけを引き受ける。
+// 路面の描画。**PR 1 の暫定リボンを B の `roadSurface.ts` ベースへ置き換えたもの**(§10 PR 2)。
 //
-// 作り方の要点は**色を頂点に焼くこと**(B の設計判断2)。
-// パレットは `t` の関数なので、リボンの各断面で `paletteAt(t)` を引いて頂点色に入れておけば、
-// 毎フレーム材質を書き換えなくても「道を進むと朝から夜へ空間的に移り変わる」が成立する。
+// PR 1 から増えたのは3つ:
+//   - **縁石の段差**(車道 → 立ち上がり → 歩道)。段差が消えることが「敷地に入った」の
+//     合図になるので(§1.2 装置2)、まず段差がある状態を作る。消すのは PR 3
+//   - **路面マーキング**(白線・路側帯・マンホール・補修跡・横断歩道)。件数がそのまま
+//     地面の情報量なので `roadSurface.test.ts` で下限を縛っている
+//   - 材質を `meshStandardMaterial` から **`meshLambertMaterial`** へ(B と同じ)。
+//     街の箱が `meshToonMaterial` なので、路面に PBR のスペキュラが乗ると質感が食い違う
 //
-// ⚠ 縁石(`CURB_HEIGHT = 0.16` → 0 へ導入フェーズで smootherstep)は §1.2 装置2 の本体だが、
-//   フェーズごとの出し分けは PR 3(開口)の担当。ここではまだ平坦。
+// 作り方の要点は**色を頂点に焼くこと**(B の設計判断2)。パレットは `t` の関数なので、
+// リボンの各断面で `paletteAt(t)` を引いて頂点色に入れておけば、毎フレーム材質を
+// 書き換えなくても「道を進むと朝から夜へ空間的に移り変わる」が成立する。
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { FACADE_X, ROAD_END, ROAD_HALF, ROAD_START, roadPoint } from './route'
-import { paletteAt, shadeHex } from './palette'
-
-/** 断面の刻み。カーブとうねりを折らずに拾える程度に細かく取る */
-const SEGMENT = 2
-
-/**
- * 地面リボンの半幅。フォグに完全に溶ける位置まで伸ばして、
- * **横方向の切れ端が地平に見えない**ようにする(最大 `fogFar` は Noon の 220 で、
- * そこでの画面端は 0.8329 × 220 = 183)
- */
-const GROUND_HALF = 200
-
-type Tone = 'ground' | 'sidewalk' | 'road'
-
-type Lane = { from: number; to: number; tone: Tone }
+import { paletteAt, parseHex, shadeHex } from './palette'
+import {
+  STRIPS,
+  buildMarkGeometry,
+  buildRoadMarks,
+  buildStrip,
+  isDarkMark,
+  type StripGeometryData,
+} from './roadSurface'
+import { ROAD_END, ROAD_START } from './route'
 
 /**
- * 道の断面。内側から外側へ、色の変わる境界で分ける(境界を跨いで頂点色を混ぜないため)。
- *
- * **路面と地面を別メッシュに分けているのは影のため**。キーライトのシャドウカメラは
- * 主役の周り ±34 しか覆っていないのに対し、地面は ±200 まで伸びる。
- * 覆われていない範囲でシャドウマップを引くと縁のテクセルを拾うだけで、得るものが無い。
- * **球の影が要るのは路面の上だけ**なので、地面は `receiveShadow` を外す
+ * 路面の分割数。曲がりと坂を折れ線で近似するので、少ないとカクつきが見える。
+ * B の 260(全長 391)と**同じ密度**になるよう経路長の比で引き直した値(479 / 1.5)
  */
-const SURFACE_LANES: readonly Lane[] = [
-  { from: -FACADE_X, to: -ROAD_HALF, tone: 'sidewalk' },
-  { from: -ROAD_HALF, to: ROAD_HALF, tone: 'road' },
-  { from: ROAD_HALF, to: FACADE_X, tone: 'sidewalk' },
-]
+const ROAD_SEGMENTS = 320
 
-const GROUND_LANES: readonly Lane[] = [
-  { from: -GROUND_HALF, to: -FACADE_X, tone: 'ground' },
-  { from: FACADE_X, to: GROUND_HALF, tone: 'ground' },
-]
-
-function toneColor(tone: Tone, t: number): THREE.Color {
-  const p = paletteAt(t)
-  // 地面はパレットの色から導出する。別の色を持ち込まないので画面の色数が増えない
-  if (tone === 'ground') return new THREE.Color(shadeHex(p.sidewalk, -0.14))
-  return new THREE.Color(tone === 'road' ? p.road : p.sidewalk)
+const hexToRgb01 = (hex: string): [number, number, number] => {
+  const [r, g, b] = parseHex(hex)
+  return [r / 255, g / 255, b / 255]
 }
 
-function buildRibbon(lanes: readonly Lane[]): THREE.BufferGeometry {
-  const positions: number[] = []
-  const colors: number[] = []
-  const indices: number[] = []
+/** 純データのジオメトリを three.js の BufferGeometry にする */
+function useBufferGeometry(data: StripGeometryData, colors?: Float32Array) {
+  return useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.BufferAttribute(data.positions, 3))
+    g.setAttribute('normal', new THREE.BufferAttribute(data.normals, 3))
+    g.setAttribute('uv', new THREE.BufferAttribute(data.uvs, 2))
+    if (colors) g.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    g.setIndex(new THREE.BufferAttribute(data.indices, 1))
+    g.computeBoundingSphere()
+    return g
+  }, [data, colors])
+}
 
-  const steps = Math.ceil((ROAD_END - ROAD_START) / SEGMENT)
-
-  for (const lane of lanes) {
-    const base = positions.length / 3
-    for (let i = 0; i <= steps; i++) {
-      const t = ROAD_START + i * SEGMENT
-      const left = roadPoint(t, lane.from)
-      const right = roadPoint(t, lane.to)
-      positions.push(left[0], left[1], left[2], right[0], right[1], right[2])
-
-      const c = toneColor(lane.tone, t)
-      colors.push(c.r, c.g, c.b, c.r, c.g, c.b)
+/**
+ * 道の帯1本。**頂点色を位置ごとのパレットから焼く**ので、
+ * 路面そのものが朝から夜へグラデーションする(建物だけ色が変わって道が置き去りになるのを防ぐ)
+ */
+function RoadStrip({ strip }: { strip: (typeof STRIPS)[number] }) {
+  // strip は定数配列の要素なので同一性が保たれる
+  const data = useMemo(
+    () =>
+      buildStrip(
+        strip.innerOffset,
+        strip.innerLift,
+        strip.outerOffset,
+        strip.outerLift,
+        ROAD_SEGMENTS,
+        ROAD_START,
+        ROAD_END
+      ),
+    [strip]
+  )
+  const colors = useMemo(() => {
+    const rows = ROAD_SEGMENTS + 1
+    const out = new Float32Array(rows * 2 * 3)
+    for (let i = 0; i < rows; i++) {
+      const t = ROAD_START + (i / ROAD_SEGMENTS) * (ROAD_END - ROAD_START)
+      const p = paletteAt(t)
+      const hex =
+        strip.surface === 'road'
+          ? p.road
+          : strip.surface === 'curb'
+            ? shadeHex(p.sidewalk, -0.18)
+            : strip.surface === 'ground'
+              ? // 遠景の地面はパレットの歩道色から沈めて導出する。
+                // 別の色を持ち込まないので、情報を足しても画面の色数が増えない
+                shadeHex(p.sidewalk, -0.14)
+              : p.sidewalk
+      const rgb = hexToRgb01(hex)
+      for (const o of [i * 6, i * 6 + 3]) {
+        out[o] = rgb[0]
+        out[o + 1] = rgb[1]
+        out[o + 2] = rgb[2]
+      }
     }
-    for (let i = 0; i < steps; i++) {
-      const a = base + i * 2
-      // 上向き法線になる巻き方(路面を上から見て反時計回り)
-      indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2)
-    }
-  }
+    return out
+  }, [strip])
 
-  const geo = new THREE.BufferGeometry()
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
-  geo.setIndex(indices)
-  geo.computeVertexNormals()
-  return geo
+  const geometry = useBufferGeometry(data, colors)
+
+  return (
+    <mesh geometry={geometry} receiveShadow={strip.receiveShadow}>
+      {/* 路面はトゥーンにしない。長い斜面に段が出ると坂が階段に見える */}
+      <meshLambertMaterial vertexColors side={THREE.FrontSide} />
+    </mesh>
+  )
+}
+
+/** 路面マーキング。明るいもの(白線)と暗いもの(マンホール・補修跡)で2枚に分ける */
+function RoadMarks({ dark }: { dark: boolean }) {
+  const marks = useMemo(() => buildRoadMarks().filter((m) => isDarkMark(m.kind) === dark), [dark])
+  const data = useMemo(() => buildMarkGeometry(marks, dark ? 0.015 : 0.025), [marks, dark])
+  const colors = useMemo(() => {
+    const out = new Float32Array(marks.length * 4 * 3)
+    marks.forEach((m, i) => {
+      const p = paletteAt(m.t)
+      // 暗いマークは路面をさらに沈めた色。パレット外の色を持ち込まない
+      const rgb = hexToRgb01(dark ? shadeHex(p.road, -0.28) : p.roadMark)
+      for (let v = 0; v < 4; v++) {
+        const o = (i * 4 + v) * 3
+        out[o] = rgb[0]
+        out[o + 1] = rgb[1]
+        out[o + 2] = rgb[2]
+      }
+    })
+    return out
+  }, [marks, dark])
+
+  const geometry = useBufferGeometry(data, colors)
+
+  return (
+    <mesh geometry={geometry} receiveShadow>
+      {/* 路面と同じ高さに近いので polygonOffset で必ず手前に出す */}
+      <meshLambertMaterial vertexColors polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+    </mesh>
+  )
 }
 
 export default function CityRoad() {
   // 世界は静的なので1回だけ作る。パレットは頂点に焼いてあるので毎フレームの更新が要らない
-  const surface = useMemo(() => buildRibbon(SURFACE_LANES), [])
-  const ground = useMemo(() => buildRibbon(GROUND_LANES), [])
   return (
-    <>
-      {/* 車道と歩道。球の影が落ちるのはここだけ */}
-      <mesh geometry={surface} receiveShadow>
-        <meshStandardMaterial vertexColors roughness={0.95} metalness={0} />
-      </mesh>
-      {/* 遠くまで伸びる地面。シャドウマップの縁を拾わないよう影は受けない */}
-      <mesh geometry={ground}>
-        <meshStandardMaterial vertexColors roughness={1} metalness={0} />
-      </mesh>
-    </>
+    <group>
+      {STRIPS.map((strip) => (
+        <RoadStrip key={strip.id} strip={strip} />
+      ))}
+      <RoadMarks dark={false} />
+      <RoadMarks dark />
+    </group>
   )
 }

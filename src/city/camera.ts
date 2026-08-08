@@ -259,6 +259,32 @@ export function vanishingOffsetDeg(t: number, ahead: number = 70): number {
   return (Math.acos(THREE.MathUtils.clamp(dir.dot(forward), -1, 1)) * 180) / Math.PI
 }
 
+/** 垂直画角の半分(度)。「画面の上端」を角度で表したもの */
+export function halfVerticalFovDeg(): number {
+  return CAMERA_FOV / 2
+}
+
+/**
+ * **囲む構図の指標**(§11)。**路面から** `height` の高さの壁が横 `lateral` に立っているとき、
+ * その壁の上端がカメラから見て何度の仰角にあるか(球 = カメラは道の中心を走るので
+ * 壁までの水平距離は `lateral` そのものになる。`BALL_LATERAL = 0`)。
+ *
+ * これが `halfVerticalFovDeg()`(27.5°)を超えていれば、壁は画面の上端より上まで伸びている
+ * = 「画面を左右から挟む」状態になる。参考例①の構図の成立条件そのもの。
+ *
+ * ⚠ **B の同名関数をそのまま持ってくることはできなかった。** B は
+ *   `atan2(height − CAMERA_HEIGHT, lateral)` で、カメラ高が路面基準の定数 2.6 だった。
+ *   /city のカメラは `getBallFrame` の契約に乗る(設計原則3)ので高さが球中心からの相対になり、
+ *   **下り勾配 × dBack のぶんだけ路面との余裕が変わる**(実測 1.52〜3.5)。
+ *   定数で代用すると壁の高さを 1 ユニット以上見誤るので、`cameraRoadClearance(t)` で
+ *   その地点の実際の高さを引いて測る。街区では `t` によらず成立してほしいので、
+ *   テストは全長にわたって最小値を見る
+ */
+export function enclosureElevationDeg(height: number, lateral: number, t: number): number {
+  const camAboveRoad = cameraRoadClearance(t)
+  return (Math.atan2(height - camAboveRoad, Math.abs(lateral)) * 180) / Math.PI
+}
+
 /**
  * カメラの真下の路面からの高さ。**下り坂で路面にめり込まないこと**を測る。
  *
